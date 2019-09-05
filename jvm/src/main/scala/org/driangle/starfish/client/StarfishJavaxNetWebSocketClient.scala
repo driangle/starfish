@@ -5,11 +5,11 @@ import java.net.URI
 import org.driangle.starfish.common.StarfishClient
 import org.driangle.starfish.common.message.{CirceJsonStarfishMessageCodec, StarfishMessage, StarfishMessageCodec, StarfishMessageHandler}
 
-class StarfishWebSocketClient(endpointURI : String,
-                              role : String,
-                              codec : StarfishMessageCodec = new CirceJsonStarfishMessageCodec()) extends StarfishClient {
+class StarfishJavaxNetWebSocketClient(endpointURI : String,
+                                      role : String,
+                                      codec : StarfishMessageCodec = new CirceJsonStarfishMessageCodec()) extends StarfishClient {
   var handlers : Seq[StarfishMessageHandler] = List.empty
-  val endpoint = new StarfishWebSocketEndpoint(
+  val endpoint = new StarfishJavaxNetWebSocketEndpoint(
     new URI(endpointURI),
     codec,
     StarfishMessageHandler.group(
@@ -40,6 +40,6 @@ class StarfishWebSocketClient(endpointURI : String,
   }
 
   override def onMessage(handler: StarfishMessageHandler): Unit = {
-    handlers :+ handler
+    handlers = handlers :+ handler
   }
 }

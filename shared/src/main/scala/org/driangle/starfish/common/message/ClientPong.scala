@@ -3,7 +3,7 @@ package org.driangle.starfish.common.message
 import io.circe.Json
 import io.circe.generic.auto._
 import io.circe.syntax._
-import org.driangle.starfish.common.{StarfishHeaders, StarfishMethods, message}
+import org.driangle.starfish.common.{StarfishMethods, message}
 
 object ClientPong {
   def apply(timestamp: Long, ping: StarfishMessage, role: String): StarfishMessage = {

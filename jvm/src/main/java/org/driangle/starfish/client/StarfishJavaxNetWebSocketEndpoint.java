@@ -9,16 +9,16 @@ import javax.websocket.*;
 import java.net.URI;
 
 @ClientEndpoint
-public class StarfishWebSocketEndpoint {
+public class StarfishJavaxNetWebSocketEndpoint {
 
     private Session userSession = null;
     private final URI endpointURI;
     private final StarfishMessageDeserializer deserializer;
     private final StarfishMessageHandler messageHandler;
 
-    public StarfishWebSocketEndpoint(URI endpointURI,
-                                     StarfishMessageDeserializer deserializer,
-                                     StarfishMessageHandler messageHandler) {
+    public StarfishJavaxNetWebSocketEndpoint(URI endpointURI,
+                                             StarfishMessageDeserializer deserializer,
+                                             StarfishMessageHandler messageHandler) {
         if (endpointURI == null) {
             throw new IllegalArgumentException("[endpointURI] cannot be null");
         }
@@ -60,7 +60,7 @@ public class StarfishWebSocketEndpoint {
             System.out.println("Successfully deserialized: " + message.get());
             this.messageHandler.apply(message.get());
         } else {
-            System.out.println("Message [" + rawMessage + "] was not serialized");
+            System.out.println("Message [" + rawMessage + "] was not deserialized");
         }
     }
 

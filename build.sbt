@@ -10,15 +10,17 @@ lazy val starfish = crossProject(JVMPlatform, JSPlatform)
     version := "0.1.0-SNAPSHOT",
     scalaVersion := "2.12.6",
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core" % "0.11.1",
-      "io.circe" %% "circe-generic" % "0.11.1",
-      "io.circe" %% "circe-parser" % "0.11.1"
+      "org.scalatest" %% "scalatest" % "3.0.8" % "test"
     )
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
       "javax.websocket" % "javax.websocket-api" % "1.1",
       "org.eclipse.jetty.websocket" % "javax-websocket-client-impl" % "9.4.14.v20181114",
+      "io.circe" %% "circe-core" % "0.11.1",
+      "io.circe" %% "circe-generic" % "0.11.1",
+      "io.circe" %% "circe-parser" % "0.11.1",
+      "org.scalatest" %% "scalatest" % "3.0.8" % "test"
     ),
     resolvers ++= Seq(
       Resolver.sonatypeRepo("public")

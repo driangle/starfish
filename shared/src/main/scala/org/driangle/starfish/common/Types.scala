@@ -1,7 +1,5 @@
 package org.driangle.starfish.common
 
-import org.driangle.starfish.common.message.StarfishMessage
-
 
 object Types {
 

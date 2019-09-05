@@ -1,4 +1,4 @@
-package org.driangle.starfish.common
+package org.driangle.starfish.common.message
 
 import java.util.Date
 

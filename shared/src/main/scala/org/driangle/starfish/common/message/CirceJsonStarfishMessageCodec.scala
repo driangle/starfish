@@ -10,12 +10,20 @@ class CirceJsonStarfishMessageCodec extends StarfishMessageCodec {
   }
 
   override def deserialize(rawMessage: String): Option[StarfishMessage] = {
-    decode[StarfishMessage](rawMessage) match {
+    parse(rawMessage) match {
       case Left(error) => {
-        println(s"Unable to deserialize rawMessage into starfishMessage [${rawMessage}]")
+        println(s"Error while parsing rawMessage [${rawMessage}]")
+        error.printStackTrace()
         None
       }
-      case Right(message) => Some(message)
+      case Right(json) => json.as[StarfishMessage] match {
+        case Left(error) => {
+          println(s"Unable to deserialize rawMessage into starfishMessage [${rawMessage}]")
+          error.printStackTrace()
+          None
+        }
+        case Right(message) => Some(message)
+      }
     }
   }
 }
