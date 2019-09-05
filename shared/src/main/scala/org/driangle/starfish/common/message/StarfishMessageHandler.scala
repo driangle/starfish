@@ -8,4 +8,6 @@ object StarfishMessageHandler {
   def group(handlers : StarfishMessageHandler*) : StarfishMessageHandler = {
     GroupStarfishMessageHandler(handlers)
   }
+
+//  def lazyChain() : LazyChain.build()
 }

@@ -10,7 +10,8 @@ lazy val starfish = crossProject(JVMPlatform, JSPlatform)
     version := "0.1.0-SNAPSHOT",
     scalaVersion := "2.12.6",
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.0.8" % "test"
+      "org.scalatest" %% "scalatest" % "3.0.8" % "test",
+//      "org.driangle" %% "flunc" % "0.2.0-SNAPSHOT"
     )
   )
   .jvmSettings(

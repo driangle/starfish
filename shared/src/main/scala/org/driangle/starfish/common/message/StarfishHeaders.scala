@@ -10,6 +10,7 @@ object StarfishHeaders {
     private var method : Option[String] = None
     private var timestamp : Option[Long] = None
     private var clientId : Option[String] = None
+//    private var storage : Option[String] = None
 
     def withMethod(_method : String) : Builder = {
       require(_method != null, "[method] cannot be null")

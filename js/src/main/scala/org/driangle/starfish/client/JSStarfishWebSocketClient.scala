@@ -7,10 +7,11 @@ import org.scalajs.dom.raw.WebSocket
 import scala.scalajs.js.annotation.JSExport
 
 class JSStarfishWebSocketClient(endpointURI: String,
-                                codec : StarfishMessageCodec) extends StarfishClient {
+                                codec: StarfishMessageCodec) extends StarfishClient {
 
   var ws: WebSocket = null
-  var handlers : Seq[StarfishMessageHandler] = List.empty
+  var handlers: Seq[StarfishMessageHandler] = List.empty
+  var messageQueueWaitingForConnection: Seq[StarfishMessage] = List.empty
   val messageHandler = StarfishMessageHandler.group(
     new StarfishClientProtocolMessageHandler(this),
     message => handlers.foreach(_.apply(message))
@@ -26,6 +27,12 @@ class JSStarfishWebSocketClient(endpointURI: String,
           case None => println(s"Unable to deserialize message [${wsEvent.data.toString}]")
         }
       }
+      ws.onopen = _ => {
+        if (messageQueueWaitingForConnection.nonEmpty && ws.readyState == WebSocket.OPEN) {
+          this.publish(messageQueueWaitingForConnection)
+          messageQueueWaitingForConnection = List.empty
+        }
+      }
     }
   }
 
@@ -37,13 +44,16 @@ class JSStarfishWebSocketClient(endpointURI: String,
   @JSExport("publish")
   override def publish(message: StarfishMessage): Unit = {
     codec.serialize(message) match {
-      case Some(serialized) => ws.send(serialized)
+      case Some(serialized) if isWebSocketReady() => ws.send(serialized)
+      case Some(_) => pushMessageToLazyQueue(message)
       case None => println(s"Unable to serialize message [${message}]")
     }
   }
 
   @JSExport("publish")
-  override def publish(messages: Seq[StarfishMessage]): Unit = ???
+  override def publish(messages: Seq[StarfishMessage]): Unit = {
+    messages.foreach(this.publish _)
+  }
 
   @JSExport("subscribe")
   override def subscribe(topic: String): Unit = ???
@@ -53,5 +63,11 @@ class JSStarfishWebSocketClient(endpointURI: String,
 
   @JSExport("onConnectionOpen")
   override def onConnectionOpen(callback: Function[Unit, Unit]): Unit = ???
+
+  private def isWebSocketReady() : Boolean = Option(ws).map(_.readyState == WebSocket.OPEN).getOrElse(false)
+
+  private def pushMessageToLazyQueue(message: StarfishMessage): Unit = {
+    messageQueueWaitingForConnection = messageQueueWaitingForConnection :+ message
+  }
 
 }
