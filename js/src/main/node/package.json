@@ -1,0 +1,19 @@
+{
+  "name": "starfish-server-nodejs",
+  "version": "0.1.0",
+  "description": "A nodejs implementation of the starfish server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel --presets es2015 -d lib/ src"
+  },
+  "author": "driangle",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1"
+  },
+  "dependencies": {
+    "websocket": "^1.0.29"
+  }
+}

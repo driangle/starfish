@@ -1,0 +1,3 @@
+package org.driangle.starfish.common.message
+
+trait StarfishMessageCodec extends StarfishMessageDeserializer with StarfishMessageSerializer

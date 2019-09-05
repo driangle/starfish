@@ -1,0 +1,57 @@
+package org.driangle.starfish.client
+
+import org.driangle.starfish.common.StarfishClient
+import org.driangle.starfish.common.message.{StarfishMessage, StarfishMessageCodec, StarfishMessageHandler}
+import org.scalajs.dom.raw.WebSocket
+
+import scala.scalajs.js.annotation.JSExport
+
+class JSStarfishWebSocketClient(endpointURI: String,
+                                codec : StarfishMessageCodec) extends StarfishClient {
+
+  var ws: WebSocket = null
+  var handlers : Seq[StarfishMessageHandler] = List.empty
+  val messageHandler = StarfishMessageHandler.group(
+    new StarfishClientProtocolMessageHandler(this),
+    message => handlers.foreach(_.apply(message))
+  )
+
+  @JSExport("connect")
+  override def connect(): Unit = {
+    if (ws == null) {
+      ws = new WebSocket(endpointURI)
+      ws.onmessage = wsEvent => {
+        codec.deserialize(wsEvent.data.toString) match {
+          case Some(message) => messageHandler.apply(message)
+          case None => println(s"Unable to deserialize message [${wsEvent.data.toString}]")
+        }
+      }
+    }
+  }
+
+  @JSExport("onMessage")
+  override def onMessage(handler: StarfishMessageHandler): Unit = {
+    handlers = handlers :+ handler
+  }
+
+  @JSExport("publish")
+  override def publish(message: StarfishMessage): Unit = {
+    codec.serialize(message) match {
+      case Some(serialized) => ws.send(serialized)
+      case None => println(s"Unable to serialize message [${message}]")
+    }
+  }
+
+  @JSExport("publish")
+  override def publish(messages: Seq[StarfishMessage]): Unit = ???
+
+  @JSExport("subscribe")
+  override def subscribe(topic: String): Unit = ???
+
+  @JSExport("subscribe")
+  override def subscribe(topics: Seq[String]): Unit = ???
+
+  @JSExport("onConnectionOpen")
+  override def onConnectionOpen(callback: Function[Unit, Unit]): Unit = ???
+
+}
