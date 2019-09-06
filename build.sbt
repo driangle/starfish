@@ -18,9 +18,10 @@ lazy val starfish = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "javax.websocket" % "javax.websocket-api" % "1.1",
       "org.eclipse.jetty.websocket" % "javax-websocket-client-impl" % "9.4.14.v20181114",
-      "io.circe" %% "circe-core" % "0.11.1",
-      "io.circe" %% "circe-generic" % "0.11.1",
-      "io.circe" %% "circe-parser" % "0.11.1",
+      "com.typesafe.play" %% "play-json" % "2.7.3",
+//      "io.circe" %% "circe-core" % "0.11.1",
+//      "io.circe" %% "circe-generic" % "0.11.1",
+//      "io.circe" %% "circe-parser" % "0.11.1",
       "org.scalatest" %% "scalatest" % "3.0.8" % "test"
     ),
     resolvers ++= Seq(
@@ -30,9 +31,10 @@ lazy val starfish = crossProject(JVMPlatform, JSPlatform)
   .jsSettings(
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.9.7",
-      "io.circe" %%% "circe-core" % "0.11.1",
-      "io.circe" %%% "circe-generic" % "0.11.1",
-      "io.circe" %%% "circe-parser" % "0.11.1"
+      "com.typesafe.play" %%% "play-json" % "2.7.3"
+//      "io.circe" %%% "circe-core" % "0.11.1",
+//      "io.circe" %%% "circe-generic" % "0.11.1",
+//      "io.circe" %%% "circe-parser" % "0.11.1"
     ),
     scalacOptions += "-P:scalajs:sjsDefinedByDefault"
   )

@@ -3,11 +3,11 @@ package org.driangle.starfish.client
 import java.net.URI
 
 import org.driangle.starfish.common.StarfishClient
-import org.driangle.starfish.common.message.{CirceJsonStarfishMessageCodec, StarfishMessage, StarfishMessageCodec, StarfishMessageHandler}
+import org.driangle.starfish.common.message.{PlayJsonStarfishMessageCodec, StarfishMessage, StarfishMessageCodec, StarfishMessageHandler}
 
 class StarfishJavaxNetWebSocketClient(endpointURI : String,
                                       role : String,
-                                      codec : StarfishMessageCodec = new CirceJsonStarfishMessageCodec()) extends StarfishClient {
+                                      codec : StarfishMessageCodec = new PlayJsonStarfishMessageCodec()) extends StarfishClient {
   var handlers : Seq[StarfishMessageHandler] = List.empty
   val endpoint = new StarfishJavaxNetWebSocketEndpoint(
     new URI(endpointURI),

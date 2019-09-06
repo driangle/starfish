@@ -1,9 +1,7 @@
 package org.driangle.starfish.common.message
 
-import io.circe.Json
-import io.circe.generic.auto._
-import io.circe.syntax._
-import org.driangle.starfish.common.{StarfishMethods, message}
+import org.driangle.starfish.common.StarfishMethods
+import play.api.libs.json.Json
 
 object CorePong {
 
@@ -13,7 +11,7 @@ object CorePong {
       .withTimestamp(timestamp)
       .build()
 
-    val body = Json.obj("ping" -> ping.asJson)
-    message.StarfishMessage(headers, body)
+    val body = Json.obj("ping" -> ping)
+    StarfishMessage(headers, body)
   }
 }

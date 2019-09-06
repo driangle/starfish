@@ -1,13 +1,14 @@
 package org.driangle.starfish.client
 
 import org.driangle.starfish.common.StarfishClient
-import org.driangle.starfish.common.message.{StarfishMessage, StarfishMessageCodec, StarfishMessageHandler}
+import org.driangle.starfish.common.message.{PlayJsonStarfishMessageCodec, StarfishMessage, StarfishMessageCodec, StarfishMessageHandler}
 import org.scalajs.dom.raw.WebSocket
+import play.api.libs.json.Json
 
 import scala.scalajs.js.annotation.JSExport
 
 class JSStarfishWebSocketClient(endpointURI: String,
-                                codec: StarfishMessageCodec) extends StarfishClient {
+                                codec : StarfishMessageCodec = new PlayJsonStarfishMessageCodec) extends StarfishClient {
 
   var ws: WebSocket = null
   var handlers: Seq[StarfishMessageHandler] = List.empty
@@ -22,10 +23,8 @@ class JSStarfishWebSocketClient(endpointURI: String,
     if (ws == null) {
       ws = new WebSocket(endpointURI)
       ws.onmessage = wsEvent => {
-        codec.deserialize(wsEvent.data.toString) match {
-          case Some(message) => messageHandler.apply(message)
-          case None => println(s"Unable to deserialize message [${wsEvent.data.toString}]")
-        }
+        val message = Json.parse(wsEvent.data.toString).as[StarfishMessage]
+        messageHandler.apply(message)
       }
       ws.onopen = _ => {
         if (messageQueueWaitingForConnection.nonEmpty && ws.readyState == WebSocket.OPEN) {
@@ -64,7 +63,9 @@ class JSStarfishWebSocketClient(endpointURI: String,
   @JSExport("onConnectionOpen")
   override def onConnectionOpen(callback: Function[Unit, Unit]): Unit = ???
 
-  private def isWebSocketReady() : Boolean = Option(ws).map(_.readyState == WebSocket.OPEN).getOrElse(false)
+  private def isWebSocketReady() : Boolean = {
+    Option(ws).map(_.readyState == WebSocket.OPEN).getOrElse(false)
+  }
 
   private def pushMessageToLazyQueue(message: StarfishMessage): Unit = {
     messageQueueWaitingForConnection = messageQueueWaitingForConnection :+ message

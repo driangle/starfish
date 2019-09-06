@@ -2,9 +2,14 @@ package org.driangle.starfish.common.message
 
 import java.util.Date
 
+import play.api.libs.json.{Json, Reads, Writes}
+
 case class StarfishHeaders(method : String, timestamp : Long, clientId : Option[String])
 
 object StarfishHeaders {
+
+  implicit val decodeHeaders : Reads[StarfishHeaders] = Json.reads[StarfishHeaders]
+  implicit val encodeHeaders : Writes[StarfishHeaders] = Json.writes[StarfishHeaders]
 
   class Builder {
     private var method : Option[String] = None
