@@ -4,42 +4,46 @@ import java.util.Date
 
 import play.api.libs.json.{Json, Reads, Writes}
 
-case class StarfishHeaders(method : String, timestamp : Long, clientId : Option[String])
+case class StarfishHeaders(methods: Seq[StarfishMethod], timestamp: Long, clientId: Option[String])
 
 object StarfishHeaders {
 
-  implicit val decodeHeaders : Reads[StarfishHeaders] = Json.reads[StarfishHeaders]
-  implicit val encodeHeaders : Writes[StarfishHeaders] = Json.writes[StarfishHeaders]
+  implicit val decodeHeaders: Reads[StarfishHeaders] = Json.reads[StarfishHeaders]
+  implicit val encodeHeaders: Writes[StarfishHeaders] = Json.writes[StarfishHeaders]
 
   class Builder {
-    private var method : Option[String] = None
-    private var timestamp : Option[Long] = None
-    private var clientId : Option[String] = None
-//    private var storage : Option[String] = None
+    private var methods: Seq[StarfishMethod] = List.empty
+    private var timestamp: Option[Long] = None
+    private var clientId: Option[String] = None
 
-    def withMethod(_method : String) : Builder = {
-      require(_method != null, "[method] cannot be null")
-      method = Some(_method)
+    def withMethod(method : String) : Builder = {
+      this.withMethod(StarfishMethod(method))
+    }
+
+    def withMethod(method: StarfishMethod): Builder = {
+      require(method != null, "[method] cannot be null")
+      methods = methods :+ method
       this
     }
 
-    def withTimestamp(_timestamp : Long) : Builder = {
+    def withTimestamp(_timestamp: Long): Builder = {
       timestamp = Some(_timestamp)
       this
     }
 
-    def withClientId(_clientId : String) : Builder = {
+    def withClientId(_clientId: String): Builder = {
       clientId = Option(_clientId)
       this
     }
 
-    def build() : StarfishHeaders = {
-      require(method.nonEmpty, "You must set [method] before calling build()")
+    def build(): StarfishHeaders = {
+      require(methods.nonEmpty, "You must set at least one [method] before calling build()")
       StarfishHeaders(
-        method.get,
+        methods,
         timestamp.getOrElse(new Date().getTime),
         clientId
       )
     }
   }
+
 }

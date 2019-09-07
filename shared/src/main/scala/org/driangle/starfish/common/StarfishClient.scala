@@ -18,5 +18,7 @@ trait StarfishClient {
 
   def subscribe(topics : Seq[String]) : Unit
 
+  def clientId() : Option[String]
+
 
 }

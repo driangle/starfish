@@ -1,19 +1,22 @@
 package org.driangle.starfish.client
 
-import java.util.Date
-
-import org.driangle.starfish.common.message.{ClientPong, StarfishMessage, StarfishMessageHandler}
-import org.driangle.starfish.common.{StarfishClient, StarfishMethods}
+import org.driangle.starfish.common.StarfishClient
+import org.driangle.starfish.common.message.{ClientPong, StarfishMessage, StarfishMessageHandler, StarfishMethod}
 
 class StarfishClientProtocolMessageHandler(client: StarfishClient, clientRole: String = "user") extends StarfishMessageHandler {
+  private var _clientId : Option[String] = None
   override def apply(message: StarfishMessage): Unit = {
-    message match {
-      case ping: StarfishMessage if ping.headers.method == StarfishMethods.SERVER_PING => {
-        client.publish(ClientPong(now(), ping, clientRole))
-      }
-      case _ => // nothing to do for non-protocol messages
-    }
+    message.getMethod(StarfishMethod.SERVER_PING).foreach(method => {
+      _clientId = Some(method.arguments.as[String])
+      client.publish(ClientPong(message, clientRole))
+    })
   }
 
-  def now(): Long = new Date().getTime
+  def sign(message: StarfishMessage) : StarfishMessage = {
+    _clientId.map(id => message.withClientId(id)).getOrElse(message)
+  }
+
+  def isReadyToSendMessage() : Boolean = _clientId.nonEmpty
+
+  def clientId() : Option[String] = _clientId
 }

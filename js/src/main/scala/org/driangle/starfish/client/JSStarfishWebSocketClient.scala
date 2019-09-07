@@ -12,10 +12,16 @@ class JSStarfishWebSocketClient(endpointURI: String,
 
   var ws: WebSocket = null
   var handlers: Seq[StarfishMessageHandler] = List.empty
-  var messageQueueWaitingForConnection: Seq[StarfishMessage] = List.empty
+  var messagesWaitingToBePublished: Seq[StarfishMessage] = List.empty
+  val protocol = new StarfishClientProtocolMessageHandler(this)
   val messageHandler = StarfishMessageHandler.group(
-    new StarfishClientProtocolMessageHandler(this),
-    message => handlers.foreach(_.apply(message))
+    protocol,
+    message => handlers.foreach(_.apply(message)),
+    _ => {
+      if (messagesWaitingToBePublished.nonEmpty && isReadyToPublish()) {
+        publishMessagesWaitingToBePublished()
+      }
+    }
   )
 
   @JSExport("connect")
@@ -27,9 +33,8 @@ class JSStarfishWebSocketClient(endpointURI: String,
         messageHandler.apply(message)
       }
       ws.onopen = _ => {
-        if (messageQueueWaitingForConnection.nonEmpty && ws.readyState == WebSocket.OPEN) {
-          this.publish(messageQueueWaitingForConnection)
-          messageQueueWaitingForConnection = List.empty
+        if (messagesWaitingToBePublished.nonEmpty && isReadyToPublish()) {
+          publishMessagesWaitingToBePublished()
         }
       }
     }
@@ -42,8 +47,9 @@ class JSStarfishWebSocketClient(endpointURI: String,
 
   @JSExport("publish")
   override def publish(message: StarfishMessage): Unit = {
-    codec.serialize(message) match {
-      case Some(serialized) if isWebSocketReady() => ws.send(serialized)
+    val signed = protocol.sign(message)
+    codec.serialize(signed) match {
+      case Some(serialized) if isReadyToPublish() => ws.send(serialized)
       case Some(_) => pushMessageToLazyQueue(message)
       case None => println(s"Unable to serialize message [${message}]")
     }
@@ -63,12 +69,21 @@ class JSStarfishWebSocketClient(endpointURI: String,
   @JSExport("onConnectionOpen")
   override def onConnectionOpen(callback: Function[Unit, Unit]): Unit = ???
 
-  private def isWebSocketReady() : Boolean = {
-    Option(ws).map(_.readyState == WebSocket.OPEN).getOrElse(false)
+  override def clientId(): Option[String] = protocol.clientId()
+
+  private def isReadyToPublish() : Boolean = {
+    val isWebSocketReady = Option(ws).map(_.readyState == WebSocket.OPEN).getOrElse(false)
+    val isProtocolReady = protocol.isReadyToSendMessage()
+    isWebSocketReady && isProtocolReady
   }
 
   private def pushMessageToLazyQueue(message: StarfishMessage): Unit = {
-    messageQueueWaitingForConnection = messageQueueWaitingForConnection :+ message
+    messagesWaitingToBePublished = messagesWaitingToBePublished :+ message
+  }
+
+  private def publishMessagesWaitingToBePublished() = {
+    this.publish(messagesWaitingToBePublished)
+    messagesWaitingToBePublished = List.empty
   }
 
 }
