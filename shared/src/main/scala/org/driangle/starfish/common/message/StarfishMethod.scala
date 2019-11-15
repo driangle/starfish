@@ -27,14 +27,20 @@ object StarfishMethod {
 
   def broadcast(): StarfishMethod = StarfishMethod(BROADCAST)
 
-  def save(location: String): StarfishMethod = {
+  def save(location: String, mode : String = "replace"): StarfishMethod = {
     require(location != null, "[location] cannot be null")
-    StarfishMethod(SAVE_DATA, Json.toJson(location))
+    StarfishMethod(SAVE_DATA, Json.toJson(
+      "location" -> location,
+      "mode" -> mode
+    ))
   }
 
-  def load(location: String): StarfishMethod = {
+  def load(location: String, scope : String = "self"): StarfishMethod = {
     require(location != null, "[location] cannot be null")
-    StarfishMethod(LOAD_DATA, Json.toJson(location))
+    StarfishMethod(LOAD_DATA, Json.obj(
+      "location" -> location,
+      "scope" -> scope
+    ))
   }
 
   def deleteClientData(clientId: String): StarfishMethod = {
