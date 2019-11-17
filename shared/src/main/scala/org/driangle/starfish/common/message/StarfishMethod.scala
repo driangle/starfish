@@ -4,6 +4,21 @@ import play.api.libs.json.{JsNull, JsValue, Json, Reads, Writes}
 
 case class StarfishMethod(name: String, arguments: JsValue = JsNull)
 
+case class LoadArguments(location: String, scope: String)
+
+object LoadArguments {
+  implicit val reads = Json.reads[LoadArguments]
+  implicit val writes = Json.writes[LoadArguments]
+}
+
+case class SaveArguments(location: String, mode: String)
+
+object SaveArguments {
+  implicit val reads = Json.reads[SaveArguments]
+  implicit val writes = Json.writes[SaveArguments]
+}
+
+
 object StarfishMethod {
 
   val SERVER_PING = "sfp:server-ping"
@@ -27,7 +42,7 @@ object StarfishMethod {
 
   def broadcast(): StarfishMethod = StarfishMethod(BROADCAST)
 
-  def save(location: String, mode : String = "replace"): StarfishMethod = {
+  def save(location: String, mode: String = "replace"): StarfishMethod = {
     require(location != null, "[location] cannot be null")
     StarfishMethod(SAVE_DATA, Json.toJson(
       "location" -> location,
@@ -35,7 +50,7 @@ object StarfishMethod {
     ))
   }
 
-  def load(location: String, scope : String = "self"): StarfishMethod = {
+  def load(location: String, scope: String = "self"): StarfishMethod = {
     require(location != null, "[location] cannot be null")
     StarfishMethod(LOAD_DATA, Json.obj(
       "location" -> location,

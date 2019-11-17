@@ -3,12 +3,13 @@ package org.driangle.starfish.client
 import java.net.URI
 
 import org.driangle.starfish.common.StarfishClient
-import org.driangle.starfish.common.message.{PlayJsonStarfishMessageCodec, StarfishMessage, StarfishMessageCodec, StarfishMessageHandler}
+import org.driangle.starfish.common.message.{PlayJsonStarfishMessageCodec, StarfishMessage, StarfishMessageCodec, StarfishMessageHandler, StarfishMethod}
+import play.api.libs.json.JsString
 
-class StarfishJavaxNetWebSocketClient(endpointURI : String,
-                                      role : String,
-                                      codec : StarfishMessageCodec = new PlayJsonStarfishMessageCodec()) extends StarfishClient {
-  var handlers : Seq[StarfishMessageHandler] = List.empty
+class StarfishJavaxNetWebSocketClient(endpointURI: String,
+                                      role: String,
+                                      codec: StarfishMessageCodec = new PlayJsonStarfishMessageCodec()) extends StarfishClient {
+  var handlers: Seq[StarfishMessageHandler] = List.empty
   val protocol = new StarfishClientProtocolMessageHandler(this, role)
   var messagesWaitingToBePublished: Seq[StarfishMessage] = List.empty
   val endpoint = new StarfishJavaxNetWebSocketEndpoint(
@@ -33,7 +34,6 @@ class StarfishJavaxNetWebSocketClient(endpointURI : String,
     } else {
       pushMessageToLazyQueue(message)
     }
-
   }
 
   override def publish(messages: Seq[StarfishMessage]): Unit = {
@@ -56,7 +56,7 @@ class StarfishJavaxNetWebSocketClient(endpointURI : String,
 
   override def clientId(): Option[String] = protocol.clientId()
 
-  private def isReadyToPublish() : Boolean = {
+  private def isReadyToPublish(): Boolean = {
     protocol.isReadyToSendMessage()
   }
 
@@ -64,10 +64,8 @@ class StarfishJavaxNetWebSocketClient(endpointURI : String,
     messagesWaitingToBePublished = messagesWaitingToBePublished :+ message
   }
 
-  private def publishMessagesWaitingToBePublished() = {
+  private def publishMessagesWaitingToBePublished(): Unit = {
     this.publish(messagesWaitingToBePublished)
     messagesWaitingToBePublished = List.empty
   }
-
-
 }

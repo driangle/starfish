@@ -53,11 +53,11 @@ public class StarfishJavaxNetWebSocketEndpoint {
      */
     @OnMessage
     public void onMessage(String rawMessage) {
-        System.out.println("Deserializing: " + rawMessage);
+//        System.out.println("Deserializing: " + rawMessage);
         final Option<StarfishMessage> message = deserializer.deserialize(rawMessage);
 
         if (message.isDefined()) {
-            System.out.println("Successfully deserialized: " + message.get());
+//            System.out.println("Successfully deserialized: " + message.get());
             this.messageHandler.apply(message.get());
         } else {
             System.out.println("Message [" + rawMessage + "] was not deserialized");
@@ -74,7 +74,7 @@ public class StarfishJavaxNetWebSocketEndpoint {
      * @param message the message to send
      */
     public void publish(String message) {
-        System.out.println("Sending message: " + message);
+//        System.out.println("Sending message: " + message);
         this.userSession.getAsyncRemote().sendText(message);
     }
 

@@ -1,7 +1,7 @@
 package org.driangle.starfish.client
 
 import org.driangle.starfish.common.StarfishClient
-import org.driangle.starfish.common.message.{PlayJsonStarfishMessageCodec, StarfishMessage, StarfishMessageCodec, StarfishMessageHandler}
+import org.driangle.starfish.common.message.{PlayJsonStarfishMessageCodec, StarfishMessage, StarfishMessageCodec, StarfishMessageHandler, StarfishMethod}
 import org.scalajs.dom.raw.WebSocket
 import play.api.libs.json.Json
 
@@ -81,9 +81,8 @@ class JSStarfishWebSocketClient(endpointURI: String,
     messagesWaitingToBePublished = messagesWaitingToBePublished :+ message
   }
 
-  private def publishMessagesWaitingToBePublished() = {
+  private def publishMessagesWaitingToBePublished(): Unit = {
     this.publish(messagesWaitingToBePublished)
     messagesWaitingToBePublished = List.empty
   }
-
 }
