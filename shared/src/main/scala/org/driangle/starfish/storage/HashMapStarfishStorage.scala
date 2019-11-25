@@ -20,8 +20,10 @@ case object SetAdd extends SaveStrategy {
   def distinct(items: Seq[JsValue]): Seq[JsValue] = {
     items.groupBy(_ \ "id").flatMap({
       case (JsUndefined(), entries) => entries
-      case (id, entries) => List(entries.last)
-    }).toSeq
+      case (_, entries) => List(entries.last)
+    }).toSeq.sortBy[Int](
+      value => (value \ "id").asOpt[Int].getOrElse(0)
+    )
   }
 
   override def run(currentData: JsValue, newData: JsValue): JsValue = {
@@ -59,6 +61,7 @@ case object Replace extends SaveStrategy {
   override def run(currentData: JsValue, newData: JsValue): JsValue = newData
 }
 
+// clientId -> data
 case class StorageLocation(data: Map[String, JsValue] = Map.empty) {
   def add(clientId: String, newData: JsValue, strategy: SaveStrategy): StorageLocation = {
     val finalData = strategy.run(this.data.get(clientId).getOrElse(JsNull), newData)
@@ -118,6 +121,7 @@ case object LoadAll extends LoadStrategy {
 
 class HashMapStarfishStorage extends StarfishStorage {
 
+  // storage-name -> storage
   var memory: Map[String, StorageLocation] = Map.empty
 
   override def save(clientId: String, key: String, mode: String, data: JsValue): Unit = {
@@ -125,6 +129,7 @@ class HashMapStarfishStorage extends StarfishStorage {
       case None => memory + (key -> StorageLocation(Map(clientId -> data)))
       case Some(existing) => {
         val strategy = SaveStrategy.getStrategy(mode)
+        println(strategy)
         memory + (key -> existing.add(clientId, data, strategy))
       }
     }
