@@ -18,18 +18,19 @@ object SaveArguments {
   implicit val writes = Json.writes[SaveArguments]
 }
 
-
 object StarfishMethod {
 
   val SERVER_PING = "sfp:server-ping"
   val SERVER_PONG = "sfp:server-pong"
   val CLIENT_PING = "sfp:client-ping"
   val CLIENT_PONG = "sfp:client-pong"
+  val HEALTH_CHECK: String = "sfp:health-check"
   val CORE_PONG = "sfp:core-pong"
   val SAVE_DATA = "sfp:save"
   val LOAD_DATA = "sfp:load"
   val DELETE_CLIENT_DATA = "sfp:delete-client-data"
   val BROADCAST = "sfp:broadcast"
+  val FORWARD_TO_NEIGHBOR = "sfp:forward-to-neighbor"
 
   val CLIENT_SUBSCRIBE = "action:user-subscribe"
   val CLIENT_CONTROL = "action:client-control"
@@ -75,6 +76,10 @@ object StarfishMethod {
       "ping" -> ping,
       "role" -> role
     ))
+  }
+
+  def healthCheck(): StarfishMethod = {
+    StarfishMethod(HEALTH_CHECK)
   }
 
 }

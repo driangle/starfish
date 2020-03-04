@@ -11,11 +11,6 @@ trait StarfishClient {
 
   def onMessage(callback : StarfishMessageHandler) : Unit
 
-//  def onMethod(method : String, callback: (StarfishMessage, StarfishMethod) => Unit) : Unit
-//
-//  def onLoad(location : String, callback : StarfishMessageHandler) : Unit
-
-
   def onMethod(method: String, callback: (StarfishMessage, StarfishMethod) => Unit): Unit = {
     this.onMessage(MethodHandler(method, callback))
   }
@@ -29,22 +24,6 @@ trait StarfishClient {
       callback.apply(method.arguments.as[JsString].value)
     }))
   }
-
-//  def onDeleteClientData(callback : String => Unit) : Unit
-
-  /*
-          onMethod(method, callback) {
-            this.onMessage(MethodHandler(method, callback));
-        }
-
-        onLoad(storageLocation, callback) {
-            this.onMessage(LoadHandler(storageLocation, callback));
-        }
-
-        onDeleteClientData(callback) {
-            this.onMessage(DeleteClientDataHandler(callback));
-        }
-   */
 
   def publish(message : StarfishMessage) : Unit
 
