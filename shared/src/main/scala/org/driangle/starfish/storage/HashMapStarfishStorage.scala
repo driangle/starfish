@@ -74,24 +74,26 @@ case class StorageLocation(data: Map[String, JsValue] = Map.empty) {
 }
 
 sealed trait LoadStrategy {
-  def load(mclientId: String, storage: StorageLocation): Option[JsValue]
+  def load(clientId: String, storage: StorageLocation): Option[JsValue]
 }
 
 object LoadStrategy {
   def getStrategy(scope: String): LoadStrategy = scope match {
     case "self" => LoadSelf
-    case "neighbors" => LoadNeighbors
+    case "others" => LoadOthers
     case "all" => LoadAll
   }
 }
 
 case object LoadSelf extends LoadStrategy {
   override def load(clientId: String, storage: StorageLocation): Option[JsValue] = {
-    storage.data.get(clientId)
+    storage.data.get(clientId).map(data => {
+      Json.obj("clientId" -> clientId, "data" -> data)
+    })
   }
 }
 
-case object LoadNeighbors extends LoadStrategy {
+case object LoadOthers extends LoadStrategy {
   override def load(clientId: String, storage: StorageLocation): Option[JsValue] = {
     val values = storage.data.filter({
       case (neighborId, _) => neighborId != clientId

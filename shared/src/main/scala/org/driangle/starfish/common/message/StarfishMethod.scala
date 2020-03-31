@@ -31,7 +31,8 @@ object StarfishMethod {
   val DELETE_CLIENT_DATA = "sfp:delete-client-data"
   val BROADCAST = "sfp:broadcast"
   val FORWARD_TO_NEIGHBOR = "sfp:forward-to-neighbor"
-
+  val SHARE_SERVER_STATUS = "sfp:share-server-status"
+  
   val CLIENT_SUBSCRIBE = "action:user-subscribe"
   val CLIENT_CONTROL = "action:client-control"
   val CORE_CONTROL = "action:core-control"
@@ -80,6 +81,10 @@ object StarfishMethod {
 
   def healthCheck(): StarfishMethod = {
     StarfishMethod(HEALTH_CHECK)
+  }
+
+  def shareServerStatus(): StarfishMethod = {
+    StarfishMethod(SHARE_SERVER_STATUS)
   }
 
 }
