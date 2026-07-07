@@ -1,0 +1,40 @@
+---
+title: "Implement Three.js Adapter"
+id: "01kwyst79"
+status: pending
+priority: medium
+type: feature
+tags: ["adapter", "threejs", "typescript"]
+created_at: "2026-07-07"
+dependencies: ["01kwyst27"]
+---
+
+# Implement Three.js Adapter
+
+## Objective
+
+Implement the Three.js adapter for Starfish, built on the TypeScript SDK. This adapter provides Three.js-idiomatic integration for networked 3D scenes, installations, and multiplayer experiences. Located in `adapters/threejs/`.
+
+## Tasks
+
+- [ ] Set up project with TypeScript SDK as dependency
+- [ ] Design Three.js-friendly API that fits the render loop and scene graph
+- [ ] Implement `starfishThree` factory that wraps `StarfishClient`
+- [ ] Provide hooks for Three.js lifecycle: connect on init, cleanup on dispose
+- [ ] Expose presence API mapped to 3D transforms (position, rotation, scale)
+- [ ] Expose topic pub/sub with Three.js-style event patterns
+- [ ] Provide shared data helpers for collaborative 3D state
+- [ ] Implement peer representation helpers (create/update/remove 3D objects per peer)
+- [ ] Support high-frequency streaming for pose/transform data via RTC channels
+- [ ] Add example scenes demonstrating common patterns (shared scene, avatar sync)
+- [ ] Write tests for adapter integration with the SDK
+
+## Acceptance Criteria
+
+- Adapter wraps TypeScript SDK without re-implementing protocol logic
+- Connection lifecycle integrates with Three.js scene/renderer lifecycle
+- Presence maps naturally to 3D transforms
+- Peer objects can be automatically managed in the scene graph
+- High-frequency data (poses, transforms) uses appropriate transport options
+- Example scenes run and demonstrate multi-client 3D interaction
+- Clean teardown when scene is disposed
