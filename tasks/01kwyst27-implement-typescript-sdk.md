@@ -1,7 +1,7 @@
 ---
 title: "Implement TypeScript SDK"
 id: "01kwyst27"
-status: pending
+status: in-progress
 priority: high
 type: feature
 tags: ["sdk", "typescript"]
@@ -16,30 +16,36 @@ Implement the TypeScript client SDK for the Starfish protocol (v0.1) as defined 
 
 ## Tasks
 
-- [ ] Set up TypeScript project with build tooling (tsconfig, bundler, package.json)
-- [ ] Define core types: `StarfishFrame`, `StarfishError`, `Options`, `Delivery`
-- [ ] Implement `StarfishClient` class with WebSocket connection lifecycle
-- [ ] Implement `client.hello` / `server.welcome` handshake
-- [ ] Implement reconnection with `resumeToken` support
-- [ ] Implement session management (`join`, `leave`)
-- [ ] Implement topic pub/sub (`subscribe`, `unsubscribe`, `publish`, `topic$`)
-- [ ] Implement direct messaging (`send`)
-- [ ] Implement broadcast (`broadcast` with `includeSelf` option)
-- [ ] Implement presence (`presence.set`, `presence$`)
-- [ ] Implement shared data operations (`save`, `get` with all ops and optimistic concurrency)
-- [ ] Implement heartbeat (application-level `ping`/`pong`)
-- [ ] Implement clock sync (`clock.sync`, `clock.now`, `clock.offset`, `at`)
-- [ ] Implement event stream filtering (`events$` with type/topic/from filters)
-- [ ] Implement observable streams (`clients$`, `peers$`)
-- [ ] Implement message ID generation and `replyTo` correlation
+- [x] Set up TypeScript project with build tooling (tsconfig, bundler, package.json)
+- [x] Define core types: `StarfishFrame`, `StarfishError`, `Options`, `Delivery`
+- [x] Implement `StarfishClient` class with WebSocket connection lifecycle
+- [x] Implement `client.hello` / `server.welcome` handshake
+- [x] Implement reconnection with `resumeToken` support
+- [x] Implement session management (`join`, `leave`)
+- [x] Implement topic pub/sub (`subscribe`, `unsubscribe`, `publish`, `topic$`)
+- [x] Implement direct messaging (`send`)
+- [x] Implement broadcast (`broadcast` with `includeSelf` option)
+- [x] Implement presence (`presence.set`, `presence$`)
+- [x] Implement shared data operations (`save`, `get` with all ops and optimistic concurrency)
+- [x] Implement heartbeat (application-level `ping`/`pong`)
+- [x] Implement clock sync (`clock.sync`, `clock.now`, `clock.offset`, `at`)
+- [x] Implement event stream filtering (`events$` with type/topic/from filters)
+- [x] Implement observable streams (`clients$`, `peers$`)
+- [x] Implement message ID generation and `replyTo` correlation
 - [ ] Implement transport selection logic (`options.delivery.preferTransport`)
 - [ ] Add WebRTC DataChannel support (control, stream, state channels)
 - [ ] Implement RTC signaling flow (offer/answer/ICE via WebSocket)
 - [ ] Implement RTC topic routing with subscription map validation
-- [ ] Add payload size validation per protocol limits
-- [ ] Write unit tests for message framing and type rewriting
+- [x] Add payload size validation per protocol limits
+- [x] Write unit tests for message framing and type rewriting
 - [ ] Write integration tests for session lifecycle and pub/sub
 - [ ] Write integration tests for data operations and conflict resolution
+
+## Sub-tasks
+
+- `01kx1scvj` — TypeScript SDK: Core Infrastructure and Connection
+- `01kx1scwg` — TypeScript SDK: Session, Topics, and Messaging (depends on 01kx1scvj)
+- `01kx1scx1` — TypeScript SDK: Presence and Data Operations (depends on 01kx1scvj)
 
 ## Acceptance Criteria
 
