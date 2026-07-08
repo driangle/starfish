@@ -49,6 +49,7 @@ export class StarfishClient {
       this._session.handleFrame(frame);
       this._topics.handleFrame(frame);
       this._presence.handleFrame(frame);
+      this._data.handleFrame(frame);
     });
 
     // Manage heartbeat lifecycle
@@ -149,6 +150,14 @@ export class StarfishClient {
 
   async get(options: { key: string; scope: "self" | "session" }): Promise<DataResult> {
     return this._data.get(options);
+  }
+
+  get changed$(): EventStream<DataResult> {
+    return this._data.changed$;
+  }
+
+  key$(key: string): EventStream<DataResult> {
+    return this._data.key$(key);
   }
 
   // --- Events ---
