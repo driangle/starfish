@@ -31,10 +31,17 @@ check-integration: ## Type-check the integration test suite
 
 # --- Integration tests (require a running server) ---
 
-test-golang: ## Run integration tests against the Go server
+test-golang: ## Run protocol integration tests against the Go server
 	@./scripts/run-integration-tests.sh golang
 
-test-integration: test-golang ## Run integration tests against all available servers
+test-sdk-typescript-golang: ## Run TypeScript SDK integration tests against the Go server
+	@./scripts/run-sdk-integration-tests.sh typescript golang
+
+test-sdk-typescript: test-sdk-typescript-golang ## Run TypeScript SDK integration tests against all servers
+
+test-sdk: test-sdk-typescript ## Run all SDK integration tests against all servers
+
+test-integration: test-golang test-sdk ## Run all integration tests (protocol + SDK)
 
 # --- Hooks ---
 
