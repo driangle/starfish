@@ -95,16 +95,11 @@ func (h *Handler) handleTopicPublish(c *Client, f *Frame) {
 	sess := h.hub.GetSession(f.Session)
 
 	// Get subscribers and deliver as topic.message
+	// Per spec: publisher only receives own message if also subscribed.
+	// Since GetSubscribers only returns subscribed clients, the publisher
+	// will only be in the list if subscribed — so we send to all.
 	subscribers := sess.GetSubscribers(f.Topic)
 	for _, sub := range subscribers {
-		// Publisher does NOT receive own message unless subscribed
-		// (the spec says: "The publisher does not receive its own message
-		// unless it is also subscribed to the topic.")
-		// Since we're iterating subscribers, the publisher will only
-		// be in the list if subscribed. So we send to all subscribers.
-		if sub.id == c.id {
-			continue
-		}
 		sub.SendFrame(&Frame{
 			V:       1,
 			ID:      f.ID,

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Pre-commit hook: runs check-lite (lint + compile, no tests).
+
+set -euo pipefail
+
+# Resolve repo root regardless of where the commit is invoked from
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+
+exec make -C "$ROOT_DIR" check-lite
