@@ -1,13 +1,14 @@
 ---
 id: "01kx1scwg"
 title: "TypeScript SDK: Session, Topics, and Messaging"
-status: in-progress
+status: completed
 priority: high
 effort: medium
 parent: "01kwyst27"
 dependencies: ["01kx1scvj"]
 tags: ["sdk", "typescript"]
 created_at: 2026-07-08
+completed_at: 2026-07-08
 ---
 
 # TypeScript SDK: Session, Topics, and Messaging
@@ -23,7 +24,7 @@ Implement session management, topic pub/sub, direct messaging, and broadcast on 
 - [x] Implement `topics.ts` — subscribe/unsubscribe/publish, topic$() returning EventStream
 - [x] Implement `messaging.ts` — send() for direct messages, broadcast() with includeSelf option
 - [x] Wire session, topics, and messaging into StarfishClient facade
-- [ ] Write unit tests for session state management and topic subscription tracking
+- [x] Write unit tests for session state management and topic subscription tracking
 
 ## Acceptance Criteria
 
