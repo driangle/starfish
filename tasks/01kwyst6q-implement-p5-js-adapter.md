@@ -1,12 +1,13 @@
 ---
 title: "Implement p5.js Adapter"
 id: "01kwyst6q"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["adapter", "p5js", "typescript"]
 created_at: "2026-07-07"
 dependencies: ["01kwyst27"]
+completed_at: 2026-07-09
 ---
 
 # Implement p5.js Adapter
@@ -17,16 +18,16 @@ Implement the p5.js adapter for Starfish, built on the TypeScript SDK. This adap
 
 ## Tasks
 
-- [ ] Set up project with TypeScript SDK as dependency
-- [ ] Design p5.js-friendly API that fits the sketch lifecycle (setup/draw)
-- [ ] Implement `starfishP5` factory or plugin that wraps `StarfishClient`
-- [ ] Provide hooks for p5 lifecycle: auto-connect in `setup()`, cleanup on sketch stop
-- [ ] Expose simplified presence API (e.g., auto-send cursor position in `draw()`)
-- [ ] Expose simplified topic pub/sub with p5-style callbacks
-- [ ] Provide shared data helpers for collaborative sketches
-- [ ] Implement peer rendering helpers (iterate connected peers with their presence data)
-- [ ] Add example sketches demonstrating common patterns (shared canvas, multiplayer cursor)
-- [ ] Write tests for adapter integration with the SDK
+- [x] Set up project with TypeScript SDK as dependency
+- [x] Design p5.js-friendly API that fits the sketch lifecycle (setup/draw)
+- [x] Implement `starfishP5` factory or plugin that wraps `StarfishClient`
+- [x] Provide hooks for p5 lifecycle: auto-connect in `setup()`, cleanup on sketch stop
+- [x] Expose simplified presence API (e.g., auto-send cursor position in `draw()`)
+- [x] Expose simplified topic pub/sub with p5-style callbacks
+- [x] Provide shared data helpers for collaborative sketches
+- [x] Implement peer rendering helpers (iterate connected peers with their presence data)
+- [x] Add example sketches demonstrating common patterns (shared canvas, multiplayer cursor)
+- [x] Write tests for adapter integration with the SDK
 
 ## Acceptance Criteria
 
