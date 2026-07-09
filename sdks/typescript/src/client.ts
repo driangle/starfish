@@ -20,7 +20,6 @@ import { Messaging } from "./messaging.js";
 import { Presence } from "./presence.js";
 import { Data } from "./data.js";
 import { RTC } from "./rtc.js";
-import { nextId } from "./id.js";
 import { Observable, EventStream, type Unsubscribe } from "./emitter.js";
 
 export class StarfishClient {
@@ -50,43 +49,28 @@ export class StarfishClient {
     this._presence = new Presence(this.connection, this._session);
     this._data = new Data(this.connection, this._session);
 
-    // Route incoming frames to managers
     this.connection.frames$.subscribe((frame) => {
-      // Route RTC signaling frames to RTC module
       if (frame.type.startsWith("rtc.") && this._rtc) {
         this._rtc.handleFrame(frame);
-        return;
+      } else {
+        this.dispatchFrame(frame);
       }
-
-      this._events.dispatch(frame);
-      this._session.handleFrame(frame);
-      this._topics.handleFrame(frame);
-      this._presence.handleFrame(frame);
-      this._data.handleFrame(frame);
     });
 
-    // Route frames received over RTC DataChannels to managers
-    if (this._rtc) {
-      this._rtc.frames$.subscribe((frame) => {
-        this._events.dispatch(frame);
-        this._session.handleFrame(frame);
-        this._topics.handleFrame(frame);
-        this._presence.handleFrame(frame);
-        this._data.handleFrame(frame);
-      });
-    }
+    this._rtc?.frames$.subscribe((frame) => this.dispatchFrame(frame));
 
-    // Manage heartbeat lifecycle
     this.connection.state$.subscribe((state) => {
-      if (state === "connected") {
-        this.heartbeat.start();
-      } else {
-        this.heartbeat.stop();
-      }
+      state === "connected" ? this.heartbeat.start() : this.heartbeat.stop();
     });
   }
 
-  // --- Connection ---
+  private dispatchFrame(frame: StarfishFrame): void {
+    this._events.dispatch(frame);
+    this._session.handleFrame(frame);
+    this._topics.handleFrame(frame);
+    this._presence.handleFrame(frame);
+    this._data.handleFrame(frame);
+  }
 
   get connection$(): Observable<ConnectionState> {
     return this.connection.state$;
@@ -107,8 +91,6 @@ export class StarfishClient {
     await this.connection.disconnect();
   }
 
-  // --- Session ---
-
   get clients$(): Observable<ClientInfo[]> {
     return this._session.clients$;
   }
@@ -126,8 +108,6 @@ export class StarfishClient {
     this._rtc?.closeAll();
     return this._session.leave();
   }
-
-  // --- Topics ---
 
   async subscribe(
     topic: string,
@@ -148,8 +128,6 @@ export class StarfishClient {
     return this._topics.topic$(topic);
   }
 
-  // --- Messaging ---
-
   send(to: string | string[], payload: any, options?: FrameOptions): void {
     this._messaging.send(to, payload, options);
   }
@@ -158,8 +136,6 @@ export class StarfishClient {
     this._messaging.broadcast(payload, options);
   }
 
-  // --- Presence ---
-
   get presence(): Presence {
     return this._presence;
   }
@@ -167,8 +143,6 @@ export class StarfishClient {
   get presence$(): Observable<Map<string, any>> {
     return this._presence.presence$;
   }
-
-  // --- Data ---
 
   async save(options: SaveOptions): Promise<DataResult> {
     return this._data.save(options);
@@ -186,43 +160,28 @@ export class StarfishClient {
     return this._data.key$(key);
   }
 
-  // --- RTC ---
+  private get rtc(): RTC {
+    if (!this._rtc) {
+      throw new Error("RTC is not enabled. Provide rtc options in StarfishClientOptions.");
+    }
+    return this._rtc;
+  }
 
   get rtcPeers$(): Observable<RTCPeerInfo[]> | null {
     return this._rtc?.rtcPeers$ ?? null;
   }
 
   async connectRTC(peerId: string, channels?: string[]): Promise<void> {
-    if (!this._rtc) {
-      throw new Error("RTC is not enabled. Provide rtc options in StarfishClientOptions.");
-    }
-    return this._rtc.connect(peerId, channels);
+    return this.rtc.connect(peerId, channels);
   }
 
   disconnectRTC(peerId: string): void {
-    if (!this._rtc) {
-      throw new Error("RTC is not enabled. Provide rtc options in StarfishClientOptions.");
-    }
-    this._rtc.disconnect(peerId);
+    this.rtc.disconnect(peerId);
   }
 
   sendRTC(peerId: string, channel: string, payload: any): void {
-    if (!this._rtc) {
-      throw new Error("RTC is not enabled. Provide rtc options in StarfishClientOptions.");
-    }
-    const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("rtc"),
-      type: "client.send",
-      session: this._session.current ?? undefined,
-      to: peerId,
-      transport: "rtc",
-      payload,
-    };
-    this._rtc.sendToPeer(peerId, channel, frame);
+    this.rtc.send(peerId, channel, payload);
   }
-
-  // --- Events ---
 
   events$(filter?: EventFilter): EventStream<StarfishFrame> {
     return this._events.events$(filter);
@@ -232,12 +191,7 @@ export class StarfishClient {
     return this._events.subscribe(callback);
   }
 
-  // --- Clock ---
-
-  at(
-    serverTime: number,
-    callback: () => void,
-  ): ReturnType<typeof setTimeout> {
+  at(serverTime: number, callback: () => void): ReturnType<typeof setTimeout> {
     return this.clock.at(serverTime, callback);
   }
 }

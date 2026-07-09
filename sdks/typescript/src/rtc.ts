@@ -126,6 +126,19 @@ export class RTC {
     }
   }
 
+  send(peerId: string, channel: string, payload: any): void {
+    const frame: StarfishFrame = {
+      v: 1,
+      id: nextId("rtc"),
+      type: "client.send",
+      session: this.session.current ?? undefined,
+      to: peerId,
+      transport: "rtc",
+      payload,
+    };
+    this.sendToPeer(peerId, channel, frame);
+  }
+
   sendToPeer(peerId: string, channel: string, frame: StarfishFrame): void {
     const entry = this.peers.get(peerId);
     if (!entry) {
