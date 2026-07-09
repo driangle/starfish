@@ -42,13 +42,13 @@ export class StarfishClient {
     this.clock = new Clock(this.connection);
     this._events = new Events();
     this._session = new Session(this.connection);
-    this._topics = new Topics(this.connection, this._session);
-    this._messaging = new Messaging(this.connection, this._session);
-    this._presence = new Presence(this.connection, this._session);
-    this._data = new Data(this.connection, this._session);
     this._rtc = options.rtc
       ? new RTC(this.connection, this._session, options.rtc)
       : null;
+    this._topics = new Topics(this.connection, this._session, this._rtc);
+    this._messaging = new Messaging(this.connection, this._session, this._rtc);
+    this._presence = new Presence(this.connection, this._session);
+    this._data = new Data(this.connection, this._session);
 
     // Route incoming frames to managers
     this.connection.frames$.subscribe((frame) => {
@@ -150,11 +150,11 @@ export class StarfishClient {
 
   // --- Messaging ---
 
-  send(to: string | string[], payload: any): void {
-    this._messaging.send(to, payload);
+  send(to: string | string[], payload: any, options?: FrameOptions): void {
+    this._messaging.send(to, payload, options);
   }
 
-  broadcast(payload: any, options?: { includeSelf?: boolean }): void {
+  broadcast(payload: any, options?: FrameOptions): void {
     this._messaging.broadcast(payload, options);
   }
 

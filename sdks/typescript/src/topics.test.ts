@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Topics } from "./topics.js";
 import { Session } from "./session.js";
 import type { Connection } from "./connection.js";
+import type { RTC } from "./rtc.js";
 import type { StarfishFrame } from "./types.js";
 import { resetIdCounter } from "./id.js";
 
@@ -15,6 +16,15 @@ function mockConnection(): Connection {
 
 function mockSession(current: string | null = "room-1"): Session {
   return { current } as unknown as Session;
+}
+
+function mockRTC(connectedPeers: string[] = []): RTC {
+  const connected = new Set(connectedPeers);
+  return {
+    isPeerConnected: (id: string) => connected.has(id),
+    getConnectedPeerIds: () => connectedPeers,
+    sendToPeer: vi.fn(),
+  } as unknown as RTC;
 }
 
 describe("Topics", () => {
@@ -223,5 +233,241 @@ describe("Topics", () => {
     });
 
     expect(cb).not.toHaveBeenCalled();
+  });
+
+  describe("topic.peers subscription map", () => {
+    it("tracks subscription map from topic.peers frame", () => {
+      const conn = mockConnection();
+      const topics = new Topics(conn, mockSession());
+
+      topics.handleFrame({
+        v: 1,
+        id: "evt_1",
+        type: "topic.peers",
+        topic: "pose",
+        payload: { subscribers: ["alice", "bob"] },
+      });
+
+      expect(topics.getTopicPeers("pose")).toEqual(["alice", "bob"]);
+    });
+
+    it("replaces subscription map on subsequent topic.peers", () => {
+      const conn = mockConnection();
+      const topics = new Topics(conn, mockSession());
+
+      topics.handleFrame({
+        v: 1,
+        id: "evt_1",
+        type: "topic.peers",
+        topic: "pose",
+        payload: { subscribers: ["alice", "bob"] },
+      });
+
+      topics.handleFrame({
+        v: 1,
+        id: "evt_2",
+        type: "topic.peers",
+        topic: "pose",
+        payload: { subscribers: ["charlie"] },
+      });
+
+      expect(topics.getTopicPeers("pose")).toEqual(["charlie"]);
+    });
+
+    it("returns empty array for topics without peers", () => {
+      const conn = mockConnection();
+      const topics = new Topics(conn, mockSession());
+
+      expect(topics.getTopicPeers("unknown")).toEqual([]);
+    });
+
+    it("clears topic peers on unsubscribe", async () => {
+      const conn = mockConnection();
+      const topics = new Topics(conn, mockSession());
+
+      topics.handleFrame({
+        v: 1,
+        id: "evt_1",
+        type: "topic.peers",
+        topic: "pose",
+        payload: { subscribers: ["alice"] },
+      });
+
+      await topics.unsubscribe("pose");
+      expect(topics.getTopicPeers("pose")).toEqual([]);
+    });
+  });
+
+  describe("receiver-side validation", () => {
+    it("delivers RTC topic messages for subscribed topics", async () => {
+      const conn = mockConnection();
+      const topics = new Topics(conn, mockSession());
+
+      vi.mocked(conn.sendAndWait).mockResolvedValue({
+        v: 1,
+        id: "resp_1",
+        type: "topic.subscribed",
+        replyTo: "sub_1",
+      });
+
+      const cb = vi.fn();
+      await topics.subscribe("chat", cb);
+
+      topics.handleFrame({
+        v: 1,
+        id: "msg_1",
+        type: "topic.message",
+        topic: "chat",
+        transport: "rtc",
+        payload: { text: "hello" },
+      });
+
+      expect(cb).toHaveBeenCalled();
+    });
+
+    it("drops RTC topic messages for unsubscribed topics silently", () => {
+      const conn = mockConnection();
+      const topics = new Topics(conn, mockSession());
+
+      const cb = vi.fn();
+      topics.topic$("secret").subscribe(cb);
+
+      topics.handleFrame({
+        v: 1,
+        id: "msg_1",
+        type: "topic.message",
+        topic: "secret",
+        transport: "rtc",
+        payload: { text: "unauthorized" },
+      });
+
+      expect(cb).not.toHaveBeenCalled();
+    });
+
+    it("delivers WS topic messages regardless of subscription tracking", () => {
+      const conn = mockConnection();
+      const topics = new Topics(conn, mockSession());
+
+      const cb = vi.fn();
+      topics.topic$("chat").subscribe(cb);
+
+      // WS messages (no transport or transport: "ws") are delivered without validation
+      topics.handleFrame({
+        v: 1,
+        id: "msg_1",
+        type: "topic.message",
+        topic: "chat",
+        payload: { text: "hello" },
+      });
+
+      expect(cb).toHaveBeenCalled();
+    });
+  });
+
+  describe("RTC topic fanout", () => {
+    it("publishes via RTC to topic peers when unreliable", () => {
+      const conn = mockConnection();
+      const rtc = mockRTC(["alice", "bob"]);
+      const topics = new Topics(conn, mockSession(), rtc);
+
+      // Set up topic peers
+      topics.handleFrame({
+        v: 1,
+        id: "evt_1",
+        type: "topic.peers",
+        topic: "pose",
+        payload: { subscribers: ["alice", "bob"] },
+      });
+
+      topics.publish("pose", { x: 1, y: 2 }, {
+        delivery: { reliability: "unreliable" },
+      });
+
+      expect(rtc.sendToPeer).toHaveBeenCalledTimes(2);
+      expect(rtc.sendToPeer).toHaveBeenCalledWith(
+        "alice",
+        "starfish.stream",
+        expect.objectContaining({
+          type: "topic.publish",
+          topic: "pose",
+        }),
+      );
+      expect(rtc.sendToPeer).toHaveBeenCalledWith(
+        "bob",
+        "starfish.stream",
+        expect.objectContaining({
+          type: "topic.publish",
+          topic: "pose",
+        }),
+      );
+      expect(conn.send).not.toHaveBeenCalled();
+    });
+
+    it("publishes via WS when reliable (default)", () => {
+      const conn = mockConnection();
+      const rtc = mockRTC(["alice"]);
+      const topics = new Topics(conn, mockSession(), rtc);
+
+      topics.handleFrame({
+        v: 1,
+        id: "evt_1",
+        type: "topic.peers",
+        topic: "chat",
+        payload: { subscribers: ["alice"] },
+      });
+
+      topics.publish("chat", { text: "hello" });
+
+      expect(conn.send).toHaveBeenCalled();
+      expect(rtc.sendToPeer).not.toHaveBeenCalled();
+    });
+
+    it("falls back to WS when topic peers not connected via RTC", () => {
+      const conn = mockConnection();
+      const rtc = mockRTC([]); // no connected peers
+      const topics = new Topics(conn, mockSession(), rtc);
+
+      topics.handleFrame({
+        v: 1,
+        id: "evt_1",
+        type: "topic.peers",
+        topic: "pose",
+        payload: { subscribers: ["alice"] },
+      });
+
+      topics.publish("pose", { x: 1 }, {
+        delivery: { reliability: "unreliable" },
+      });
+
+      expect(conn.send).toHaveBeenCalled();
+      expect(rtc.sendToPeer).not.toHaveBeenCalled();
+    });
+
+    it("publishes via RTC with preferTransport rtc", () => {
+      const conn = mockConnection();
+      const rtc = mockRTC(["alice"]);
+      const topics = new Topics(conn, mockSession(), rtc);
+
+      topics.handleFrame({
+        v: 1,
+        id: "evt_1",
+        type: "topic.peers",
+        topic: "chat",
+        payload: { subscribers: ["alice"] },
+      });
+
+      topics.publish("chat", { text: "hi" }, {
+        delivery: { preferTransport: "rtc" },
+      });
+
+      // topic.publish with preferTransport rtc — peers from topic peers map
+      // But selectTransport for topic.publish looks at topic peers, not frame.to
+      // The rtc state getTopicPeers returns ["alice"], and alice is connected
+      expect(rtc.sendToPeer).toHaveBeenCalledWith(
+        "alice",
+        "starfish.control",
+        expect.objectContaining({ type: "topic.publish" }),
+      );
+    });
   });
 });

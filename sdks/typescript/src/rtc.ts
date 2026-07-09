@@ -183,6 +183,20 @@ export class RTC {
     return this.peers.has(peerId);
   }
 
+  isPeerConnected(peerId: string): boolean {
+    return this.peers.get(peerId)?.state === "connected";
+  }
+
+  getConnectedPeerIds(): string[] {
+    const result: string[] = [];
+    for (const [peerId, entry] of this.peers) {
+      if (entry.state === "connected") {
+        result.push(peerId);
+      }
+    }
+    return result;
+  }
+
   private handleConnect(frame: StarfishFrame): void {
     const peerId = frame.from;
     if (!peerId) return;

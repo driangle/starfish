@@ -1,13 +1,14 @@
 ---
 id: "01kx30x9d"
 title: "TypeScript SDK: Transport Selection and RTC Topic Routing"
-status: pending
+status: completed
 priority: high
 effort: medium
 parent: "01kwyst27"
 dependencies: ["01kx30x5f"]
 tags: ["sdk", "typescript", "webrtc"]
 created_at: 2026-07-09
+completed_at: 2026-07-09
 ---
 
 # TypeScript SDK: Transport Selection and RTC Topic Routing
@@ -18,18 +19,18 @@ Implement transport selection logic (`preferTransport`) and RTC topic routing wi
 
 ## Tasks
 
-- [ ] Implement transport selection module (`transport.ts`) with routing logic:
+- [x] Implement transport selection module (`transport.ts`) with routing logic:
   - `preferTransport: "ws"` — always WebSocket
   - `preferTransport: "rtc"` — RTC if available, fallback based on `fallback` flag
   - `preferTransport: "auto"` — smart routing per spec section 15.3 auto routing table
-- [ ] Wire transport selection into `messaging.ts` (send, broadcast) and `topics.ts` (publish)
-- [ ] Add `transport.unavailable` error when RTC is requested but unavailable with `fallback: false`
-- [ ] Handle `topic.peers` frame — track subscription maps per topic (which peers subscribe to what)
-- [ ] Implement RTC topic fanout — deliver topic messages via RTC DataChannels to peers in subscription map
-- [ ] Implement receiver-side validation — drop incoming RTC topic messages for unsubscribed topics
-- [ ] Add `delivery` options support to `send()` and `publish()` methods
-- [ ] Write unit tests for transport selection logic (all preferTransport modes)
-- [ ] Write unit tests for subscription map tracking and validation
+- [x] Wire transport selection into `messaging.ts` (send, broadcast) and `topics.ts` (publish)
+- [x] Add `transport.unavailable` error when RTC is requested but unavailable with `fallback: false`
+- [x] Handle `topic.peers` frame — track subscription maps per topic (which peers subscribe to what)
+- [x] Implement RTC topic fanout — deliver topic messages via RTC DataChannels to peers in subscription map
+- [x] Implement receiver-side validation — drop incoming RTC topic messages for unsubscribed topics
+- [x] Add `delivery` options support to `send()` and `publish()` methods
+- [x] Write unit tests for transport selection logic (all preferTransport modes)
+- [x] Write unit tests for subscription map tracking and validation
 
 ## Acceptance Criteria
 
