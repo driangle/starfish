@@ -17,6 +17,7 @@
   "scripts": {
     "build": "tsc && node build.js",
     "check": "tsc --noEmit",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -24,7 +25,9 @@
     "@starfish/client": "file:../../sdks/typescript"
   },
   "devDependencies": {
+    "@typescript-eslint/parser": "^8.63.0",
     "esbuild": "^0.25.0",
+    "eslint": "^10.6.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.3"
   }

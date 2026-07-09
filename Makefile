@@ -1,11 +1,11 @@
-.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-integration test-golang test-integration install-hooks
+.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-integration test-golang test-integration install-hooks lint lint-sdk-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
 # --- Check-lite (lint + compile only, no tests) ---
 
-check-lite: check-golang-lite check-sdk-typescript-lite check-integration ## Lint and compile all projects (no tests)
+check-lite: lint check-golang-lite check-sdk-typescript-lite check-integration ## Lint and compile all projects (no tests)
 
 check-golang-lite: ## Vet the Go server (no tests)
 	@echo "==> go vet (servers/golang)"
@@ -42,6 +42,26 @@ test-sdk-typescript: test-sdk-typescript-golang ## Run TypeScript SDK integratio
 test-sdk: test-sdk-typescript ## Run all SDK integration tests against all servers
 
 test-integration: test-golang test-sdk ## Run all integration tests (protocol + SDK)
+
+# --- Lint (file-length rules) ---
+
+lint: lint-sdk-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang ## Run file-length linting across all projects
+
+lint-sdk-typescript: ## Lint the TypeScript SDK
+	@cd sdks/typescript && npm install --silent 2>/dev/null && echo "==> eslint (sdks/typescript)" && npx eslint .
+
+lint-adapters-p5js: ## Lint the p5.js adapter
+	@cd adapters/p5js && npm install --silent 2>/dev/null && echo "==> eslint (adapters/p5js)" && npx eslint .
+
+lint-integration: ## Lint the integration tests
+	@cd tests/integration && npm install --silent 2>/dev/null && echo "==> eslint (tests/integration)" && npx eslint .
+
+lint-examples-typescript: ## Lint the TypeScript examples
+	@cd examples/typescript && npm install --silent 2>/dev/null && echo "==> eslint (examples/typescript)" && npx eslint .
+
+lint-golang: ## Lint the Go server (file length)
+	@echo "==> check-file-length (servers/golang)"
+	@./scripts/check-file-length.sh servers/golang
 
 # --- Hooks ---
 

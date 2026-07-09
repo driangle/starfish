@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "lint": "eslint .",
     "connection": "node dist/connection.js",
     "pubsub": "node dist/pubsub.js",
     "presence": "node dist/presence.js",
@@ -18,6 +19,8 @@
   },
   "devDependencies": {
     "@types/ws": "^8.18.1",
+    "@typescript-eslint/parser": "^8.63.0",
+    "eslint": "^10.6.0",
     "typescript": "^5.8.3"
   }
 }

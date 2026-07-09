@@ -1,11 +1,12 @@
 ---
 title: "Enforce max 200 lines per file lint rule across all projects"
 id: "01kx4arw9"
-status: pending
+status: completed
 priority: high
 type: chore
 tags: ["lint", "code-quality"]
 created_at: "2026-07-09"
+completed_at: 2026-07-09
 ---
 
 # Enforce max 200 lines per file lint rule across all projects
@@ -26,16 +27,16 @@ Note: `examples/p5js/starfish-p5.global.js` is a build artifact (esbuild bundle 
 
 ## Tasks
 
-- [ ] Choose a linter for TypeScript projects (ESLint with `max-lines` rule or Biome equivalent) and configure it
-- [ ] Add lint config to `sdks/typescript` with `max-lines: 200` for source, `max-lines: 500` for test files
-- [ ] Add lint config to `adapters/p5js` with `max-lines: 200`
-- [ ] Add lint config to `tests/integration` with `max-lines: 200`
-- [ ] Add lint config to `examples/typescript` with `max-lines: 200`
-- [ ] Add `.golangci.yml` to `servers/golang` with max lines-per-file rule (200 source, 500 test)
-- [ ] Remove `examples/p5js/starfish-p5.global.js` from git and add it to `.gitignore` (it's a build artifact)
-- [ ] Add a top-level `make lint` target that runs linting across all projects
-- [ ] Run linting across all projects and collect violations
-- [ ] Create follow-up tasks for each file exceeding 200 lines (see known violations below)
+- [x] Choose a linter for TypeScript projects (ESLint with `max-lines` rule or Biome equivalent) and configure it
+- [x] Add lint config to `sdks/typescript` with `max-lines: 200` for source, `max-lines: 500` for test files
+- [x] Add lint config to `adapters/p5js` with `max-lines: 200`
+- [x] Add lint config to `tests/integration` with `max-lines: 200`
+- [x] Add lint config to `examples/typescript` with `max-lines: 200`
+- [x] Add file-length check for `servers/golang` (200 source, 500 test via `scripts/check-file-length.sh`)
+- [x] Remove `examples/p5js/starfish-p5.global.js` from git and add it to `.gitignore` (it's a build artifact)
+- [x] Add a top-level `make lint` target that runs linting across all projects
+- [x] Run linting across all projects and collect violations
+- [x] Create follow-up tasks for each file exceeding 200 lines (see known violations below)
 
 ## Known Violations (excluding node_modules/dist/build artifacts)
 
