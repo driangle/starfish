@@ -71,6 +71,7 @@ export interface StarfishClientOptions {
   client?: ClientIdentity;
   auth?: { type: string; token?: string };
   reconnect?: ReconnectOptions;
+  rtc?: RTCOptions;
 }
 
 // --- Data types ---
@@ -131,3 +132,58 @@ export type ConnectionState =
   | "connecting"
   | "connected"
   | "reconnecting";
+
+// --- WebRTC types ---
+
+export interface RTCDataChannelLike {
+  readonly label: string;
+  readonly readyState: string;
+  send(data: string): void;
+  close(): void;
+  onopen: ((ev: any) => void) | null;
+  onclose: ((ev: any) => void) | null;
+  onmessage: ((ev: any) => void) | null;
+  onerror: ((ev: any) => void) | null;
+}
+
+export interface RTCSessionDescriptionLike {
+  type: string;
+  sdp: string;
+}
+
+export interface RTCIceCandidateLike {
+  candidate: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+}
+
+export interface RTCPeerConnectionLike {
+  readonly connectionState: string;
+  createOffer(): Promise<RTCSessionDescriptionLike>;
+  createAnswer(): Promise<RTCSessionDescriptionLike>;
+  setLocalDescription(desc: RTCSessionDescriptionLike): Promise<void>;
+  setRemoteDescription(desc: RTCSessionDescriptionLike): Promise<void>;
+  addIceCandidate(candidate: RTCIceCandidateLike): Promise<void>;
+  createDataChannel(label: string, opts?: any): RTCDataChannelLike;
+  close(): void;
+  onicecandidate: ((ev: { candidate: RTCIceCandidateLike | null }) => void) | null;
+  ondatachannel: ((ev: { channel: RTCDataChannelLike }) => void) | null;
+  onconnectionstatechange: ((ev: any) => void) | null;
+}
+
+export type RTCPeerConnectionFactory = (
+  config?: { iceServers?: any[] },
+) => RTCPeerConnectionLike;
+
+export interface RTCOptions {
+  factory: RTCPeerConnectionFactory;
+  iceServers?: any[];
+}
+
+export type RTCPeerState = "connecting" | "connected" | "disconnected" | "failed";
+
+export interface RTCPeerInfo {
+  peerId: string;
+  state: RTCPeerState;
+  channels: string[];
+}

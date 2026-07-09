@@ -17,6 +17,14 @@ export type {
   ConnectionState,
   WebSocketLike,
   WebSocketFactory,
+  RTCOptions,
+  RTCPeerConnectionLike,
+  RTCPeerConnectionFactory,
+  RTCDataChannelLike,
+  RTCSessionDescriptionLike,
+  RTCIceCandidateLike,
+  RTCPeerState,
+  RTCPeerInfo,
 } from "./types.js";
 
 export { Observable, EventStream, type Unsubscribe } from "./emitter.js";

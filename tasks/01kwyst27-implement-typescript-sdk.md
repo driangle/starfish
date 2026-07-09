@@ -33,19 +33,21 @@ Implement the TypeScript client SDK for the Starfish protocol (v0.1) as defined 
 - [x] Implement observable streams (`clients$`, `peers$`)
 - [x] Implement message ID generation and `replyTo` correlation
 - [ ] Implement transport selection logic (`options.delivery.preferTransport`)
-- [ ] Add WebRTC DataChannel support (control, stream, state channels)
-- [ ] Implement RTC signaling flow (offer/answer/ICE via WebSocket)
+- [x] Add WebRTC DataChannel support (control, stream, state channels)
+- [x] Implement RTC signaling flow (offer/answer/ICE via WebSocket)
 - [ ] Implement RTC topic routing with subscription map validation
 - [x] Add payload size validation per protocol limits
 - [x] Write unit tests for message framing and type rewriting
-- [ ] Write integration tests for session lifecycle and pub/sub
-- [ ] Write integration tests for data operations and conflict resolution
+- [x] Write integration tests for session lifecycle and pub/sub
+- [x] Write integration tests for data operations and conflict resolution
 
 ## Sub-tasks
 
 - `01kx1scvj` — TypeScript SDK: Core Infrastructure and Connection
 - `01kx1scwg` — TypeScript SDK: Session, Topics, and Messaging (depends on 01kx1scvj)
 - `01kx1scx1` — TypeScript SDK: Presence and Data Operations (depends on 01kx1scvj)
+- `01kx30x5f` — TypeScript SDK: WebRTC Signaling and Peer Connections
+- `01kx30x9d` — TypeScript SDK: Transport Selection and RTC Topic Routing (depends on 01kx30x5f)
 
 ## Acceptance Criteria
 

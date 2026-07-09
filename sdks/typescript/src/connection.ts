@@ -127,17 +127,18 @@ export class Connection {
 
   private async doHandshake(): Promise<StarfishFrame> {
     const payload: any = {};
+    const rtcEnabled = !!this.options.rtc;
 
     if (this.resumeToken) {
       payload.resumeToken = this.resumeToken;
-      payload.capabilities = { rtc: false };
+      payload.capabilities = { rtc: rtcEnabled };
     } else {
       payload.client = {
         name: this.options.client?.name ?? "starfish-client",
         role: this.options.client?.role ?? "default",
         meta: this.options.client?.meta ?? {},
       };
-      payload.capabilities = { rtc: false };
+      payload.capabilities = { rtc: rtcEnabled };
       payload.auth = this.options.auth ?? { type: "none" };
     }
 
