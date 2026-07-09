@@ -13,7 +13,7 @@ check-golang-lite: ## Vet the Go server (no tests)
 
 # --- Check (lint, compile, unit test — no servers needed) ---
 
-check: check-golang check-sdk-typescript check-integration ## Run all lint, compile, and unit test checks
+check: check-lite check-golang check-sdk-typescript ## Run all lint, compile, and unit test checks
 
 check-golang: check-golang-lite ## Vet and unit-test the Go server
 	@echo "==> go test (servers/golang)"

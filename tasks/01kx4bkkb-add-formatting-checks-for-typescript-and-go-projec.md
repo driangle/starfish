@@ -10,10 +10,36 @@ created_at: "2026-07-09"
 
 # Add formatting checks for TypeScript and Go projects
 
-## Description
+## Objective
 
-<!-- Describe the maintenance work needed -->
+Add automated formatting checks to `check-lite` so that unformatted code is caught before tests run. TypeScript projects should use Prettier; Go should use `gofmt`. Also wire `check` to depend on `check-lite` so it includes linting and formatting.
+
+## Projects
+
+- `sdks/typescript` — Prettier
+- `adapters/p5js` — Prettier
+- `tests/integration` — Prettier
+- `examples/typescript` — Prettier
+- `servers/golang` — `gofmt`
 
 ## Tasks
 
-- [ ] TODO
+- [ ] Install Prettier in each TypeScript project and add a shared `.prettierrc`
+- [ ] Add `"format:check": "prettier --check ."` script to each TypeScript project's `package.json`
+- [ ] Add `gofmt -l` check for the Go server (fail if any files are unformatted)
+- [ ] Add `make format` target that runs formatting across all projects (auto-fix mode)
+- [ ] Add `make format-check` target that runs formatting checks (CI-safe, no writes)
+- [ ] Wire `format-check` into `check-lite`
+- [ ] Wire `check` to depend on `check-lite` so it includes linting + formatting + compilation
+- [ ] Fix any existing formatting violations
+- [ ] Verify `make check-lite` runs: lint, format-check, compilation
+- [ ] Verify `make check` runs: check-lite + unit tests
+
+## Acceptance Criteria
+
+- Every TypeScript project has Prettier configured with a `format:check` script
+- Go formatting is verified via `gofmt -l`
+- `make format` auto-formats all projects
+- `make format-check` fails if any file is unformatted (no file writes)
+- `make check-lite` = linting + formatting + compilation (no tests)
+- `make check` = `check-lite` + unit tests
