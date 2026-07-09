@@ -1,0 +1,23 @@
+{
+  "name": "@starfish/examples-typescript",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Example scripts demonstrating the Starfish TypeScript SDK",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "connection": "node dist/connection.js",
+    "pubsub": "node dist/pubsub.js",
+    "presence": "node dist/presence.js",
+    "shared-data": "node dist/shared-data.js",
+    "clock-sync": "node dist/clock-sync.js"
+  },
+  "dependencies": {
+    "@starfish/client": "file:../../sdks/typescript",
+    "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.8.3"
+  }
+}
