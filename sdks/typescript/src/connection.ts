@@ -126,38 +126,27 @@ export class Connection {
   }
 
   private async doHandshake(): Promise<StarfishFrame> {
-    const payload: any = {};
-    const rtcEnabled = !!this.options.rtc;
+    const capabilities = { rtc: !!this.options.rtc };
+    const payload: any = this.resumeToken
+      ? { resumeToken: this.resumeToken, capabilities }
+      : {
+          client: {
+            name: this.options.client?.name ?? "starfish-client",
+            role: this.options.client?.role ?? "default",
+            meta: this.options.client?.meta ?? {},
+          },
+          capabilities,
+          auth: this.options.auth ?? { type: "none" },
+        };
 
-    if (this.resumeToken) {
-      payload.resumeToken = this.resumeToken;
-      payload.capabilities = { rtc: rtcEnabled };
-    } else {
-      payload.client = {
-        name: this.options.client?.name ?? "starfish-client",
-        role: this.options.client?.role ?? "default",
-        meta: this.options.client?.meta ?? {},
-      };
-      payload.capabilities = { rtc: rtcEnabled };
-      payload.auth = this.options.auth ?? { type: "none" };
-    }
-
-    const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("hello"),
-      type: "client.hello",
-      ts: Date.now(),
-      payload,
-    };
-
-    const welcome = await this.sendAndWait(frame);
+    const welcome = await this.sendAndWait({
+      v: 1, id: nextId("hello"), type: "client.hello", ts: Date.now(), payload,
+    });
 
     this.clientId = welcome.payload.clientId;
     this.resumeToken = welcome.payload.resumeToken;
-    this.heartbeatInterval =
-      welcome.payload.heartbeatInterval ?? this.heartbeatInterval;
+    this.heartbeatInterval = welcome.payload.heartbeatInterval ?? this.heartbeatInterval;
     this.serverTime = welcome.payload.serverTime ?? null;
-
     this.reconnectAttempt = 0;
     this.state$.set("connected");
 
