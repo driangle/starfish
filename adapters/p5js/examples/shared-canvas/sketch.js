@@ -9,7 +9,7 @@ function setup() {
   background(240);
 
   sf = starfishP5({
-    url: "ws://localhost:8080",
+    url: "ws://localhost:8080/starfish",
     session: "canvas-demo",
     name: "Artist-" + floor(random(1000)),
   });

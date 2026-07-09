@@ -1,0 +1,14 @@
+{
+  "name": "@starfish/examples-p5js",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Example p5.js sketches using the Starfish adapter",
+  "type": "module",
+  "scripts": {
+    "build": "cp ../../adapters/p5js/dist/starfish-p5.global.js ./starfish-p5.global.js",
+    "serve": "npm run build && npx serve ."
+  },
+  "dependencies": {
+    "@starfish/p5": "file:../../adapters/p5js"
+  }
+}

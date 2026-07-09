@@ -15,7 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node build.js",
     "check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -24,6 +24,7 @@
     "@starfish/client": "file:../../sdks/typescript"
   },
   "devDependencies": {
+    "esbuild": "^0.25.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.3"
   }

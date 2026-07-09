@@ -9,7 +9,7 @@ function setup() {
   textSize(12);
 
   sf = starfishP5({
-    url: "ws://localhost:8080",
+    url: "ws://localhost:8080/starfish",
     session: "cursors-demo",
     name: "Peer-" + floor(random(1000)),
     meta: { color: color(random(255), random(255), random(255)).toString() },
