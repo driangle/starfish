@@ -7,6 +7,13 @@ import {
   ERR_PROTOCOL_UNSUPPORTED_VERSION,
 } from "./errors.js";
 
+export type ClientInfo = {
+  id: string;
+  name?: string;
+  role?: string;
+  meta?: unknown;
+};
+
 const MAX_SEND_QUEUE = 256;
 
 export type FrameValidation =
@@ -50,6 +57,7 @@ export class Client {
   rtcCapable = false;
   authenticated = false;
   lastActivity = Date.now();
+  sessions = new Set<string>();
 
   private ws: WebSocket;
   private hub: Hub;
@@ -78,6 +86,14 @@ export class Client {
     }
     this.sendQueue.push(data);
     this.drain();
+  }
+
+  info(): ClientInfo {
+    const ci: ClientInfo = { id: this.id };
+    if (this.name) ci.name = this.name;
+    if (this.role) ci.role = this.role;
+    if (this.meta !== undefined) ci.meta = this.meta;
+    return ci;
   }
 
   close(): void {
@@ -112,6 +128,7 @@ export class Client {
   private onClose(): void {
     if (this.closed) return;
     this.closed = true;
+    this.hub.handleClientDisconnect(this);
     this.hub.removeClient(this);
   }
 }

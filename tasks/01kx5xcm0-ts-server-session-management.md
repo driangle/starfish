@@ -1,7 +1,7 @@
 ---
 id: "01kx5xcm0"
 title: "TS Server: Session management"
-status: pending
+status: completed
 priority: high
 effort: medium
 type: feature
@@ -10,6 +10,7 @@ parent: "01kwyst4k"
 dependencies: ["01kx5xcea"]
 created_at: 2026-07-10
 phase: v0.1
+completed_at: 2026-07-10
 ---
 
 # TS Server: Session management
@@ -24,15 +25,15 @@ Port from Go server's `session.go` and `handler_session.go`. Sessions are identi
 
 ## Tasks
 
-- [ ] Implement `Session` class (client set, topic subscriptions map, close/cleanup)
-- [ ] Implement session registry in `Hub` (create-on-first-join, destroy-when-empty)
-- [ ] Implement `session.join` handler → `session.joined` response
-- [ ] Implement `session.leave` handler → `session.left` response
-- [ ] Broadcast `client.connected` to session members on join
-- [ ] Broadcast `client.disconnected` to session members on leave/disconnect
-- [ ] Implement `requireSession` guard for session-scoped handlers
-- [ ] Handle client disconnect mid-session (leave all sessions, emit events)
-- [ ] Write unit tests for session lifecycle
+- [x] Implement `Session` class (client set, topic subscriptions map, close/cleanup)
+- [x] Implement session registry in `Hub` (create-on-first-join, destroy-when-empty)
+- [x] Implement `session.join` handler → `session.joined` response
+- [x] Implement `session.leave` handler → `session.left` response
+- [x] Broadcast `client.connected` to session members on join
+- [x] Broadcast `client.disconnected` to session members on leave/disconnect
+- [x] Implement `requireSession` guard for session-scoped handlers
+- [x] Handle client disconnect mid-session (leave all sessions, emit events)
+- [x] Write unit tests for session lifecycle
 
 ## Acceptance Criteria
 

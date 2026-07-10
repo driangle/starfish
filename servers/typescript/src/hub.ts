@@ -4,6 +4,7 @@ import type { StarfishConfig } from "./config.js";
 import { IDGenerator } from "./id.js";
 import { Handler } from "./handler.js";
 import { Client } from "./client.js";
+import { Session } from "./session.js";
 
 export class Hub {
   readonly config: StarfishConfig;
@@ -11,6 +12,7 @@ export class Hub {
   readonly handler: Handler;
 
   private clients = new Map<string, Client>();
+  private sessions = new Map<string, Session>();
   private wss: WebSocketServer;
   private server: http.Server;
 
@@ -62,6 +64,45 @@ export class Hub {
 
   getClient(clientId: string): Client | undefined {
     return this.clients.get(clientId);
+  }
+
+  getSession(name: string): Session | undefined {
+    return this.sessions.get(name);
+  }
+
+  getOrCreateSession(name: string): Session {
+    let session = this.sessions.get(name);
+    if (session) return session;
+
+    session = new Session(name);
+    this.sessions.set(name, session);
+    return session;
+  }
+
+  removeSession(name: string): void {
+    this.sessions.delete(name);
+  }
+
+  handleClientDisconnect(client: Client): void {
+    for (const sessionName of client.sessions) {
+      const session = this.sessions.get(sessionName);
+      if (!session) continue;
+
+      const empty = session.removeClient(client.id);
+
+      session.broadcast({
+        v: 1,
+        id: this.idGen.messageId(),
+        type: "client.disconnected",
+        session: sessionName,
+        payload: { clientId: client.id, reason: "disconnect" },
+      });
+
+      if (empty) {
+        this.sessions.delete(sessionName);
+      }
+    }
+    client.sessions.clear();
   }
 
   shutdown(): Promise<void> {

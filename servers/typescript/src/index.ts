@@ -44,8 +44,17 @@ export type { StarfishConfig, ICEServer } from "./config.js";
 export { defaultConfig } from "./config.js";
 
 export { Client, validateFrame } from "./client.js";
-export type { FrameValidation } from "./client.js";
+export type { ClientInfo, FrameValidation } from "./client.js";
+
+export { Session } from "./session.js";
 
 export { Handler } from "./handler.js";
+
+export {
+  requireSession,
+  handleSessionJoin,
+  handleSessionLeave,
+  removeClientFromSession,
+} from "./handler_session.js";
 
 export { Hub } from "./hub.js";

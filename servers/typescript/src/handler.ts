@@ -1,11 +1,12 @@
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
 import type { Hub } from "./hub.js";
+import { createErrorFrame, ERR_AUTH_REQUIRED, ERR_PROTOCOL_INVALID_FRAME } from "./errors.js";
 import {
-  createErrorFrame,
-  ERR_AUTH_REQUIRED,
-  ERR_PROTOCOL_INVALID_FRAME,
-} from "./errors.js";
+  requireSession,
+  handleSessionJoin,
+  handleSessionLeave,
+} from "./handler_session.js";
 
 type HelloPayload = {
   client?: { name?: string; role?: string; meta?: unknown };
@@ -34,6 +35,14 @@ export class Handler {
 
     this.handlers.set("client.hello", (c, f) => this.handleClientHello(c, f));
     this.handlers.set("ping", (c, f) => this.handlePing(c, f));
+    this.handlers.set(
+      "session.join",
+      this.requireAuth((c, f) => handleSessionJoin(this.hub, c, f)),
+    );
+    this.handlers.set(
+      "session.leave",
+      this.requireAuth((c, f) => handleSessionLeave(this.hub, c, f)),
+    );
   }
 
   dispatch(client: Client, frame: StarfishFrame): void {
@@ -65,6 +74,10 @@ export class Handler {
 
   register(type: string, fn: HandlerFunc): void {
     this.handlers.set(type, fn);
+  }
+
+  requireSession(fn: HandlerFunc): HandlerFunc {
+    return requireSession(this.hub, fn);
   }
 
   private handleClientHello(client: Client, frame: StarfishFrame): void {

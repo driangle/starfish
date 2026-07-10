@@ -1,57 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { validateFrame } from "./client.js";
-import { Handler } from "./handler.js";
-import { IDGenerator } from "./id.js";
-import { defaultConfig } from "./config.js";
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
 import type { Hub } from "./hub.js";
-
-function createTestHub(): Hub {
-  const config = defaultConfig();
-  const idGen = new IDGenerator();
-  const clients = new Map<string, Client>();
-
-  const hub = {
-    config,
-    idGen,
-    handler: null as unknown as Handler,
-    registerClient(c: Client) {
-      clients.set(c.id, c);
-    },
-    removeClient(c: Client) {
-      clients.delete(c.id);
-    },
-    getClient(id: string) {
-      return clients.get(id);
-    },
-  } as unknown as Hub;
-
-  hub.handler = new Handler(hub);
-  return hub;
-}
-
-function createTestClient(hub: Hub): Client & { sent: StarfishFrame[] } {
-  const sent: StarfishFrame[] = [];
-  const client = {
-    id: "",
-    name: "",
-    role: "",
-    meta: undefined as unknown,
-    rtcCapable: false,
-    authenticated: false,
-    lastActivity: Date.now(),
-    sent,
-    sendFrame(frame: StarfishFrame) {
-      if (this.id) {
-        frame.from = this.id;
-      }
-      sent.push(structuredClone(frame));
-    },
-    close() {},
-  } as unknown as Client & { sent: StarfishFrame[] };
-  return client;
-}
+import { createTestHub, createTestClient } from "./test-helpers.js";
 
 // --- validateFrame tests ---
 
@@ -153,7 +105,6 @@ describe("Handler", () => {
   });
 
   it("auth guard rejects unauthenticated client", () => {
-    // Register a handler that requires auth
     hub.handler.registerAuth("test.guarded", () => {});
 
     hub.handler.dispatch(client, { v: 1, id: "m1", type: "test.guarded" });
@@ -292,7 +243,6 @@ describe("from field overwrite", () => {
     const hub = createTestHub();
     const client = createTestClient(hub);
 
-    // Complete handshake
     hub.handler.dispatch(client, {
       v: 1,
       id: "m1",
