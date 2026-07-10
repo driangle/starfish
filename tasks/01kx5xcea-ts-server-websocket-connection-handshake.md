@@ -1,7 +1,7 @@
 ---
 id: "01kx5xcea"
 title: "TS Server: WebSocket server & connection handshake"
-status: pending
+status: completed
 priority: high
 effort: medium
 type: feature
@@ -10,6 +10,7 @@ parent: "01kwyst4k"
 dependencies: ["01kx5xce9"]
 created_at: 2026-07-10
 phase: v0.1
+completed_at: 2026-07-10
 ---
 
 # TS Server: WebSocket server & connection handshake
@@ -24,16 +25,16 @@ Port from Go server's `client.go` (ReadPump/WritePump pattern), `hub.go` (client
 
 ## Tasks
 
-- [ ] Implement `Client` class with WebSocket read loop and buffered write queue
-- [ ] Implement `Hub` class as the central coordinator (client registry, HTTP handler)
-- [ ] Implement frame validation on incoming messages (v=1, id required, type required)
-- [ ] Implement `client.hello` handler with `clientId` assignment
-- [ ] Implement `server.welcome` response with server capabilities
-- [ ] Implement `from` field overwrite on all outbound frames (security rule)
-- [ ] Implement `requireAuth` guard (reject messages before handshake)
-- [ ] Implement graceful client disconnect and cleanup
-- [ ] Create server entry point (`main.ts` or `index.ts`) with CLI arg for port
-- [ ] Write unit tests for frame validation and auth guard
+- [x] Implement `Client` class with WebSocket read loop and buffered write queue
+- [x] Implement `Hub` class as the central coordinator (client registry, HTTP handler)
+- [x] Implement frame validation on incoming messages (v=1, id required, type required)
+- [x] Implement `client.hello` handler with `clientId` assignment
+- [x] Implement `server.welcome` response with server capabilities
+- [x] Implement `from` field overwrite on all outbound frames (security rule)
+- [x] Implement `requireAuth` guard (reject messages before handshake)
+- [x] Implement graceful client disconnect and cleanup
+- [x] Create server entry point (`main.ts` or `index.ts`) with CLI arg for port
+- [x] Write unit tests for frame validation and auth guard
 
 ## Acceptance Criteria
 

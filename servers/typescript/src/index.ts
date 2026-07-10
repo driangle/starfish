@@ -39,3 +39,13 @@ export {
 } from "./limits.js";
 
 export { IDGenerator } from "./id.js";
+
+export type { StarfishConfig, ICEServer } from "./config.js";
+export { defaultConfig } from "./config.js";
+
+export { Client, validateFrame } from "./client.js";
+export type { FrameValidation } from "./client.js";
+
+export { Handler } from "./handler.js";
+
+export { Hub } from "./hub.js";
