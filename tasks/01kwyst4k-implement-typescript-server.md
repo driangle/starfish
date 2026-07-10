@@ -1,11 +1,12 @@
 ---
 title: "Implement TypeScript Server"
 id: "01kwyst4k"
-status: pending
+status: in-progress
 priority: high
 type: feature
 tags: ["server", "typescript"]
 created_at: "2026-07-07"
+phase: v0.1
 ---
 
 # Implement TypeScript Server
@@ -44,6 +45,17 @@ Implement the TypeScript server for the Starfish protocol (v0.1) as defined in `
 - [ ] Write unit tests for session and routing logic
 - [ ] Write integration tests for full client-server flows
 - [ ] Write integration tests for data operations and conflict resolution
+
+## Sub-tasks
+
+1. `01kx5xce9` — TS Server: Project scaffold & core types
+2. `01kx5xcea` — TS Server: WebSocket server & connection handshake
+3. `01kx5xcm0` — TS Server: Session management
+4. `01kx5xcm4` — TS Server: Topic pub/sub & messaging
+5. `01kx5xcm7` — TS Server: Presence
+6. `01kx5xcmb` — TS Server: Shared data store
+7. `01kx5xcme` — TS Server: Resume, heartbeat & system messages
+8. `01kx5xcmj` — TS Server: WebRTC relay, security & limits
 
 ## Acceptance Criteria
 

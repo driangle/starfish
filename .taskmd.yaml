@@ -2,3 +2,5 @@ dir: ./tasks
 id:
   strategy: ulid
   length: 9
+phases:
+  - v0.1
