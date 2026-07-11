@@ -5,20 +5,26 @@ import { IDGenerator } from "./id.js";
 import { Handler } from "./handler.js";
 import { Client } from "./client.js";
 import { Session } from "./session.js";
+import { ResumeRegistry } from "./resume.js";
+import { HeartbeatChecker } from "./heartbeat.js";
 
 export class Hub {
   readonly config: StarfishConfig;
   readonly idGen: IDGenerator;
   readonly handler: Handler;
+  readonly resumes: ResumeRegistry;
 
   private clients = new Map<string, Client>();
   private sessions = new Map<string, Session>();
   private wss: WebSocketServer;
   private server: http.Server;
+  private heartbeat: HeartbeatChecker;
 
   constructor(config: StarfishConfig) {
     this.config = config;
     this.idGen = new IDGenerator();
+    this.resumes = new ResumeRegistry(this);
+    this.heartbeat = new HeartbeatChecker(this);
     this.handler = new Handler(this);
 
     this.server = http.createServer((_req, res) => {
@@ -47,6 +53,7 @@ export class Hub {
     return new Promise((resolve) => {
       this.server.listen(this.config.port, () => {
         console.log(`Starfish server listening on :${this.config.port}`);
+        this.heartbeat.start();
         resolve();
       });
     });
@@ -64,6 +71,10 @@ export class Hub {
 
   getClient(clientId: string): Client | undefined {
     return this.clients.get(clientId);
+  }
+
+  getClients(): Iterable<Client> {
+    return this.clients.values();
   }
 
   getSession(name: string): Session | undefined {
@@ -88,29 +99,11 @@ export class Hub {
   }
 
   handleClientDisconnect(client: Client): void {
-    for (const sessionName of client.sessions) {
-      const session = this.sessions.get(sessionName);
-      if (!session) continue;
-
-      const empty = session.removeClient(client.id);
-
-      session.broadcast({
-        v: 1,
-        id: this.idGen.messageId(),
-        type: "client.disconnected",
-        session: sessionName,
-        payload: { clientId: client.id, reason: "disconnect" },
-      });
-
-      if (empty) {
-        session.destroy();
-        this.sessions.delete(sessionName);
-      }
-    }
-    client.sessions.clear();
+    this.resumes.store(client);
   }
 
   shutdown(): Promise<void> {
+    this.heartbeat.stop();
     return new Promise((resolve) => {
       for (const client of this.clients.values()) {
         client.close();

@@ -2,6 +2,7 @@ import { Handler } from "./handler.js";
 import { IDGenerator } from "./id.js";
 import { defaultConfig } from "./config.js";
 import { Session } from "./session.js";
+import { ResumeRegistry } from "./resume.js";
 import type { StarfishFrame } from "./types.js";
 import type { Client, ClientInfo } from "./client.js";
 import type { Hub } from "./hub.js";
@@ -16,6 +17,7 @@ export function createTestHub(): Hub {
     config,
     idGen,
     handler: null,
+    resumes: null,
     registerClient(c: Client) {
       clients.set(c.id, c);
     },
@@ -24,6 +26,9 @@ export function createTestHub(): Hub {
     },
     getClient(id: string) {
       return clients.get(id);
+    },
+    getClients() {
+      return clients.values();
     },
     getSession(name: string) {
       return sessions.get(name);
@@ -43,26 +48,11 @@ export function createTestHub(): Hub {
       }
     },
     handleClientDisconnect(client: Client) {
-      for (const sessionName of client.sessions) {
-        const session = sessions.get(sessionName);
-        if (!session) continue;
-        const empty = session.removeClient(client.id);
-        session.broadcast({
-          v: 1,
-          id: idGen.messageId(),
-          type: "client.disconnected",
-          session: sessionName,
-          payload: { clientId: client.id, reason: "disconnect" },
-        });
-        if (empty) {
-          session.destroy();
-          sessions.delete(sessionName);
-        }
-      }
-      client.sessions.clear();
+      (hub.resumes as ResumeRegistry).store(client);
     },
   };
 
+  hub.resumes = new ResumeRegistry(hub as unknown as Hub);
   hub.handler = new Handler(hub as unknown as Hub);
   return hub as unknown as Hub;
 }

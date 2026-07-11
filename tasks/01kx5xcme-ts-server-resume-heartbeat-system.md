@@ -1,7 +1,7 @@
 ---
 id: "01kx5xcme"
 title: "TS Server: Resume, heartbeat & system messages"
-status: pending
+status: completed
 priority: high
 effort: medium
 type: feature
@@ -10,6 +10,7 @@ parent: "01kwyst4k"
 dependencies: ["01kx5xcm0"]
 created_at: 2026-07-10
 phase: v0.1
+completed_at: 2026-07-11
 ---
 
 # TS Server: Resume, heartbeat & system messages
@@ -24,19 +25,19 @@ Port from Go server's `resume.go`, `handler_connection.go` (resume path), and `h
 
 ## Tasks
 
-- [ ] Implement `ResumeRegistry` class (token → held state map)
-- [ ] Generate `resumeToken` on successful handshake (format: `rt_XXXX`)
-- [ ] Hold client state on disconnect (session memberships, topic subscriptions, presence)
-- [ ] Defer `client.disconnected` broadcast until resume timeout fires (default 30s)
-- [ ] Restore state on `client.hello` with valid `resumeToken`
-- [ ] Invalidate old token and issue new one on successful resume
-- [ ] Reject invalid/expired tokens with `resume.invalid` / `resume.expired`
-- [ ] Implement heartbeat checker (2x interval timeout, default 15s interval → 30s timeout)
-- [ ] Disconnect client on heartbeat timeout
-- [ ] Implement `ping` → `pong` handler
-- [ ] Implement `clock.sync` → `clock.synced` handler (echo server timestamp)
-- [ ] Implement `ack` / `nack` routing to explicit `to` target
-- [ ] Write unit tests for resume lifecycle and heartbeat timeout
+- [x] Implement `ResumeRegistry` class (token → held state map)
+- [x] Generate `resumeToken` on successful handshake (format: `rt_XXXX`)
+- [x] Hold client state on disconnect (session memberships, topic subscriptions, presence)
+- [x] Defer `client.disconnected` broadcast until resume timeout fires (default 30s)
+- [x] Restore state on `client.hello` with valid `resumeToken`
+- [x] Invalidate old token and issue new one on successful resume
+- [x] Reject invalid/expired tokens with `resume.invalid` / `resume.expired`
+- [x] Implement heartbeat checker (2x interval timeout, default 15s interval → 30s timeout)
+- [x] Disconnect client on heartbeat timeout
+- [x] Implement `ping` → `pong` handler
+- [x] Implement `clock.sync` → `clock.synced` handler (echo server timestamp)
+- [x] Implement `ack` / `nack` routing to explicit `to` target
+- [x] Write unit tests for resume lifecycle and heartbeat timeout
 
 ## Acceptance Criteria
 

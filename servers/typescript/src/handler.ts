@@ -17,22 +17,8 @@ import {
   handleSessionBroadcast,
 } from "./handler_messaging.js";
 import { handlePresenceSet } from "./handler_presence.js";
-
-type HelloPayload = {
-  client?: { name?: string; role?: string; meta?: unknown };
-  capabilities?: { rtc?: boolean };
-  resumeToken?: string;
-};
-
-type WelcomePayload = {
-  clientId: string;
-  resumeToken: string;
-  resumeTimeout: number;
-  serverTime: number;
-  heartbeatInterval: number;
-  sessionRequired: boolean;
-  rtc?: { iceServers: Array<{ urls: string }> };
-};
+import { handleClockSync, handleAck, handleNack } from "./handler_system.js";
+import { handleClientHello } from "./handler_connection.js";
 
 type HandlerFunc = (client: Client, frame: StarfishFrame) => void;
 
@@ -43,7 +29,7 @@ export class Handler {
   constructor(hub: Hub) {
     this.hub = hub;
 
-    this.handlers.set("client.hello", (c, f) => this.handleClientHello(c, f));
+    this.handlers.set("client.hello", (c, f) => handleClientHello(this.hub, c, f));
     this.handlers.set("ping", (c, f) => this.handlePing(c, f));
     this.handlers.set(
       "session.join",
@@ -77,6 +63,18 @@ export class Handler {
     this.handlers.set(
       "presence.set",
       this.requireAuth(this.requireSession((c, f) => handlePresenceSet(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "clock.sync",
+      (c, f) => handleClockSync(this.hub, c, f),
+    );
+    this.handlers.set(
+      "ack",
+      this.requireAuth((c, f) => handleAck(this.hub, c, f)),
+    );
+    this.handlers.set(
+      "nack",
+      this.requireAuth((c, f) => handleNack(this.hub, c, f)),
     );
   }
 
@@ -113,53 +111,6 @@ export class Handler {
 
   requireSession(fn: HandlerFunc): HandlerFunc {
     return requireSession(this.hub, fn);
-  }
-
-  private handleClientHello(client: Client, frame: StarfishFrame): void {
-    let payload: HelloPayload = {};
-    if (frame.payload !== undefined) {
-      payload = frame.payload as HelloPayload;
-    }
-
-    const clientId = this.hub.idGen.clientId();
-    const resumeToken = this.hub.idGen.resumeToken();
-    const now = Date.now();
-
-    client.id = clientId;
-    if (payload.client) {
-      client.name = payload.client.name ?? "";
-      client.role = payload.client.role ?? "";
-      client.meta = payload.client.meta;
-    }
-    if (payload.capabilities) {
-      client.rtcCapable = payload.capabilities.rtc === true;
-    }
-    client.authenticated = true;
-    client.lastActivity = now;
-
-    this.hub.registerClient(client);
-
-    const welcome: WelcomePayload = {
-      clientId,
-      resumeToken,
-      resumeTimeout: this.hub.config.resumeTimeoutMs,
-      serverTime: now,
-      heartbeatInterval: this.hub.config.heartbeatIntervalMs,
-      sessionRequired: true,
-    };
-
-    if (this.hub.config.iceServers.length > 0) {
-      welcome.rtc = { iceServers: this.hub.config.iceServers };
-    }
-
-    client.sendFrame({
-      v: 1,
-      id: this.hub.idGen.messageId(),
-      type: "server.welcome",
-      ts: now,
-      replyTo: frame.id,
-      payload: welcome,
-    });
   }
 
   private handlePing(client: Client, frame: StarfishFrame): void {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { Session } from "./session.js";
 import type { StarfishFrame } from "./types.js";
 import type { Client, ClientInfo } from "./client.js";
@@ -314,7 +314,10 @@ describe("requireSession guard", () => {
 // --- Client disconnect ---
 
 describe("client disconnect", () => {
-  it("leaves all sessions and fires events on disconnect", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("defers client.disconnected broadcast until resume timeout", () => {
     const hub = createTestHub();
     const c1 = createTestClient(hub);
     authenticate(hub, c1);
@@ -338,16 +341,19 @@ describe("client disconnect", () => {
 
     hub.handleClientDisconnect(c2);
 
+    // Broadcast is deferred — not sent immediately
+    expect(c1.sent).toHaveLength(0);
+    expect(c2.sessions.size).toBe(0);
+
+    // After resume timeout, broadcast fires
+    vi.advanceTimersByTime(hub.config.resumeTimeoutMs);
+
     expect(c1.sent).toHaveLength(1);
     expect(c1.sent[0].type).toBe("client.disconnected");
     expect(c1.sent[0].session).toBe("room1");
     const dcPayload = c1.sent[0].payload as { clientId: string; reason: string };
     expect(dcPayload.clientId).toBe(c2.id);
-    expect(dcPayload.reason).toBe("disconnect");
-
-    expect(c2.sessions.size).toBe(0);
-    expect(hub.getSession("room1")).toBeDefined();
-    expect(hub.getSession("room2")).toBeUndefined();
+    expect(dcPayload.reason).toBe("timeout");
   });
 });
 
