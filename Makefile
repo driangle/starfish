@@ -1,11 +1,11 @@
-.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk test-integration install-hooks lint lint-sdk-typescript lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang
+.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-sdk-typescript-integration check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk test-integration install-hooks lint lint-sdk-typescript lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
 # --- Check-lite (lint + compile only, no tests) ---
 
-check-lite: lint check-golang-lite check-sdk-typescript-lite check-server-typescript-lite check-integration ## Lint and compile all projects (no tests)
+check-lite: lint check-golang-lite check-sdk-typescript-lite check-sdk-typescript-integration check-server-typescript-lite check-integration ## Lint and compile all projects (no tests)
 
 check-golang-lite: ## Vet the Go server (no tests)
 	@echo "==> go vet (servers/golang)"
@@ -21,6 +21,9 @@ check-golang: check-golang-lite ## Vet and unit-test the Go server
 
 check-sdk-typescript-lite: ## Type-check the TypeScript SDK (no tests)
 	@cd sdks/typescript && npm install --silent 2>/dev/null && echo "==> tsc --noEmit (sdks/typescript)" && npx tsc --noEmit
+
+check-sdk-typescript-integration: ## Type-check the TypeScript SDK integration tests
+	@cd sdks/typescript && npm install --silent 2>/dev/null && echo "==> tsc --noEmit (sdks/typescript/integration)" && npx tsc --noEmit -p integration/tsconfig.json
 
 check-sdk-typescript: check-sdk-typescript-lite ## Type-check and unit-test the TypeScript SDK
 	@echo "==> vitest run (sdks/typescript)"

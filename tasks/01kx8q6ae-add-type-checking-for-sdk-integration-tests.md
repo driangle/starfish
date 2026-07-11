@@ -1,13 +1,14 @@
 ---
 title: "Add type-checking for SDK integration tests"
 id: "01kx8q6ae"
-status: in-progress
+status: completed
 priority: medium
 effort: small
 type: chore
 tags: ["testing", "typescript", "sdk"]
 created_at: "2026-07-11"
 phase: v0.1
+completed_at: 2026-07-11
 ---
 
 # Add type-checking for SDK integration tests
@@ -18,10 +19,10 @@ Ensure the TypeScript SDK integration tests (`sdks/typescript/integration/`) are
 
 ## Tasks
 
-- [ ] Add a `tsconfig.json` for the integration tests that references the SDK source types
-- [ ] Add a `check-sdk-integration` target to the Makefile that runs `tsc --noEmit` on the integration tests
-- [ ] Include the new target in `check-lite` or `check-integration`
-- [ ] Fix any type errors uncovered by the new check
+- [x] Add a `tsconfig.json` for the integration tests that references the SDK source types
+- [x] Add a `check-sdk-integration` target to the Makefile that runs `tsc --noEmit` on the integration tests
+- [x] Include the new target in `check-lite` or `check-integration`
+- [x] Fix any type errors uncovered by the new check
 
 ## Acceptance Criteria
 
