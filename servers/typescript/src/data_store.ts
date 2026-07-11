@@ -15,7 +15,7 @@ export class ConflictError extends Error {
   }
 }
 
-const EMPTY_ENTRY: DataEntry = { data: undefined, version: 0, updatedBy: "" };
+const EMPTY_ENTRY: DataEntry = { data: null, version: 0, updatedBy: "" };
 
 export class DataStore {
   private session = new Map<string, DataEntry>();
@@ -38,7 +38,7 @@ export class DataStore {
 
     if (op === "delete") {
       store.delete(key);
-      return { data: undefined, version: existing.version + 1, updatedBy: clientId };
+      return { data: null, version: existing.version + 1, updatedBy: clientId };
     }
 
     const newData = applyOp(op, existing.data, data);

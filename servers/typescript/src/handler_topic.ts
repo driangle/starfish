@@ -4,7 +4,6 @@ import type { Hub } from "./hub.js";
 import {
   createErrorFrame,
   ERR_TOPIC_INVALID,
-  ERR_TOPIC_NOT_SUBSCRIBED,
 } from "./errors.js";
 import { MAX_TOPIC_NAME_LENGTH } from "./limits.js";
 
@@ -77,16 +76,8 @@ export function handleTopicPublish(hub: Hub, client: Client, frame: StarfishFram
 
   const session = hub.getSession(frame.session!)!;
 
-  if (!session.isSubscribed(topic, client.id)) {
-    client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_TOPIC_NOT_SUBSCRIBED),
-    );
-    return;
-  }
-
   const subscribers = session.getSubscribers(topic);
   for (const sub of subscribers) {
-    if (sub.id === client.id) continue;
     sub.sendFrame({
       v: 1,
       id: hub.idGen.messageId(),

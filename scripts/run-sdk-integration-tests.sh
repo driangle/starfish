@@ -56,6 +56,16 @@ start_golang() {
   wait_for_server "$port"
 }
 
+start_typescript() {
+  local port=$1
+  echo "Building TypeScript server..."
+  (cd "$ROOT_DIR/servers/typescript" && npm install --silent 2>/dev/null && npm run build)
+  echo "Starting TypeScript server on port $port..."
+  node "$ROOT_DIR/servers/typescript/dist/main.js" --port "$port" &
+  SERVER_PID=$!
+  wait_for_server "$port"
+}
+
 # --- SDK test runners ---
 
 run_sdk_typescript() {
@@ -83,9 +93,12 @@ case "$SERVER_TYPE" in
   golang)
     start_golang "$PORT"
     ;;
+  typescript)
+    start_typescript "$PORT"
+    ;;
   *)
     echo "Unknown server type: $SERVER_TYPE" >&2
-    echo "Supported server types: golang" >&2
+    echo "Supported server types: golang, typescript" >&2
     exit 1
     ;;
 esac

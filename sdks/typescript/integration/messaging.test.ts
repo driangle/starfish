@@ -109,7 +109,7 @@ describe("SDK: messaging", () => {
       });
     });
 
-    client.broadcast({ echo: true }, { includeSelf: true });
+    client.broadcast({ echo: true }, { delivery: { includeSelf: true } });
 
     const message = await received;
     expect(message.payload).toEqual({ echo: true });

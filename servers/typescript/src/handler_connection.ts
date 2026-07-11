@@ -2,7 +2,7 @@ import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
 import type { Hub } from "./hub.js";
 import type { ResumeEntry } from "./resume.js";
-import { createErrorFrame, ERR_RESUME_INVALID, ERR_PAYLOAD_TOO_LARGE } from "./errors.js";
+import { createErrorFrame, ERR_PAYLOAD_TOO_LARGE } from "./errors.js";
 import { MAX_CLIENT_META_SIZE } from "./limits.js";
 
 type HelloPayload = {
@@ -34,8 +34,9 @@ export function handleClientHello(
   }
 
   if (payload.resumeToken) {
-    handleResume(hub, client, frame, payload.resumeToken);
-    return;
+    const resumed = handleResume(hub, client, frame, payload.resumeToken);
+    if (resumed) return;
+    // Resume failed — fall through to fresh connection
   }
 
   handleFreshHello(hub, client, frame, payload);
@@ -46,13 +47,10 @@ function handleResume(
   client: Client,
   frame: StarfishFrame,
   token: string,
-): void {
+): boolean {
   const entry = hub.resumes.restore(token);
   if (!entry) {
-    client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_RESUME_INVALID),
-    );
-    return;
+    return false;
   }
 
   restoreClient(client, entry);
@@ -68,6 +66,8 @@ function handleResume(
     resumeToken: newToken,
     sessions: [...client.sessions],
   });
+
+  return true;
 }
 
 function handleFreshHello(

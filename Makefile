@@ -1,4 +1,4 @@
-.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-server-typescript check-server-typescript-lite check-integration test-golang test-integration install-hooks lint lint-sdk-typescript lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang
+.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk test-integration install-hooks lint lint-sdk-typescript lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
@@ -41,14 +41,20 @@ check-integration: ## Type-check the integration test suite
 test-golang: ## Run protocol integration tests against the Go server
 	@./scripts/run-integration-tests.sh golang
 
+test-typescript: ## Run protocol integration tests against the TypeScript server
+	@./scripts/run-integration-tests.sh typescript
+
 test-sdk-typescript-golang: ## Run TypeScript SDK integration tests against the Go server
 	@./scripts/run-sdk-integration-tests.sh typescript golang
 
-test-sdk-typescript: test-sdk-typescript-golang ## Run TypeScript SDK integration tests against all servers
+test-sdk-typescript-typescript: ## Run TypeScript SDK integration tests against the TypeScript server
+	@./scripts/run-sdk-integration-tests.sh typescript typescript
+
+test-sdk-typescript: test-sdk-typescript-golang test-sdk-typescript-typescript ## Run TypeScript SDK integration tests against all servers
 
 test-sdk: test-sdk-typescript ## Run all SDK integration tests against all servers
 
-test-integration: test-golang test-sdk ## Run all integration tests (protocol + SDK)
+test-integration: test-golang test-typescript test-sdk ## Run all integration tests (protocol + SDK)
 
 # --- Lint (file-length rules) ---
 

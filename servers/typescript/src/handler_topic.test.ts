@@ -193,15 +193,17 @@ describe("topic.publish", () => {
     c2.sent.length = 0;
   });
 
-  it("delivers topic.message to subscribers except sender", () => {
+  it("delivers topic.message to all subscribers including sender", () => {
     hub.handler.dispatch(c1, {
       v: 1, id: "p1", type: "topic.publish",
       session: "room1", topic: "chat",
       payload: { text: "hello" },
     });
 
-    // c1 (sender) gets nothing
-    expect(c1.sent).toHaveLength(0);
+    // c1 (sender) also receives because they are subscribed
+    expect(c1.sent).toHaveLength(1);
+    expect(c1.sent[0].type).toBe("topic.message");
+    expect(c1.sent[0].from).toBe(c1.id);
 
     // c2 gets topic.message
     expect(c2.sent).toHaveLength(1);
@@ -212,10 +214,12 @@ describe("topic.publish", () => {
     expect(c2.sent[0].payload).toEqual({ text: "hello" });
   });
 
-  it("rejects publish when not subscribed", () => {
+  it("publish when not subscribed delivers to subscribers without error", () => {
     const c3 = createTestClient(hub);
     authenticate(hub, c3);
     joinSession(hub, c3, "room1");
+    c1.sent.length = 0;
+    c2.sent.length = 0;
 
     hub.handler.dispatch(c3, {
       v: 1, id: "p1", type: "topic.publish",
@@ -223,9 +227,14 @@ describe("topic.publish", () => {
       payload: { text: "hello" },
     });
 
-    expect(c3.sent).toHaveLength(1);
-    expect(c3.sent[0].type).toBe("error");
-    expect(c3.sent[0].error?.code).toBe("topic.not_subscribed");
+    // No error for the publisher
+    expect(c3.sent.filter((f) => f.type === "error")).toHaveLength(0);
+
+    // Subscribed clients still receive the message
+    expect(c1.sent).toHaveLength(1);
+    expect(c1.sent[0].type).toBe("topic.message");
+    expect(c2.sent).toHaveLength(1);
+    expect(c2.sent[0].type).toBe("topic.message");
   });
 
   it("rejects publish with invalid topic", () => {

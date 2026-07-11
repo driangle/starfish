@@ -133,28 +133,31 @@ describe("resume", () => {
     const newToken = getWelcome(c2).resumeToken;
     expect(newToken).not.toBe(oldToken);
 
-    // Old token should be invalid now
+    // Old token should be invalid now — falls through to fresh connection
     const c3 = createTestClient(hub);
     hub.handler.dispatch(c3, {
       v: 1, id: "hello3", type: "client.hello",
       payload: { resumeToken: oldToken },
     });
-    expect(c3.sent[0].type).toBe("error");
-    expect(c3.sent[0].error?.code).toBe("resume.invalid");
+    expect(c3.sent[0].type).toBe("server.welcome");
+    expect(c3.sent[0].payload.resumed).toBeFalsy();
+    expect(c3.sent[0].payload.clientId).toBeDefined();
+    expect(c3.sent[0].payload.clientId).not.toBe(c2.sent[0].payload.clientId);
   });
 
-  it("invalid token returns resume.invalid", () => {
+  it("invalid token falls through to fresh connection", () => {
     const c = createTestClient(hub);
     hub.handler.dispatch(c, {
       v: 1, id: "hello", type: "client.hello",
       payload: { resumeToken: "rt_bogus" },
     });
 
-    expect(c.sent[0].type).toBe("error");
-    expect(c.sent[0].error?.code).toBe("resume.invalid");
+    expect(c.sent[0].type).toBe("server.welcome");
+    expect(c.sent[0].payload.resumed).toBeFalsy();
+    expect(c.sent[0].payload.clientId).toBeDefined();
   });
 
-  it("expired token returns resume.invalid", () => {
+  it("expired token falls through to fresh connection", () => {
     const c1 = createTestClient(hub);
     hub.handler.dispatch(c1, {
       v: 1, id: "hello", type: "client.hello", payload: {},
@@ -169,14 +172,15 @@ describe("resume", () => {
     // Wait past resume timeout
     vi.advanceTimersByTime(hub.config.resumeTimeoutMs + 1);
 
-    // Try to resume — token has expired
+    // Try to resume — token has expired, falls through to fresh connection
     const c2 = createTestClient(hub);
     hub.handler.dispatch(c2, {
       v: 1, id: "hello2", type: "client.hello",
       payload: { resumeToken: token },
     });
-    expect(c2.sent[0].type).toBe("error");
-    expect(c2.sent[0].error?.code).toBe("resume.invalid");
+    expect(c2.sent[0].type).toBe("server.welcome");
+    expect(c2.sent[0].payload.resumed).toBeFalsy();
+    expect(c2.sent[0].payload.clientId).toBeDefined();
   });
 
   it("restores presence on resume", () => {

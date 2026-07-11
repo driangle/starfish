@@ -120,7 +120,7 @@ describe("DataStore", () => {
 
     const got = ds.get("tmp", "session", "c1");
     expect(got.version).toBe(0);
-    expect(got.data).toBeUndefined();
+    expect(got.data).toBeNull();
   });
 
   it("optimistic concurrency succeeds with correct version", () => {
@@ -181,7 +181,7 @@ describe("DataStore", () => {
 
     const entry = ds.get("missing", "session", "c1");
     expect(entry.version).toBe(0);
-    expect(entry.data).toBeUndefined();
+    expect(entry.data).toBeNull();
   });
 
   it("rejects invalid operation", () => {

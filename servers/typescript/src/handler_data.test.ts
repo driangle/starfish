@@ -243,7 +243,7 @@ describe("data.get handler", () => {
 
     const payload = c1.sent[0].payload as { data: unknown; version: number };
     expect(payload.version).toBe(0);
-    expect(payload.data).toBeUndefined();
+    expect(payload.data).toBeNull();
   });
 
   it("rejects invalid scope", () => {
@@ -292,7 +292,7 @@ describe("data.get handler", () => {
     });
     const c2Frames = c2.sent.filter((f) => f.type === "data.value");
     const c2Payload = c2Frames[0].payload as { data: unknown; version: number };
-    expect(c2Payload.data).toBeUndefined();
+    expect(c2Payload.data).toBeNull();
     expect(c2Payload.version).toBe(0);
   });
 });
