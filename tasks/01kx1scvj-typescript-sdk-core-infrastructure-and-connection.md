@@ -9,6 +9,7 @@ dependencies: []
 tags: ["sdk", "typescript"]
 created_at: 2026-07-08
 completed_at: 2026-07-08
+phase: v0.1
 ---
 
 # TypeScript SDK: Core Infrastructure and Connection

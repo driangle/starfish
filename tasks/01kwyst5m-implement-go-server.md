@@ -7,6 +7,7 @@ type: feature
 tags: ["server", "golang"]
 created_at: "2026-07-07"
 completed_at: 2026-07-07
+phase: v0.1
 ---
 
 # Implement Go Server

@@ -6,6 +6,7 @@ priority: medium
 dependencies: []
 tags: ["docs", "vitepress"]
 created_at: 2026-07-08
+phase: v0.1
 ---
 
 # Add project documentation site using VitePress

@@ -7,6 +7,7 @@ type: feature
 tags: ["adapter", "threejs", "typescript"]
 created_at: "2026-07-07"
 dependencies: ["01kwyst27"]
+phase: v0.1
 ---
 
 # Implement Three.js Adapter

@@ -9,6 +9,7 @@ dependencies: ["01kx1scvj"]
 tags: ["sdk", "typescript"]
 created_at: 2026-07-08
 completed_at: 2026-07-08
+phase: v0.1
 ---
 
 # TypeScript SDK: Presence and Data Operations

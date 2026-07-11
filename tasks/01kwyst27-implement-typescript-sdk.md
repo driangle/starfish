@@ -7,6 +7,7 @@ type: feature
 tags: ["sdk", "typescript"]
 created_at: "2026-07-07"
 completed_at: 2026-07-09
+phase: v0.1
 ---
 
 # Implement TypeScript SDK

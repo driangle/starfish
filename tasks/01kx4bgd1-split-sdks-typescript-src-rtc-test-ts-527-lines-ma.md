@@ -6,6 +6,7 @@ priority: low
 type: chore
 tags: ["lint", "refactor"]
 created_at: "2026-07-09"
+phase: v0.1
 ---
 
 # Split sdks/typescript/src/rtc.test.ts (527 lines, max 500)

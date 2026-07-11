@@ -7,6 +7,7 @@ dependencies: ["01kwyst27"]
 tags: ["sdk", "typescript", "examples"]
 created_at: 2026-07-08
 completed_at: 2026-07-09
+phase: v0.1
 ---
 
 # Create TypeScript SDK example project

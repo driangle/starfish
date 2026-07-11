@@ -7,6 +7,7 @@ type: feature
 tags: ["adapter", "touchdesigner", "python"]
 created_at: "2026-07-07"
 dependencies: ["01kwyst2r"]
+phase: v0.1
 ---
 
 # Implement TouchDesigner Adapter

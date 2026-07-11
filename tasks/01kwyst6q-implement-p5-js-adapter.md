@@ -8,6 +8,7 @@ tags: ["adapter", "p5js", "typescript"]
 created_at: "2026-07-07"
 dependencies: ["01kwyst27"]
 completed_at: 2026-07-09
+phase: v0.1
 ---
 
 # Implement p5.js Adapter

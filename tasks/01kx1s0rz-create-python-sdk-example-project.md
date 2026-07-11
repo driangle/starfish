@@ -6,6 +6,7 @@ priority: medium
 dependencies: ["01kwyst2r"]
 tags: ["sdk", "python", "examples"]
 created_at: 2026-07-08
+phase: v0.1
 ---
 
 # Create Python SDK example project

@@ -6,6 +6,7 @@ priority: medium
 type: chore
 tags: ["lint", "refactor"]
 created_at: "2026-07-09"
+phase: v0.1
 ---
 
 # Split servers/golang/starfish/integration_test.go (717 lines, max 500)

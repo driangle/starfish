@@ -6,6 +6,7 @@ priority: high
 type: chore
 tags: ["lint", "formatting"]
 created_at: "2026-07-09"
+phase: v0.1
 ---
 
 # Add formatting checks for TypeScript and Go projects

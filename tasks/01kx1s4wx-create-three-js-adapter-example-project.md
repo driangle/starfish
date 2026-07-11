@@ -6,6 +6,7 @@ priority: medium
 dependencies: ["01kwyst79"]
 tags: ["adapter", "threejs", "examples"]
 created_at: 2026-07-08
+phase: v0.1
 ---
 
 # Create Three.js adapter example project

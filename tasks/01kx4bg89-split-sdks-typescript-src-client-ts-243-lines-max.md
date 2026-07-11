@@ -7,6 +7,7 @@ type: chore
 tags: ["lint", "refactor"]
 created_at: "2026-07-09"
 completed_at: 2026-07-09
+phase: v0.1
 ---
 
 # Split sdks/typescript/src/client.ts (243 lines, max 200)

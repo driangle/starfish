@@ -9,6 +9,7 @@ dependencies: ["01kx30x5f"]
 tags: ["sdk", "typescript", "webrtc"]
 created_at: 2026-07-09
 completed_at: 2026-07-09
+phase: v0.1
 ---
 
 # TypeScript SDK: Transport Selection and RTC Topic Routing

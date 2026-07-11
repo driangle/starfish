@@ -6,6 +6,7 @@ priority: medium
 type: chore
 tags: ["lint", "refactor"]
 created_at: "2026-07-09"
+phase: v0.1
 ---
 
 # Split servers/golang/starfish/data_store.go (228 lines, max 200)

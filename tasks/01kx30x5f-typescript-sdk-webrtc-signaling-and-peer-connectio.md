@@ -9,6 +9,7 @@ dependencies: []
 tags: ["sdk", "typescript", "webrtc"]
 created_at: 2026-07-09
 completed_at: 2026-07-09
+phase: v0.1
 ---
 
 # TypeScript SDK: WebRTC Signaling and Peer Connections

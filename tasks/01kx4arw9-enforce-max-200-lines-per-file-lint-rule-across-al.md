@@ -7,6 +7,7 @@ type: chore
 tags: ["lint", "code-quality"]
 created_at: "2026-07-09"
 completed_at: 2026-07-09
+phase: v0.1
 ---
 
 # Enforce max 200 lines per file lint rule across all projects

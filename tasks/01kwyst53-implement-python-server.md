@@ -6,6 +6,7 @@ priority: high
 type: feature
 tags: ["server", "python"]
 created_at: "2026-07-07"
+phase: v0.1
 ---
 
 # Implement Python Server

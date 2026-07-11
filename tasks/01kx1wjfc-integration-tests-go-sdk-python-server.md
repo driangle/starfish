@@ -7,6 +7,7 @@ effort: small
 dependencies: ["01kwyst3n", "01kwyst53"]
 tags: ["sdk", "go", "testing", "integration"]
 created_at: 2026-07-09
+phase: v0.1
 ---
 
 # Integration tests: Go SDK × Python server

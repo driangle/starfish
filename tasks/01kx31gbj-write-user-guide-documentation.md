@@ -6,6 +6,7 @@ priority: medium
 type: feature
 tags: ["docs"]
 created_at: "2026-07-09"
+phase: v0.1
 ---
 
 # Write user guide documentation

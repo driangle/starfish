@@ -7,6 +7,7 @@ effort: small
 dependencies: ["01kwyst27", "01kwyst4k"]
 tags: ["sdk", "typescript", "testing", "integration"]
 created_at: 2026-07-09
+phase: v0.1
 ---
 
 # Integration tests: TypeScript SDK × TypeScript server

@@ -7,6 +7,7 @@ dependencies: ["01kwyst6q"]
 tags: ["adapter", "p5js", "examples"]
 created_at: 2026-07-08
 completed_at: 2026-07-09
+phase: v0.1
 ---
 
 # Create p5.js adapter example project

@@ -7,6 +7,7 @@ effort: medium
 dependencies: ["01kwyst2r", "01kwyst5m"]
 tags: ["sdk", "python", "testing", "integration"]
 created_at: 2026-07-09
+phase: v0.1
 ---
 
 # Integration tests: Python SDK × Go server
