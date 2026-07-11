@@ -74,6 +74,8 @@ export class Session {
   }
 
   handleFrame(frame: StarfishFrame): void {
+    if (!this._session || frame.session !== this._session) return;
+
     switch (frame.type) {
       case "client.connected": {
         const client = frame.payload?.client as ClientInfo | undefined;

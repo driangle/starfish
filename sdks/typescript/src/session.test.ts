@@ -176,6 +176,7 @@ describe("Session", () => {
       v: 1,
       id: "evt_1",
       type: "client.connected",
+      session: "room-1",
       payload: { client: clientInfo("alice", "Alice") },
     });
 
@@ -201,6 +202,7 @@ describe("Session", () => {
       v: 1,
       id: "evt_1",
       type: "client.disconnected",
+      session: "room-1",
       payload: { clientId: "alice" },
     });
 
@@ -260,6 +262,7 @@ describe("Session", () => {
       v: 1,
       id: "evt_1",
       type: "client.connected",
+      session: "room-1",
       payload: { client: clientInfo("alice") },
     });
 

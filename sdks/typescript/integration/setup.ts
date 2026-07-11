@@ -6,9 +6,10 @@ export const SERVER_URL =
   process.env.STARFISH_SERVER_URL ?? "ws://localhost:8080/starfish";
 
 let counter = 0;
+const workerId = Math.random().toString(36).slice(2, 8);
 
 export function uniqueSession(): string {
-  return `sdk-test-${Date.now()}-${++counter}`;
+  return `sdk-test-${workerId}-${Date.now()}-${++counter}`;
 }
 
 export function createClient(name = "sdk-test"): StarfishClient {
