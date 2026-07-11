@@ -57,4 +57,15 @@ export {
   removeClientFromSession,
 } from "./handler_session.js";
 
+export {
+  handleTopicSubscribe,
+  handleTopicUnsubscribe,
+  handleTopicPublish,
+} from "./handler_topic.js";
+
+export {
+  handleClientSend,
+  handleSessionBroadcast,
+} from "./handler_messaging.js";
+
 export { Hub } from "./hub.js";

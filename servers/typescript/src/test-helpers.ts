@@ -69,6 +69,7 @@ type TestClient = {
   authenticated: boolean;
   lastActivity: number;
   sessions: Set<string>;
+  topics: Map<string, Set<string>>;
   sent: StarfishFrame[];
   sendFrame(frame: StarfishFrame): void;
   info(): ClientInfo;
@@ -88,9 +89,10 @@ export function createTestClient(
     authenticated: false,
     lastActivity: Date.now(),
     sessions: new Set<string>(),
+    topics: new Map<string, Set<string>>(),
     sent,
     sendFrame(frame: StarfishFrame) {
-      if (this.id) frame.from = this.id;
+      if (this.id && !frame.from) frame.from = this.id;
       sent.push(structuredClone(frame));
     },
     info(): ClientInfo {

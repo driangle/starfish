@@ -1,7 +1,7 @@
 ---
 id: "01kx5xcm4"
 title: "TS Server: Topic pub/sub & messaging"
-status: pending
+status: completed
 priority: high
 effort: medium
 type: feature
@@ -10,6 +10,7 @@ parent: "01kwyst4k"
 dependencies: ["01kx5xcm0"]
 created_at: 2026-07-10
 phase: v0.1
+completed_at: 2026-07-10
 ---
 
 # TS Server: Topic pub/sub & messaging
@@ -24,15 +25,15 @@ Port from Go server's `handler_topic.go` (subscribe/unsubscribe/publish + topic.
 
 ## Tasks
 
-- [ ] Implement topic subscription tracking per session (subscribe/unsubscribe)
-- [ ] Implement `topic.subscribe` handler → `topic.subscribed` response
-- [ ] Implement `topic.unsubscribe` handler → `topic.unsubscribed` response
-- [ ] Implement `topic.publish` → `topic.message` routing with type rewrite
-- [ ] Implement `topic.peers` subscription map push on every subscribe/unsubscribe
-- [ ] Validate topic name length (max 128 chars)
-- [ ] Implement `client.send` → `client.message` direct message routing
-- [ ] Implement `session.broadcast` routing with `includeSelf` option support
-- [ ] Write unit tests for topic routing and broadcast logic
+- [x] Implement topic subscription tracking per session (subscribe/unsubscribe)
+- [x] Implement `topic.subscribe` handler → `topic.subscribed` response
+- [x] Implement `topic.unsubscribe` handler → `topic.unsubscribed` response
+- [x] Implement `topic.publish` → `topic.message` routing with type rewrite
+- [x] Implement `topic.peers` subscription map push on every subscribe/unsubscribe
+- [x] Validate topic name length (max 128 chars)
+- [x] Implement `client.send` → `client.message` direct message routing
+- [x] Implement `session.broadcast` routing with `includeSelf` option support
+- [x] Write unit tests for topic routing and broadcast logic
 
 ## Acceptance Criteria
 

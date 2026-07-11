@@ -58,6 +58,7 @@ export class Client {
   authenticated = false;
   lastActivity = Date.now();
   sessions = new Set<string>();
+  topics = new Map<string, Set<string>>();
 
   private ws: WebSocket;
   private hub: Hub;
@@ -77,7 +78,7 @@ export class Client {
 
   sendFrame(frame: StarfishFrame): void {
     if (this.closed) return;
-    if (this.id) {
+    if (this.id && !frame.from) {
       frame.from = this.id;
     }
     const data = JSON.stringify(frame);

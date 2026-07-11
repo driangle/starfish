@@ -7,6 +7,15 @@ import {
   handleSessionJoin,
   handleSessionLeave,
 } from "./handler_session.js";
+import {
+  handleTopicSubscribe,
+  handleTopicUnsubscribe,
+  handleTopicPublish,
+} from "./handler_topic.js";
+import {
+  handleClientSend,
+  handleSessionBroadcast,
+} from "./handler_messaging.js";
 
 type HelloPayload = {
   client?: { name?: string; role?: string; meta?: unknown };
@@ -42,6 +51,27 @@ export class Handler {
     this.handlers.set(
       "session.leave",
       this.requireAuth((c, f) => handleSessionLeave(this.hub, c, f)),
+    );
+
+    this.handlers.set(
+      "topic.subscribe",
+      this.requireAuth(this.requireSession((c, f) => handleTopicSubscribe(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "topic.unsubscribe",
+      this.requireAuth(this.requireSession((c, f) => handleTopicUnsubscribe(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "topic.publish",
+      this.requireAuth(this.requireSession((c, f) => handleTopicPublish(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "client.send",
+      this.requireAuth(this.requireSession((c, f) => handleClientSend(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "session.broadcast",
+      this.requireAuth(this.requireSession((c, f) => handleSessionBroadcast(this.hub, c, f))),
     );
   }
 
