@@ -1,13 +1,18 @@
 import type { Client, ClientInfo } from "./client.js";
 import type { StarfishFrame } from "./types.js";
+import type { Hub } from "./hub.js";
+import { PresenceThrottle } from "./presence.js";
 
 export class Session {
   readonly name: string;
   private clients = new Map<string, Client>();
   private topics = new Map<string, Map<string, Client>>();
+  private presence: PresenceThrottle;
+  private presenceData = new Map<string, unknown>();
 
-  constructor(name: string) {
+  constructor(name: string, hub: Hub) {
     this.name = name;
+    this.presence = new PresenceThrottle(this, hub);
   }
 
   addClient(client: Client): ClientInfo[] {
@@ -22,6 +27,7 @@ export class Session {
 
   removeClient(clientId: string): boolean {
     this.clients.delete(clientId);
+    this.presenceData.delete(clientId);
 
     for (const [topic, subs] of this.topics) {
       subs.delete(clientId);
@@ -81,5 +87,18 @@ export class Session {
     const subs = this.topics.get(topic);
     if (!subs) return [];
     return [...subs.keys()];
+  }
+
+  setPresence(clientId: string, payload: unknown): void {
+    this.presenceData.set(clientId, payload);
+    this.presence.set(clientId, payload);
+  }
+
+  getPresence(clientId: string): unknown {
+    return this.presenceData.get(clientId);
+  }
+
+  destroy(): void {
+    this.presence.stop();
   }
 }

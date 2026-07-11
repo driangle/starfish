@@ -31,12 +31,16 @@ export function createTestHub(): Hub {
     getOrCreateSession(name: string) {
       let s = sessions.get(name);
       if (s) return s;
-      s = new Session(name);
+      s = new Session(name, hub as unknown as Hub);
       sessions.set(name, s);
       return s;
     },
     removeSession(name: string) {
-      sessions.delete(name);
+      const s = sessions.get(name);
+      if (s) {
+        s.destroy();
+        sessions.delete(name);
+      }
     },
     handleClientDisconnect(client: Client) {
       for (const sessionName of client.sessions) {
@@ -50,7 +54,10 @@ export function createTestHub(): Hub {
           session: sessionName,
           payload: { clientId: client.id, reason: "disconnect" },
         });
-        if (empty) sessions.delete(sessionName);
+        if (empty) {
+          session.destroy();
+          sessions.delete(sessionName);
+        }
       }
       client.sessions.clear();
     },

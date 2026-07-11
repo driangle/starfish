@@ -68,4 +68,8 @@ export {
   handleSessionBroadcast,
 } from "./handler_messaging.js";
 
+export { handlePresenceSet } from "./handler_presence.js";
+
+export { PresenceThrottle } from "./presence.js";
+
 export { Hub } from "./hub.js";

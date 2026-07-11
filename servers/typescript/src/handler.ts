@@ -16,6 +16,7 @@ import {
   handleClientSend,
   handleSessionBroadcast,
 } from "./handler_messaging.js";
+import { handlePresenceSet } from "./handler_presence.js";
 
 type HelloPayload = {
   client?: { name?: string; role?: string; meta?: unknown };
@@ -72,6 +73,10 @@ export class Handler {
     this.handlers.set(
       "session.broadcast",
       this.requireAuth(this.requireSession((c, f) => handleSessionBroadcast(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "presence.set",
+      this.requireAuth(this.requireSession((c, f) => handlePresenceSet(this.hub, c, f))),
     );
   }
 

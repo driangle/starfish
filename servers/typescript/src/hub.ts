@@ -74,13 +74,17 @@ export class Hub {
     let session = this.sessions.get(name);
     if (session) return session;
 
-    session = new Session(name);
+    session = new Session(name, this);
     this.sessions.set(name, session);
     return session;
   }
 
   removeSession(name: string): void {
-    this.sessions.delete(name);
+    const session = this.sessions.get(name);
+    if (session) {
+      session.destroy();
+      this.sessions.delete(name);
+    }
   }
 
   handleClientDisconnect(client: Client): void {
@@ -99,6 +103,7 @@ export class Hub {
       });
 
       if (empty) {
+        session.destroy();
         this.sessions.delete(sessionName);
       }
     }

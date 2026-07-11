@@ -1,7 +1,7 @@
 ---
 id: "01kx5xcm7"
 title: "TS Server: Presence"
-status: pending
+status: completed
 priority: high
 effort: small
 type: feature
@@ -10,6 +10,7 @@ parent: "01kwyst4k"
 dependencies: ["01kx5xcm0"]
 created_at: 2026-07-10
 phase: v0.1
+completed_at: 2026-07-11
 ---
 
 # TS Server: Presence
@@ -24,14 +25,14 @@ Port from Go server's `handler_presence.go` and `presence.go`. The `PresenceThro
 
 ## Tasks
 
-- [ ] Implement per-client presence storage on the `Session`
-- [ ] Implement `presence.set` handler that enqueues into throttle
-- [ ] Implement `PresenceThrottle` class (50ms interval, latest-value-wins per client)
-- [ ] Broadcast `presence.updated` with all pending changes on each tick
-- [ ] Validate presence payload size (max 8KB)
-- [ ] Clean up presence on client disconnect
-- [ ] Stop throttle timer when session is destroyed
-- [ ] Write unit tests for throttle behavior
+- [x] Implement per-client presence storage on the `Session`
+- [x] Implement `presence.set` handler that enqueues into throttle
+- [x] Implement `PresenceThrottle` class (50ms interval, latest-value-wins per client)
+- [x] Broadcast `presence.updated` with all pending changes on each tick
+- [x] Validate presence payload size (max 8KB)
+- [x] Clean up presence on client disconnect
+- [x] Stop throttle timer when session is destroyed
+- [x] Write unit tests for throttle behavior
 
 ## Acceptance Criteria
 
