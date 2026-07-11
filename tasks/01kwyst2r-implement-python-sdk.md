@@ -38,6 +38,12 @@ Implement the Python client SDK for the Starfish protocol (v0.1) as defined in `
 - [ ] Write integration tests for session lifecycle and pub/sub
 - [ ] Write integration tests for data operations
 
+## Sub-tasks
+
+- `01kx98jye` — Python SDK: Core Infrastructure and Connection
+- `01kx98jzf` — Python SDK: Session, Topics, and Messaging (depends on 01kx98jye)
+- `01kx98k0e` — Python SDK: Presence and Data Operations (depends on 01kx98jye)
+
 ## Acceptance Criteria
 
 - Client can connect, handshake, join/leave sessions over WebSocket
