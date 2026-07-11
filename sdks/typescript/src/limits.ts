@@ -6,23 +6,15 @@ export const MAX_DATA_VALUE_SIZE = 256 * 1024;
 export const MAX_TOPIC_NAME_LENGTH = 128;
 export const MAX_CLIENT_META_SIZE = 16 * 1024;
 
-export function validatePayloadSize(
-  json: string,
-  limit: number,
-  label: string,
-): void {
+export function validatePayloadSize(json: string, limit: number, label: string): void {
   const size = new TextEncoder().encode(json).byteLength;
   if (size > limit) {
-    throw new Error(
-      `${label} exceeds size limit: ${size} bytes > ${limit} bytes`,
-    );
+    throw new Error(`${label} exceeds size limit: ${size} bytes > ${limit} bytes`);
   }
 }
 
 export function validateTopicName(topic: string): void {
   if (topic.length > MAX_TOPIC_NAME_LENGTH) {
-    throw new Error(
-      `Topic name exceeds ${MAX_TOPIC_NAME_LENGTH} characters: "${topic}"`,
-    );
+    throw new Error(`Topic name exceeds ${MAX_TOPIC_NAME_LENGTH} characters: "${topic}"`);
   }
 }

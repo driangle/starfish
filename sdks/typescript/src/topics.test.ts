@@ -85,9 +85,7 @@ describe("Topics", () => {
     const conn = mockConnection();
     const topics = new Topics(conn, mockSession(null));
 
-    await expect(topics.subscribe("chat")).rejects.toThrow(
-      "Not in a session",
-    );
+    await expect(topics.subscribe("chat")).rejects.toThrow("Not in a session");
   });
 
   it("subscribe() validates topic name length", async () => {
@@ -95,9 +93,7 @@ describe("Topics", () => {
     const topics = new Topics(conn, mockSession());
     const longName = "x".repeat(200);
 
-    await expect(topics.subscribe(longName)).rejects.toThrow(
-      "exceeds 128 characters",
-    );
+    await expect(topics.subscribe(longName)).rejects.toThrow("exceeds 128 characters");
   });
 
   it("unsubscribe() sends topic.unsubscribe", async () => {
@@ -119,9 +115,7 @@ describe("Topics", () => {
     const conn = mockConnection();
     const topics = new Topics(conn, mockSession(null));
 
-    await expect(topics.unsubscribe("chat")).rejects.toThrow(
-      "Not in a session",
-    );
+    await expect(topics.unsubscribe("chat")).rejects.toThrow("Not in a session");
   });
 
   it("publish() sends topic.publish with payload", () => {
@@ -379,9 +373,13 @@ describe("Topics", () => {
         payload: { subscribers: ["alice", "bob"] },
       });
 
-      topics.publish("pose", { x: 1, y: 2 }, {
-        delivery: { reliability: "unreliable" },
-      });
+      topics.publish(
+        "pose",
+        { x: 1, y: 2 },
+        {
+          delivery: { reliability: "unreliable" },
+        },
+      );
 
       expect(rtc.sendToPeer).toHaveBeenCalledTimes(2);
       expect(rtc.sendToPeer).toHaveBeenCalledWith(
@@ -435,9 +433,13 @@ describe("Topics", () => {
         payload: { subscribers: ["alice"] },
       });
 
-      topics.publish("pose", { x: 1 }, {
-        delivery: { reliability: "unreliable" },
-      });
+      topics.publish(
+        "pose",
+        { x: 1 },
+        {
+          delivery: { reliability: "unreliable" },
+        },
+      );
 
       expect(conn.send).toHaveBeenCalled();
       expect(rtc.sendToPeer).not.toHaveBeenCalled();
@@ -456,9 +458,13 @@ describe("Topics", () => {
         payload: { subscribers: ["alice"] },
       });
 
-      topics.publish("chat", { text: "hi" }, {
-        delivery: { preferTransport: "rtc" },
-      });
+      topics.publish(
+        "chat",
+        { text: "hi" },
+        {
+          delivery: { preferTransport: "rtc" },
+        },
+      );
 
       // topic.publish with preferTransport rtc — peers from topic peers map
       // But selectTransport for topic.publish looks at topic peers, not frame.to

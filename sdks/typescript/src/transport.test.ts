@@ -23,11 +23,7 @@ describe("selectTransport", () => {
     it("always returns ws regardless of RTC availability", () => {
       const delivery: DeliveryOptions = { preferTransport: "ws" };
       const rtc = mockRTCState(["alice"]);
-      const result = selectTransport(
-        frame({ to: "alice" }),
-        delivery,
-        rtc,
-      );
+      const result = selectTransport(frame({ to: "alice" }), delivery, rtc);
       expect(result).toEqual({ transport: "ws" });
     });
 
@@ -42,11 +38,7 @@ describe("selectTransport", () => {
     it("returns rtc when peer is connected", () => {
       const delivery: DeliveryOptions = { preferTransport: "rtc" };
       const rtc = mockRTCState(["alice"]);
-      const result = selectTransport(
-        frame({ to: "alice" }),
-        delivery,
-        rtc,
-      );
+      const result = selectTransport(frame({ to: "alice" }), delivery, rtc);
       expect(result).toEqual({ transport: "rtc", peers: ["alice"] });
     });
 
@@ -56,22 +48,14 @@ describe("selectTransport", () => {
         fallback: true,
       };
       const rtc = mockRTCState([]);
-      const result = selectTransport(
-        frame({ to: "alice" }),
-        delivery,
-        rtc,
-      );
+      const result = selectTransport(frame({ to: "alice" }), delivery, rtc);
       expect(result).toEqual({ transport: "ws" });
     });
 
     it("falls back to ws by default when peer not connected (fallback defaults to true)", () => {
       const delivery: DeliveryOptions = { preferTransport: "rtc" };
       const rtc = mockRTCState([]);
-      const result = selectTransport(
-        frame({ to: "alice" }),
-        delivery,
-        rtc,
-      );
+      const result = selectTransport(frame({ to: "alice" }), delivery, rtc);
       expect(result).toEqual({ transport: "ws" });
     });
 
@@ -81,9 +65,7 @@ describe("selectTransport", () => {
         fallback: false,
       };
       const rtc = mockRTCState([]);
-      expect(() =>
-        selectTransport(frame({ to: "alice" }), delivery, rtc),
-      ).toThrow();
+      expect(() => selectTransport(frame({ to: "alice" }), delivery, rtc)).toThrow();
 
       try {
         selectTransport(frame({ to: "alice" }), delivery, rtc);
@@ -97,19 +79,13 @@ describe("selectTransport", () => {
         preferTransport: "rtc",
         fallback: false,
       };
-      expect(() =>
-        selectTransport(frame({ to: "alice" }), delivery, null),
-      ).toThrow();
+      expect(() => selectTransport(frame({ to: "alice" }), delivery, null)).toThrow();
     });
 
     it("routes to multiple connected peers", () => {
       const delivery: DeliveryOptions = { preferTransport: "rtc" };
       const rtc = mockRTCState(["alice", "bob"]);
-      const result = selectTransport(
-        frame({ to: ["alice", "bob", "charlie"] }),
-        delivery,
-        rtc,
-      );
+      const result = selectTransport(frame({ to: ["alice", "bob", "charlie"] }), delivery, rtc);
       expect(result).toEqual({
         transport: "rtc",
         peers: ["alice", "bob"],
@@ -120,31 +96,19 @@ describe("selectTransport", () => {
   describe('preferTransport: "auto"', () => {
     it("routes data.* to ws", () => {
       const rtc = mockRTCState(["alice"]);
-      const result = selectTransport(
-        frame({ type: "data.save", to: "alice" }),
-        undefined,
-        rtc,
-      );
+      const result = selectTransport(frame({ type: "data.save", to: "alice" }), undefined, rtc);
       expect(result).toEqual({ transport: "ws" });
     });
 
     it("routes session.* to ws", () => {
       const rtc = mockRTCState(["alice"]);
-      const result = selectTransport(
-        frame({ type: "session.broadcast" }),
-        undefined,
-        rtc,
-      );
+      const result = selectTransport(frame({ type: "session.broadcast" }), undefined, rtc);
       expect(result).toEqual({ transport: "ws" });
     });
 
     it("routes presence.* to ws", () => {
       const rtc = mockRTCState(["alice"]);
-      const result = selectTransport(
-        frame({ type: "presence.set" }),
-        undefined,
-        rtc,
-      );
+      const result = selectTransport(frame({ type: "presence.set" }), undefined, rtc);
       expect(result).toEqual({ transport: "ws" });
     });
 
@@ -230,21 +194,13 @@ describe("selectTransport", () => {
 
     it("defaults to auto when no delivery options", () => {
       const rtc = mockRTCState(["alice"]);
-      const result = selectTransport(
-        frame({ type: "client.send", to: "alice" }),
-        undefined,
-        rtc,
-      );
+      const result = selectTransport(frame({ type: "client.send", to: "alice" }), undefined, rtc);
       // client.send reliable (default) → RTC if connected
       expect(result).toEqual({ transport: "rtc", peers: ["alice"] });
     });
 
     it("defaults to ws when no RTC state", () => {
-      const result = selectTransport(
-        frame({ type: "client.send", to: "alice" }),
-        undefined,
-        null,
-      );
+      const result = selectTransport(frame({ type: "client.send", to: "alice" }), undefined, null);
       expect(result).toEqual({ transport: "ws" });
     });
   });

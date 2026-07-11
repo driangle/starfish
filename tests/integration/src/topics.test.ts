@@ -1,10 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { StarfishTestClient } from "./helpers/client.js";
-import {
-  subscribeFrame,
-  unsubscribeFrame,
-  publishFrame,
-} from "./helpers/frames.js";
+import { subscribeFrame, unsubscribeFrame, publishFrame } from "./helpers/frames.js";
 import { uniqueSession, SHORT_TIMEOUT } from "./helpers/setup.js";
 
 describe("topics", () => {
@@ -83,9 +79,7 @@ describe("topics", () => {
     await subscriber.waitForType("topic.message");
 
     // Publisher should NOT get it
-    await expect(
-      publisher.waitForType("topic.message", SHORT_TIMEOUT),
-    ).rejects.toThrow();
+    await expect(publisher.waitForType("topic.message", SHORT_TIMEOUT)).rejects.toThrow();
   });
 
   it("publisher receives own message when also subscribed", async () => {
@@ -153,9 +147,7 @@ describe("topics", () => {
     await publisher.send(pub);
 
     // Subscriber should NOT receive it anymore
-    await expect(
-      subscriber.waitForType("topic.message", SHORT_TIMEOUT),
-    ).rejects.toThrow();
+    await expect(subscriber.waitForType("topic.message", SHORT_TIMEOUT)).rejects.toThrow();
   });
 
   it("topic.peers sent after subscription", async () => {
@@ -205,9 +197,7 @@ describe("topics", () => {
     await client.send(pub);
 
     // Should not receive an error or any message
-    await expect(
-      client.waitForType("error", SHORT_TIMEOUT),
-    ).rejects.toThrow();
+    await expect(client.waitForType("error", SHORT_TIMEOUT)).rejects.toThrow();
   });
 
   it("multiple subscribers all receive published message", async () => {

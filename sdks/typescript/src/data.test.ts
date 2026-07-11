@@ -77,9 +77,7 @@ describe("Data", () => {
     const conn = mockConnection();
     const data = new Data(conn, mockSession());
 
-    vi.mocked(conn.sendAndWait).mockResolvedValue(
-      saveResponse({ version: 2 }),
-    );
+    vi.mocked(conn.sendAndWait).mockResolvedValue(saveResponse({ version: 2 }));
 
     await data.save({
       key: "score",
@@ -102,9 +100,7 @@ describe("Data", () => {
     const conn = mockConnection();
     const data = new Data(conn, mockSession());
 
-    vi.mocked(conn.sendAndWait).mockResolvedValue(
-      saveResponse({ data: undefined, version: 3 }),
-    );
+    vi.mocked(conn.sendAndWait).mockResolvedValue(saveResponse({ data: undefined, version: 3 }));
 
     await data.save({
       key: "score",
@@ -133,9 +129,9 @@ describe("Data", () => {
   it("save() throws when not in a session", async () => {
     const data = new Data(mockConnection(), mockSession(null));
 
-    await expect(
-      data.save({ key: "k", scope: "self", op: "replace", data: 1 }),
-    ).rejects.toThrow("Not in a session");
+    await expect(data.save({ key: "k", scope: "self", op: "replace", data: 1 })).rejects.toThrow(
+      "Not in a session",
+    );
   });
 
   // --- get() ---
@@ -149,7 +145,12 @@ describe("Data", () => {
       id: "resp_1",
       type: "data.result",
       replyTo: "dget_1",
-      payload: { key: "score", scope: "session", data: { value: 42 }, version: 1 },
+      payload: {
+        key: "score",
+        scope: "session",
+        data: { value: 42 },
+        version: 1,
+      },
     });
 
     const result = await data.get({ key: "score", scope: "session" });
@@ -172,9 +173,7 @@ describe("Data", () => {
   it("get() throws when not in a session", async () => {
     const data = new Data(mockConnection(), mockSession(null));
 
-    await expect(
-      data.get({ key: "k", scope: "self" }),
-    ).rejects.toThrow("Not in a session");
+    await expect(data.get({ key: "k", scope: "self" })).rejects.toThrow("Not in a session");
   });
 
   // --- data.changed handling ---
@@ -188,7 +187,12 @@ describe("Data", () => {
       v: 1,
       id: "evt_1",
       type: "data.changed",
-      payload: { key: "score", scope: "session", data: { value: 99 }, version: 5 },
+      payload: {
+        key: "score",
+        scope: "session",
+        data: { value: 99 },
+        version: 5,
+      },
     });
 
     expect(cb).toHaveBeenCalledWith({

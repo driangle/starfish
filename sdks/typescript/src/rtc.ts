@@ -1,11 +1,4 @@
-import type {
-  StarfishFrame,
-  RTCOptions,
-  RTCPeerConnectionLike,
-  RTCDataChannelLike,
-  RTCPeerState,
-  RTCPeerInfo,
-} from "./types.js";
+import type { StarfishFrame, RTCOptions, RTCPeerState, RTCPeerInfo, PeerEntry } from "./types.js";
 import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 import { nextId } from "./id.js";
@@ -28,14 +21,6 @@ import {
 } from "./rtc-signaling.js";
 
 const DEFAULT_CHANNELS = ["control", "stream", "state"];
-
-export interface PeerEntry {
-  pc: RTCPeerConnectionLike;
-  channels: Map<string, RTCDataChannelLike>;
-  requestedChannels: string[];
-  state: RTCPeerState;
-  isInitiator: boolean;
-}
 
 export class RTC {
   private connection: Connection;
@@ -81,7 +66,12 @@ export class RTC {
       const config = CHANNEL_CONFIGS[ch];
       if (config) {
         const dc = pc.createDataChannel(config.label, config.opts);
-        setupDataChannel({ peerId, dc, peers: this.peers, frames$: this.frames$ });
+        setupDataChannel({
+          peerId,
+          dc,
+          peers: this.peers,
+          frames$: this.frames$,
+        });
         entry.channels.set(config.label, dc);
       }
     }
@@ -103,7 +93,9 @@ export class RTC {
 
     const sessionName = this.session.current;
     if (sessionName) {
-      this.sendSignal("rtc.disconnected", sessionName, peerId, { reason: "local_close" });
+      this.sendSignal("rtc.disconnected", sessionName, peerId, {
+        reason: "local_close",
+      });
     }
   }
 
@@ -138,16 +130,20 @@ export class RTC {
     dc.send(json);
   }
 
+  private static readonly SIGNALING_HANDLERS: Record<
+    string,
+    (ctx: SignalingContext, frame: StarfishFrame) => void
+  > = {
+    "rtc.connect": handleConnect,
+    "rtc.offer": handleOffer,
+    "rtc.answer": handleAnswer,
+    "rtc.ice": handleIce,
+    "rtc.connected": handleConnected,
+    "rtc.disconnected": handleDisconnected,
+  };
+
   handleFrame(frame: StarfishFrame): void {
-    const ctx = this.signalingCtx;
-    switch (frame.type) {
-      case "rtc.connect": handleConnect(ctx, frame); break;
-      case "rtc.offer": handleOffer(ctx, frame); break;
-      case "rtc.answer": handleAnswer(ctx, frame); break;
-      case "rtc.ice": handleIce(ctx, frame); break;
-      case "rtc.connected": handleConnected(ctx, frame); break;
-      case "rtc.disconnected": handleDisconnected(ctx, frame); break;
-    }
+    RTC.SIGNALING_HANDLERS[frame.type]?.(this.signalingCtx, frame);
   }
 
   closeAll(): void {
@@ -175,7 +171,14 @@ export class RTC {
   }
 
   private sendSignal(type: string, session: string, to: string, payload?: any): void {
-    this.connection.send({ v: 1, id: nextId("rtc"), type, session, to, payload });
+    this.connection.send({
+      v: 1,
+      id: nextId("rtc"),
+      type,
+      session,
+      to,
+      payload,
+    });
   }
 
   private updateObservable(): void {

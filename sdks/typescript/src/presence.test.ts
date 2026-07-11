@@ -44,9 +44,7 @@ describe("Presence", () => {
   it("set() throws when not in a session", () => {
     const presence = new Presence(mockConnection(), mockSession(null));
 
-    expect(() => presence.set({ status: "online" })).toThrow(
-      "Not in a session",
-    );
+    expect(() => presence.set({ status: "online" })).toThrow("Not in a session");
   });
 
   it("set() validates payload size", () => {

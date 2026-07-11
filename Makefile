@@ -1,11 +1,11 @@
-.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-sdk-typescript-integration check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk test-integration install-hooks lint lint-sdk-typescript lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang
+.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-sdk-typescript-integration check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk test-integration install-hooks lint lint-sdk-typescript lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang format format-check format-check-sdk-typescript format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
 # --- Check-lite (lint + compile only, no tests) ---
 
-check-lite: lint check-golang-lite check-sdk-typescript-lite check-sdk-typescript-integration check-server-typescript-lite check-integration ## Lint and compile all projects (no tests)
+check-lite: lint format-check check-golang-lite check-sdk-typescript-lite check-sdk-typescript-integration check-server-typescript-lite check-integration ## Lint, format-check, and compile all projects (no tests)
 
 check-golang-lite: ## Vet the Go server (no tests)
 	@echo "==> go vet (servers/golang)"
@@ -81,6 +81,40 @@ lint-examples-typescript: ## Lint the TypeScript examples
 lint-golang: ## Lint the Go server (file length)
 	@echo "==> check-file-length (servers/golang)"
 	@./scripts/check-file-length.sh servers/golang
+
+# --- Format (auto-fix) ---
+
+format: ## Auto-format all projects
+	@echo "==> prettier --write (sdks/typescript)"
+	@cd sdks/typescript && npx prettier --write .
+	@echo "==> prettier --write (adapters/p5js)"
+	@cd adapters/p5js && npx prettier --write .
+	@echo "==> prettier --write (tests/integration)"
+	@cd tests/integration && npx prettier --write .
+	@echo "==> prettier --write (examples/typescript)"
+	@cd examples/typescript && npx prettier --write .
+	@echo "==> gofmt -w (servers/golang)"
+	@gofmt -w servers/golang/
+
+# --- Format check (CI-safe, no writes) ---
+
+format-check: format-check-sdk-typescript format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang ## Check formatting across all projects
+
+format-check-sdk-typescript: ## Check formatting for the TypeScript SDK
+	@cd sdks/typescript && npm install --silent 2>/dev/null && echo "==> prettier --check (sdks/typescript)" && npx prettier --check .
+
+format-check-adapters-p5js: ## Check formatting for the p5.js adapter
+	@cd adapters/p5js && npm install --silent 2>/dev/null && echo "==> prettier --check (adapters/p5js)" && npx prettier --check .
+
+format-check-integration: ## Check formatting for the integration tests
+	@cd tests/integration && npm install --silent 2>/dev/null && echo "==> prettier --check (tests/integration)" && npx prettier --check .
+
+format-check-examples-typescript: ## Check formatting for the TypeScript examples
+	@cd examples/typescript && npm install --silent 2>/dev/null && echo "==> prettier --check (examples/typescript)" && npx prettier --check .
+
+format-check-golang: ## Check Go formatting via gofmt
+	@echo "==> gofmt -l (servers/golang)"
+	@test -z "$$(gofmt -l servers/golang/)" || (echo "Go files need formatting:"; gofmt -l servers/golang/; exit 1)
 
 # --- Hooks ---
 

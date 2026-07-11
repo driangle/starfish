@@ -75,11 +75,7 @@ export class Topics {
       ...(options && { options }),
     };
 
-    const decision = selectTransport(
-      frame,
-      options?.delivery,
-      this.rtcState(),
-    );
+    const decision = selectTransport(frame, options?.delivery, this.rtcState());
 
     if (decision.transport === "rtc") {
       const channel = this.rtcChannelForDelivery(options?.delivery);
@@ -141,9 +137,7 @@ export class Topics {
 
   private rtcChannelForDelivery(delivery?: { reliability?: string }): string {
     const reliability = delivery?.reliability ?? "reliable";
-    return reliability === "unreliable"
-      ? "starfish.stream"
-      : "starfish.control";
+    return reliability === "unreliable" ? "starfish.stream" : "starfish.control";
   }
 
   private requireSession(): string {

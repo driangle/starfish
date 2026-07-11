@@ -54,11 +54,9 @@ describe("direct messaging", () => {
     await recv2.hello({ name: "recv2" });
     await recv2.join(session);
 
-    const msg = directSendFrame(
-      session,
-      [recv1.clientId!, recv2.clientId!],
-      { command: "stop" },
-    );
+    const msg = directSendFrame(session, [recv1.clientId!, recv2.clientId!], {
+      command: "stop",
+    });
     await sender.send(msg);
 
     const [m1, m2] = await Promise.all([
@@ -106,8 +104,6 @@ describe("direct messaging", () => {
     await receiver.waitForType("client.message");
 
     // Sender should NOT receive client.message
-    await expect(
-      sender.waitForType("client.message", SHORT_TIMEOUT),
-    ).rejects.toThrow();
+    await expect(sender.waitForType("client.message", SHORT_TIMEOUT)).rejects.toThrow();
   });
 });

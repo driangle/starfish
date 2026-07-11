@@ -18,15 +18,15 @@ type helloPayload struct {
 }
 
 type welcomePayload struct {
-	ClientID          string      `json:"clientId"`
-	Resumed           bool        `json:"resumed,omitempty"`
-	ResumeToken       string      `json:"resumeToken"`
-	ResumeTimeout     int64       `json:"resumeTimeout"`
-	ServerTime        int64       `json:"serverTime"`
-	HeartbeatInterval int64       `json:"heartbeatInterval"`
-	SessionRequired   bool        `json:"sessionRequired,omitempty"`
-	Sessions          []string    `json:"sessions,omitempty"`
-	RTC               *rtcConfig  `json:"rtc,omitempty"`
+	ClientID          string     `json:"clientId"`
+	Resumed           bool       `json:"resumed,omitempty"`
+	ResumeToken       string     `json:"resumeToken"`
+	ResumeTimeout     int64      `json:"resumeTimeout"`
+	ServerTime        int64      `json:"serverTime"`
+	HeartbeatInterval int64      `json:"heartbeatInterval"`
+	SessionRequired   bool       `json:"sessionRequired,omitempty"`
+	Sessions          []string   `json:"sessions,omitempty"`
+	RTC               *rtcConfig `json:"rtc,omitempty"`
 }
 
 type rtcConfig struct {

@@ -70,11 +70,7 @@ describe("Session", () => {
     await session.join("room-1");
 
     expect(session.clients$.value).toHaveLength(3);
-    expect(session.clients$.value.map((c) => c.id)).toEqual([
-      "me",
-      "alice",
-      "bob",
-    ]);
+    expect(session.clients$.value.map((c) => c.id)).toEqual(["me", "alice", "bob"]);
   });
 
   it("peers$ excludes self from client list", async () => {

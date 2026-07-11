@@ -121,9 +121,13 @@ describe("Messaging", () => {
       const rtc = mockRTC(["alice"]);
       const messaging = new Messaging(conn, mockSession(), rtc);
 
-      messaging.send("alice", { text: "hi" }, {
-        delivery: { preferTransport: "ws" },
-      });
+      messaging.send(
+        "alice",
+        { text: "hi" },
+        {
+          delivery: { preferTransport: "ws" },
+        },
+      );
 
       expect(conn.send).toHaveBeenCalled();
       expect(rtc.sendToPeer).not.toHaveBeenCalled();
@@ -134,9 +138,13 @@ describe("Messaging", () => {
       const rtc = mockRTC(["alice"]);
       const messaging = new Messaging(conn, mockSession(), rtc);
 
-      messaging.send("alice", { text: "hi" }, {
-        delivery: { preferTransport: "rtc" },
-      });
+      messaging.send(
+        "alice",
+        { text: "hi" },
+        {
+          delivery: { preferTransport: "rtc" },
+        },
+      );
 
       expect(rtc.sendToPeer).toHaveBeenCalledWith(
         "alice",
@@ -154,9 +162,13 @@ describe("Messaging", () => {
       const rtc = mockRTC([]);
       const messaging = new Messaging(conn, mockSession(), rtc);
 
-      messaging.send("alice", { text: "hi" }, {
-        delivery: { preferTransport: "rtc" },
-      });
+      messaging.send(
+        "alice",
+        { text: "hi" },
+        {
+          delivery: { preferTransport: "rtc" },
+        },
+      );
 
       expect(conn.send).toHaveBeenCalled();
       expect(rtc.sendToPeer).not.toHaveBeenCalled();
@@ -168,9 +180,13 @@ describe("Messaging", () => {
       const messaging = new Messaging(conn, mockSession(), rtc);
 
       expect(() =>
-        messaging.send("alice", { text: "hi" }, {
-          delivery: { preferTransport: "rtc", fallback: false },
-        }),
+        messaging.send(
+          "alice",
+          { text: "hi" },
+          {
+            delivery: { preferTransport: "rtc", fallback: false },
+          },
+        ),
       ).toThrow();
     });
 
@@ -179,24 +195,28 @@ describe("Messaging", () => {
       const rtc = mockRTC(["alice"]);
       const messaging = new Messaging(conn, mockSession(), rtc);
 
-      messaging.send("alice", { data: [1, 2] }, {
-        delivery: { preferTransport: "rtc", reliability: "unreliable" },
-      });
-
-      expect(rtc.sendToPeer).toHaveBeenCalledWith(
+      messaging.send(
         "alice",
-        "starfish.stream",
-        expect.anything(),
+        { data: [1, 2] },
+        {
+          delivery: { preferTransport: "rtc", reliability: "unreliable" },
+        },
       );
+
+      expect(rtc.sendToPeer).toHaveBeenCalledWith("alice", "starfish.stream", expect.anything());
     });
 
     it("send() with delivery options includes them in the frame", () => {
       const conn = mockConnection();
       const messaging = new Messaging(conn, mockSession());
 
-      messaging.send("alice", { text: "hi" }, {
-        delivery: { preferTransport: "ws", reliability: "unreliable" },
-      });
+      messaging.send(
+        "alice",
+        { text: "hi" },
+        {
+          delivery: { preferTransport: "ws", reliability: "unreliable" },
+        },
+      );
 
       expect(conn.send).toHaveBeenCalledWith(
         expect.objectContaining({

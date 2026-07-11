@@ -47,9 +47,7 @@ describe("broadcast", () => {
     expect(m1.from).toBe(sender.clientId);
 
     // Sender should NOT receive it
-    await expect(
-      sender.waitForType("session.broadcast", SHORT_TIMEOUT),
-    ).rejects.toThrow();
+    await expect(sender.waitForType("session.broadcast", SHORT_TIMEOUT)).rejects.toThrow();
   });
 
   it("broadcast with includeSelf delivers to sender too", async () => {

@@ -1,12 +1,13 @@
 ---
 title: "Add formatting checks for TypeScript and Go projects"
 id: "01kx4bkkb"
-status: pending
+status: completed
 priority: high
 type: chore
 tags: ["lint", "formatting"]
 created_at: "2026-07-09"
 phase: v0.1
+completed_at: 2026-07-11
 ---
 
 # Add formatting checks for TypeScript and Go projects
@@ -25,16 +26,16 @@ Add automated formatting checks to `check-lite` so that unformatted code is caug
 
 ## Tasks
 
-- [ ] Install Prettier in each TypeScript project and add a shared `.prettierrc`
-- [ ] Add `"format:check": "prettier --check ."` script to each TypeScript project's `package.json`
-- [ ] Add `gofmt -l` check for the Go server (fail if any files are unformatted)
-- [ ] Add `make format` target that runs formatting across all projects (auto-fix mode)
-- [ ] Add `make format-check` target that runs formatting checks (CI-safe, no writes)
-- [ ] Wire `format-check` into `check-lite`
-- [ ] Wire `check` to depend on `check-lite` so it includes linting + formatting + compilation
-- [ ] Fix any existing formatting violations
-- [ ] Verify `make check-lite` runs: lint, format-check, compilation
-- [ ] Verify `make check` runs: check-lite + unit tests
+- [x] Install Prettier in each TypeScript project and add a shared `.prettierrc`
+- [x] Add `"format:check": "prettier --check ."` script to each TypeScript project's `package.json`
+- [x] Add `gofmt -l` check for the Go server (fail if any files are unformatted)
+- [x] Add `make format` target that runs formatting across all projects (auto-fix mode)
+- [x] Add `make format-check` target that runs formatting checks (CI-safe, no writes)
+- [x] Wire `format-check` into `check-lite`
+- [x] Wire `check` to depend on `check-lite` so it includes linting + formatting + compilation
+- [x] Fix any existing formatting violations
+- [x] Verify `make check-lite` runs: lint, format-check, compilation
+- [x] Verify `make check` runs: check-lite + unit tests
 
 ## Acceptance Criteria
 

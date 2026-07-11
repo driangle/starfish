@@ -3,10 +3,7 @@ import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 import { nextId } from "./id.js";
 import { Observable } from "./emitter.js";
-import {
-  MAX_PRESENCE_SIZE,
-  validatePayloadSize,
-} from "./limits.js";
+import { MAX_PRESENCE_SIZE, validatePayloadSize } from "./limits.js";
 
 export class Presence {
   private connection: Connection;

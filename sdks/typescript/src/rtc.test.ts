@@ -33,20 +33,12 @@ describe("RTC", () => {
         iceServers: [{ urls: "stun:stun.example.com" }],
       });
 
-      const connectFrame = connection.sentFrames.find(
-        (f) => f.type === "rtc.connect",
-      );
+      const connectFrame = connection.sentFrames.find((f) => f.type === "rtc.connect");
       expect(connectFrame).toBeDefined();
       expect(connectFrame!.to).toBe("peer_1");
-      expect(connectFrame!.payload.channels).toEqual([
-        "control",
-        "stream",
-        "state",
-      ]);
+      expect(connectFrame!.payload.channels).toEqual(["control", "stream", "state"]);
 
-      const offerFrame = connection.sentFrames.find(
-        (f) => f.type === "rtc.offer",
-      );
+      const offerFrame = connection.sentFrames.find((f) => f.type === "rtc.offer");
       expect(offerFrame).toBeDefined();
       expect(offerFrame!.to).toBe("peer_1");
       expect(offerFrame!.payload.sdp).toBe("mock-offer-sdp");
@@ -78,14 +70,8 @@ describe("RTC", () => {
     });
 
     it("throws if not in a session", async () => {
-      const noSessionRtc = new RTC(
-        connection,
-        createMockSession(null),
-        rtcOptions,
-      );
-      await expect(noSessionRtc.connect("peer_1")).rejects.toThrow(
-        "Not in a session",
-      );
+      const noSessionRtc = new RTC(connection, createMockSession(null), rtcOptions);
+      await expect(noSessionRtc.connect("peer_1")).rejects.toThrow("Not in a session");
     });
   });
 
@@ -127,9 +113,7 @@ describe("RTC", () => {
 
       // Wait for async processing
       await vi.waitFor(() => {
-        const answerFrame = connection.sentFrames.find(
-          (f) => f.type === "rtc.answer",
-        );
+        const answerFrame = connection.sentFrames.find((f) => f.type === "rtc.answer");
         expect(answerFrame).toBeDefined();
       });
 
@@ -138,9 +122,7 @@ describe("RTC", () => {
         sdp: "remote-offer-sdp",
       });
 
-      const answerFrame = connection.sentFrames.find(
-        (f) => f.type === "rtc.answer",
-      );
+      const answerFrame = connection.sentFrames.find((f) => f.type === "rtc.answer");
       expect(answerFrame!.payload.sdp).toBe("mock-answer-sdp");
       expect(answerFrame!.to).toBe("peer_1");
     });
@@ -200,9 +182,7 @@ describe("RTC", () => {
       };
       mockPc._triggerIceCandidate(candidate);
 
-      const iceFrame = connection.sentFrames.find(
-        (f) => f.type === "rtc.ice",
-      );
+      const iceFrame = connection.sentFrames.find((f) => f.type === "rtc.ice");
       expect(iceFrame).toBeDefined();
       expect(iceFrame!.to).toBe("peer_1");
       expect(iceFrame!.payload.candidate).toEqual(candidate);
@@ -229,9 +209,7 @@ describe("RTC", () => {
 
       expect(rtc.getPeerState("peer_1")).toBe("connected");
 
-      const connectedFrame = connection.sentFrames.find(
-        (f) => f.type === "rtc.connected",
-      );
+      const connectedFrame = connection.sentFrames.find((f) => f.type === "rtc.connected");
       expect(connectedFrame).toBeDefined();
       expect(connectedFrame!.to).toBe("peer_1");
     });
@@ -243,9 +221,7 @@ describe("RTC", () => {
 
       expect(rtc.hasPeer("peer_1")).toBe(false);
 
-      const disconnectedFrame = connection.sentFrames.find(
-        (f) => f.type === "rtc.disconnected",
-      );
+      const disconnectedFrame = connection.sentFrames.find((f) => f.type === "rtc.disconnected");
       expect(disconnectedFrame).toBeDefined();
       expect(disconnectedFrame!.payload.reason).toBe("ice_failed");
     });
@@ -389,9 +365,7 @@ describe("RTC", () => {
 
       rtc.disconnect("peer_1");
 
-      const disconnectedFrame = connection.sentFrames.find(
-        (f) => f.type === "rtc.disconnected",
-      );
+      const disconnectedFrame = connection.sentFrames.find((f) => f.type === "rtc.disconnected");
       expect(disconnectedFrame).toBeDefined();
       expect(disconnectedFrame!.payload.reason).toBe("local_close");
     });

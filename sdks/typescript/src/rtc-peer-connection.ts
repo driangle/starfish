@@ -3,10 +3,10 @@ import type {
   RTCOptions,
   RTCPeerConnectionLike,
   RTCDataChannelLike,
+  PeerEntry,
 } from "./types.js";
 import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
-import type { PeerEntry } from "./rtc.js";
 import { nextId } from "./id.js";
 import { EventStream } from "./emitter.js";
 import { MAX_RTC_CONTROL_SIZE, MAX_RTC_STREAM_SIZE } from "./limits.js";
@@ -37,9 +37,7 @@ export function createPeerConnection(opts: {
 }): RTCPeerConnectionLike {
   const { peerId, connection, session, rtcOptions, peers, updatePeers } = opts;
 
-  const config = rtcOptions.iceServers
-    ? { iceServers: rtcOptions.iceServers }
-    : undefined;
+  const config = rtcOptions.iceServers ? { iceServers: rtcOptions.iceServers } : undefined;
 
   const pc = rtcOptions.factory(config);
 

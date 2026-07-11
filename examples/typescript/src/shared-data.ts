@@ -33,7 +33,9 @@ async function main() {
 
   // Watch all data changes from Client-B's perspective
   clientB.changed$.subscribe((result) => {
-    console.log(`[Client-B] Data changed: ${result.key} = ${JSON.stringify(result.data)} (v${result.version})`);
+    console.log(
+      `[Client-B] Data changed: ${result.key} = ${JSON.stringify(result.data)} (v${result.version})`,
+    );
   });
 
   await sleep(200);
@@ -66,15 +68,30 @@ async function main() {
 
   // --- Counter operation ---
   console.log("Client-A initializes 'score' to 0");
-  await clientA.save({ key: "score", scope: "session", op: "replace", data: 0 });
+  await clientA.save({
+    key: "score",
+    scope: "session",
+    op: "replace",
+    data: 0,
+  });
   await sleep(200);
 
   console.log("Client-A increments 'score' by 10");
-  await clientA.save({ key: "score", scope: "session", op: "counter.add", data: 10 });
+  await clientA.save({
+    key: "score",
+    scope: "session",
+    op: "counter.add",
+    data: 10,
+  });
   await sleep(200);
 
   console.log("Client-B increments 'score' by 5");
-  await clientB.save({ key: "score", scope: "session", op: "counter.add", data: 5 });
+  await clientB.save({
+    key: "score",
+    scope: "session",
+    op: "counter.add",
+    data: 5,
+  });
   await sleep(200);
 
   const score = await clientA.get({ key: "score", scope: "session" });
@@ -86,9 +103,19 @@ async function main() {
     console.log(`  status updated to: ${JSON.stringify(result.data)}`);
   });
 
-  await clientB.save({ key: "status", scope: "session", op: "replace", data: "ready" });
+  await clientB.save({
+    key: "status",
+    scope: "session",
+    op: "replace",
+    data: "ready",
+  });
   await sleep(200);
-  await clientB.save({ key: "status", scope: "session", op: "replace", data: "running" });
+  await clientB.save({
+    key: "status",
+    scope: "session",
+    op: "replace",
+    data: "running",
+  });
   await sleep(200);
 
   // Clean up

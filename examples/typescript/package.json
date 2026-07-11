@@ -7,6 +7,8 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "connection": "node dist/connection.js",
     "pubsub": "node dist/pubsub.js",
     "presence": "node dist/presence.js",
@@ -21,6 +23,7 @@
     "@types/ws": "^8.18.1",
     "@typescript-eslint/parser": "^8.63.0",
     "eslint": "^10.6.0",
+    "prettier": "^3.9.5",
     "typescript": "^5.8.3"
   }
 }

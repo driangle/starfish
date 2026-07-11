@@ -1,7 +1,11 @@
-import type { StarfishFrame, RTCPeerConnectionLike, RTCDataChannelLike } from "./types.js";
+import type {
+  StarfishFrame,
+  RTCPeerConnectionLike,
+  RTCDataChannelLike,
+  PeerEntry,
+} from "./types.js";
 import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
-import type { PeerEntry } from "./rtc.js";
 import { nextId } from "./id.js";
 import { EventStream } from "./emitter.js";
 import { createPeerConnection, setupDataChannel } from "./rtc-peer-connection.js";
@@ -36,7 +40,12 @@ export function handleConnect(ctx: SignalingContext, frame: StarfishFrame): void
   ctx.updatePeers();
 
   pc.ondatachannel = (ev: { channel: RTCDataChannelLike }) => {
-    setupDataChannel({ peerId, dc: ev.channel, peers: ctx.peers, frames$: ctx.frames$ });
+    setupDataChannel({
+      peerId,
+      dc: ev.channel,
+      peers: ctx.peers,
+      frames$: ctx.frames$,
+    });
     entry.channels.set(ev.channel.label, ev.channel);
   };
 }
@@ -59,12 +68,20 @@ export async function handleOffer(ctx: SignalingContext, frame: StarfishFrame): 
     ctx.updatePeers();
 
     pc.ondatachannel = (ev: { channel: RTCDataChannelLike }) => {
-      setupDataChannel({ peerId, dc: ev.channel, peers: ctx.peers, frames$: ctx.frames$ });
+      setupDataChannel({
+        peerId,
+        dc: ev.channel,
+        peers: ctx.peers,
+        frames$: ctx.frames$,
+      });
       entry!.channels.set(ev.channel.label, ev.channel);
     };
   }
 
-  await entry.pc.setRemoteDescription({ type: "offer", sdp: frame.payload.sdp });
+  await entry.pc.setRemoteDescription({
+    type: "offer",
+    sdp: frame.payload.sdp,
+  });
 
   const answer = await entry.pc.createAnswer();
   await entry.pc.setLocalDescription(answer);
@@ -87,7 +104,10 @@ export async function handleAnswer(ctx: SignalingContext, frame: StarfishFrame):
   const entry = ctx.peers.get(peerId);
   if (!entry) return;
 
-  await entry.pc.setRemoteDescription({ type: "answer", sdp: frame.payload.sdp });
+  await entry.pc.setRemoteDescription({
+    type: "answer",
+    sdp: frame.payload.sdp,
+  });
 }
 
 export async function handleIce(ctx: SignalingContext, frame: StarfishFrame): Promise<void> {

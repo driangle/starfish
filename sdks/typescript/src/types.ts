@@ -127,11 +127,7 @@ export interface EventFilter {
 
 // --- Connection state ---
 
-export type ConnectionState =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "reconnecting";
+export type ConnectionState = "disconnected" | "connecting" | "connected" | "reconnecting";
 
 // --- WebRTC types ---
 
@@ -171,9 +167,7 @@ export interface RTCPeerConnectionLike {
   onconnectionstatechange: ((ev: any) => void) | null;
 }
 
-export type RTCPeerConnectionFactory = (
-  config?: { iceServers?: any[] },
-) => RTCPeerConnectionLike;
+export type RTCPeerConnectionFactory = (config?: { iceServers?: any[] }) => RTCPeerConnectionLike;
 
 export interface RTCOptions {
   factory: RTCPeerConnectionFactory;
@@ -186,4 +180,12 @@ export interface RTCPeerInfo {
   peerId: string;
   state: RTCPeerState;
   channels: string[];
+}
+
+export interface PeerEntry {
+  pc: RTCPeerConnectionLike;
+  channels: Map<string, RTCDataChannelLike>;
+  requestedChannels: string[];
+  state: RTCPeerState;
+  isInitiator: boolean;
 }

@@ -5,6 +5,8 @@
   "scripts": {
     "check": "tsc --noEmit",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:verbose": "vitest run --reporter=verbose"
@@ -13,6 +15,7 @@
     "@types/ws": "^8.18.1",
     "@typescript-eslint/parser": "^8.63.0",
     "eslint": "^10.6.0",
+    "prettier": "^3.9.5",
     "typescript": "^5.8.3",
     "vitest": "^3.2.3",
     "ws": "^8.18.2"

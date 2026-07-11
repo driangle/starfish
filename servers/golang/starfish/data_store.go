@@ -130,4 +130,3 @@ func (ds *DataStore) applyOp(op string, existing, incoming json.RawMessage) (jso
 		return nil, fmt.Errorf("invalid operation: %s", op)
 	}
 }
-

@@ -11,13 +11,13 @@ import (
 
 // Config holds server configuration.
 type Config struct {
-	Addr              string
-	HeartbeatInterval time.Duration
-	HeartbeatTimeout  time.Duration
-	ResumeTimeout     time.Duration
+	Addr               string
+	HeartbeatInterval  time.Duration
+	HeartbeatTimeout   time.Duration
+	ResumeTimeout      time.Duration
 	PresenceThrottleMs int
-	MaxWSMessageSize  int64
-	ICEServers        []ICEServer
+	MaxWSMessageSize   int64
+	ICEServers         []ICEServer
 }
 
 // ICEServer is a STUN/TURN server configuration.
@@ -28,12 +28,12 @@ type ICEServer struct {
 // DefaultConfig returns a Config with spec-recommended defaults.
 func DefaultConfig() *Config {
 	return &Config{
-		Addr:              ":8080",
-		HeartbeatInterval: 15 * time.Second,
-		HeartbeatTimeout:  30 * time.Second,
-		ResumeTimeout:     30 * time.Second,
+		Addr:               ":8080",
+		HeartbeatInterval:  15 * time.Second,
+		HeartbeatTimeout:   30 * time.Second,
+		ResumeTimeout:      30 * time.Second,
 		PresenceThrottleMs: 50,
-		MaxWSMessageSize:  MaxWSMessageSize,
+		MaxWSMessageSize:   MaxWSMessageSize,
 		ICEServers: []ICEServer{
 			{URLs: "stun:stun.l.google.com:19302"},
 		},

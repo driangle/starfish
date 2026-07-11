@@ -3,10 +3,7 @@ import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 import { nextId } from "./id.js";
 import { EventStream } from "./emitter.js";
-import {
-  MAX_DATA_VALUE_SIZE,
-  validatePayloadSize,
-} from "./limits.js";
+import { MAX_DATA_VALUE_SIZE, validatePayloadSize } from "./limits.js";
 
 export class Data {
   private connection: Connection;
@@ -60,8 +57,7 @@ export class Data {
       op: options.op,
     };
     if (options.data !== undefined) payload.data = options.data;
-    if (options.expectedVersion !== undefined)
-      payload.expectedVersion = options.expectedVersion;
+    if (options.expectedVersion !== undefined) payload.expectedVersion = options.expectedVersion;
 
     const frame: StarfishFrame = {
       v: 1,
@@ -80,10 +76,7 @@ export class Data {
     };
   }
 
-  async get(options: {
-    key: string;
-    scope: "self" | "session";
-  }): Promise<DataResult> {
+  async get(options: { key: string; scope: "self" | "session" }): Promise<DataResult> {
     const sessionName = this.requireSession();
     const frame: StarfishFrame = {
       v: 1,

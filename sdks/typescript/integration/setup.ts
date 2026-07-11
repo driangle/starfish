@@ -2,8 +2,7 @@ import WebSocket from "ws";
 import { StarfishClient } from "../src/index.js";
 import type { WebSocketLike } from "../src/index.js";
 
-export const SERVER_URL =
-  process.env.STARFISH_SERVER_URL ?? "ws://localhost:8080/starfish";
+export const SERVER_URL = process.env.STARFISH_SERVER_URL ?? "ws://localhost:8080/starfish";
 
 let counter = 0;
 const workerId = Math.random().toString(36).slice(2, 8);

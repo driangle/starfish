@@ -41,9 +41,7 @@ export class StarfishClient {
     this.clock = new Clock(this.connection);
     this._events = new Events();
     this._session = new Session(this.connection);
-    this._rtc = options.rtc
-      ? new RTC(this.connection, this._session, options.rtc)
-      : null;
+    this._rtc = options.rtc ? new RTC(this.connection, this._session, options.rtc) : null;
     this._topics = new Topics(this.connection, this._session, this._rtc);
     this._messaging = new Messaging(this.connection, this._session, this._rtc);
     this._presence = new Presence(this.connection, this._session);

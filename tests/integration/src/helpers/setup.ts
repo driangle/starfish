@@ -1,5 +1,4 @@
-export const SERVER_URL =
-  process.env.STARFISH_SERVER_URL ?? "ws://localhost:8080/starfish";
+export const SERVER_URL = process.env.STARFISH_SERVER_URL ?? "ws://localhost:8080/starfish";
 
 export const DEFAULT_TIMEOUT = 5000;
 export const SHORT_TIMEOUT = 1000;

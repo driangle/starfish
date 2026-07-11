@@ -1,9 +1,5 @@
 import { vi } from "vitest";
-import type {
-  StarfishFrame,
-  RTCPeerConnectionLike,
-  RTCDataChannelLike,
-} from "./types.js";
+import type { StarfishFrame, RTCPeerConnectionLike, RTCDataChannelLike } from "./types.js";
 import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 
@@ -75,7 +71,9 @@ export function createMockPeerConnection(): RTCPeerConnectionLike & {
   return pc;
 }
 
-export function createMockConnection(): Connection & { sentFrames: StarfishFrame[] } {
+export function createMockConnection(): Connection & {
+  sentFrames: StarfishFrame[];
+} {
   const sentFrames: StarfishFrame[] = [];
   return {
     clientId: "client_self",

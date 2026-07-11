@@ -128,33 +128,37 @@ describe("sessions", () => {
     expect(response.error?.code).toBe("session.not_found");
   });
 
-  it("WebSocket disconnect triggers client.disconnected with reason 'timeout'", { timeout: 45000 }, async () => {
-    const session = uniqueSession();
+  it(
+    "WebSocket disconnect triggers client.disconnected with reason 'timeout'",
+    { timeout: 45000 },
+    async () => {
+      const session = uniqueSession();
 
-    const client1 = await track();
-    const welcome = await client1.hello({ name: "stayer" });
-    await client1.join(session);
+      const client1 = await track();
+      const welcome = await client1.hello({ name: "stayer" });
+      await client1.join(session);
 
-    const client2 = await track();
-    await client2.hello({ name: "disconnector" });
-    await client2.join(session);
+      const client2 = await track();
+      await client2.hello({ name: "disconnector" });
+      await client2.join(session);
 
-    // Drain the client.connected event
-    await client1.waitForType("client.connected");
+      // Drain the client.connected event
+      await client1.waitForType("client.connected");
 
-    // Use the server's reported resume timeout to know how long to wait
-    // Add a buffer for processing time
-    const resumeTimeout = welcome.payload.resumeTimeout ?? 30000;
-    const waitTime = resumeTimeout + 5000;
+      // Use the server's reported resume timeout to know how long to wait
+      // Add a buffer for processing time
+      const resumeTimeout = welcome.payload.resumeTimeout ?? 30000;
+      const waitTime = resumeTimeout + 5000;
 
-    // Forcefully close client2's connection (simulates network drop)
-    await client2.close();
+      // Forcefully close client2's connection (simulates network drop)
+      await client2.close();
 
-    // Client 1 should eventually see client.disconnected with reason "timeout"
-    // This takes as long as the server's resume timeout
-    const disconnected = await client1.waitForType("client.disconnected", waitTime);
-    expect(disconnected.session).toBe(session);
-    expect(disconnected.payload.clientId).toBe(client2.clientId);
-    expect(disconnected.payload.reason).toBe("timeout");
-  });
+      // Client 1 should eventually see client.disconnected with reason "timeout"
+      // This takes as long as the server's resume timeout
+      const disconnected = await client1.waitForType("client.disconnected", waitTime);
+      expect(disconnected.session).toBe(session);
+      expect(disconnected.payload.clientId).toBe(client2.clientId);
+      expect(disconnected.payload.reason).toBe("timeout");
+    },
+  );
 });

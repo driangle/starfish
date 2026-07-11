@@ -4,20 +4,20 @@ import "encoding/json"
 
 // Frame is the canonical Starfish message envelope.
 type Frame struct {
-	V         int              `json:"v"`
-	ID        string           `json:"id"`
-	Type      string           `json:"type"`
-	Ts        *int64           `json:"ts,omitempty"`
-	Session   string           `json:"session,omitempty"`
-	From      string           `json:"from,omitempty"`
-	To        json.RawMessage  `json:"to,omitempty"`
-	Topic     string           `json:"topic,omitempty"`
-	Ack       *bool            `json:"ack,omitempty"`
-	ReplyTo   string           `json:"replyTo,omitempty"`
-	Transport string           `json:"transport,omitempty"`
-	Options   *Options         `json:"options,omitempty"`
-	Payload   json.RawMessage  `json:"payload,omitempty"`
-	Error     *StarfishError   `json:"error,omitempty"`
+	V         int             `json:"v"`
+	ID        string          `json:"id"`
+	Type      string          `json:"type"`
+	Ts        *int64          `json:"ts,omitempty"`
+	Session   string          `json:"session,omitempty"`
+	From      string          `json:"from,omitempty"`
+	To        json.RawMessage `json:"to,omitempty"`
+	Topic     string          `json:"topic,omitempty"`
+	Ack       *bool           `json:"ack,omitempty"`
+	ReplyTo   string          `json:"replyTo,omitempty"`
+	Transport string          `json:"transport,omitempty"`
+	Options   *Options        `json:"options,omitempty"`
+	Payload   json.RawMessage `json:"payload,omitempty"`
+	Error     *StarfishError  `json:"error,omitempty"`
 }
 
 type Options struct {

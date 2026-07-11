@@ -9,7 +9,7 @@ type Session struct {
 	mu       sync.RWMutex
 	name     string
 	clients  map[string]*Client            // clientId -> *Client
-	topics   map[string]map[string]*Client  // topicName -> clientId -> *Client
+	topics   map[string]map[string]*Client // topicName -> clientId -> *Client
 	data     *DataStore
 	presence *PresenceThrottle
 }

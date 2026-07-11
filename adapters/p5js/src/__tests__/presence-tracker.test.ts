@@ -14,7 +14,9 @@ describe("PresenceTracker", () => {
   describe("update", () => {
     it("sends cursor position from p5 instance", () => {
       const presence = mockPresence();
-      const tracker = new PresenceTracker(presence, mockP5(50, 75), { throttleMs: 0 });
+      const tracker = new PresenceTracker(presence, mockP5(50, 75), {
+        throttleMs: 0,
+      });
 
       tracker.update();
 
@@ -23,7 +25,9 @@ describe("PresenceTracker", () => {
 
     it("includes extra data set via setData", () => {
       const presence = mockPresence();
-      const tracker = new PresenceTracker(presence, mockP5(10, 20), { throttleMs: 0 });
+      const tracker = new PresenceTracker(presence, mockP5(10, 20), {
+        throttleMs: 0,
+      });
 
       tracker.setData({ color: "red" });
       tracker.update();
@@ -33,7 +37,9 @@ describe("PresenceTracker", () => {
 
     it("throttles updates", () => {
       const presence = mockPresence();
-      const tracker = new PresenceTracker(presence, mockP5(), { throttleMs: 1000 });
+      const tracker = new PresenceTracker(presence, mockP5(), {
+        throttleMs: 1000,
+      });
 
       tracker.update();
       tracker.update();
@@ -52,7 +58,11 @@ describe("PresenceTracker", () => {
       tracker.setData({ status: "active" });
       tracker.update();
 
-      expect(presence.set).toHaveBeenCalledWith({ x: 0, y: 0, status: "active" });
+      expect(presence.set).toHaveBeenCalledWith({
+        x: 0,
+        y: 0,
+        status: "active",
+      });
     });
   });
 
@@ -67,8 +77,20 @@ describe("PresenceTracker", () => {
       const peers = PresenceTracker.toPeers(map, "self-id");
 
       expect(peers).toHaveLength(2);
-      expect(peers[0]).toEqual({ id: "peer-1", name: "Alice", x: 10, y: 20, data: { x: 10, y: 20, name: "Alice" } });
-      expect(peers[1]).toEqual({ id: "peer-2", name: undefined, x: 30, y: 40, data: { x: 30, y: 40 } });
+      expect(peers[0]).toEqual({
+        id: "peer-1",
+        name: "Alice",
+        x: 10,
+        y: 20,
+        data: { x: 10, y: 20, name: "Alice" },
+      });
+      expect(peers[1]).toEqual({
+        id: "peer-2",
+        name: undefined,
+        x: 30,
+        y: 40,
+        data: { x: 30, y: 40 },
+      });
     });
 
     it("returns empty array when only self present", () => {

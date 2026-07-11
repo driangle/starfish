@@ -1,4 +1,9 @@
-import { StarfishClient, type StarfishFrame, type Unsubscribe, type DataResult } from "@starfish/client";
+import {
+  StarfishClient,
+  type StarfishFrame,
+  type Unsubscribe,
+  type DataResult,
+} from "@starfish/client";
 import type { StarfishP5Options, PeerPresence } from "./types.js";
 import { PresenceTracker } from "./presence-tracker.js";
 import { hookRemove } from "./p5-lifecycle.js";
@@ -10,7 +15,10 @@ export class StarfishP5 {
   private _peers: PeerPresence[] = [];
   private _connected = false;
   private subscriptions: Unsubscribe[] = [];
-  private pendingSubscriptions: Array<{ topic: string; cb: (payload: any, from: string) => void }> = [];
+  private pendingSubscriptions: Array<{
+    topic: string;
+    cb: (payload: any, from: string) => void;
+  }> = [];
   private sharedCache = new Map<string, unknown>();
 
   constructor(options: StarfishP5Options) {
@@ -107,7 +115,10 @@ export class StarfishP5 {
     this.subscribeInternal(topic, cb);
   }
 
-  private async subscribeInternal(topic: string, cb: (payload: any, from: string) => void): Promise<void> {
+  private async subscribeInternal(
+    topic: string,
+    cb: (payload: any, from: string) => void,
+  ): Promise<void> {
     await this.client.subscribe(topic);
     const unsub = this.client.topic$(topic).subscribe((frame: StarfishFrame) => {
       cb(frame.payload, frame.from ?? "");

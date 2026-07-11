@@ -1,8 +1,4 @@
-import type {
-  StarfishFrame,
-  JoinOptions,
-  ClientInfo,
-} from "./types.js";
+import type { StarfishFrame, JoinOptions, ClientInfo } from "./types.js";
 import type { Connection } from "./connection.js";
 import { nextId } from "./id.js";
 import { Observable } from "./emitter.js";
@@ -27,10 +23,7 @@ export class Session {
     return this.connection.clientId;
   }
 
-  async join(
-    session: string,
-    options?: JoinOptions,
-  ): Promise<StarfishFrame> {
+  async join(session: string, options?: JoinOptions): Promise<StarfishFrame> {
     const frame: StarfishFrame = {
       v: 1,
       id: nextId("join"),

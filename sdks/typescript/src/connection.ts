@@ -99,10 +99,7 @@ export class Connection {
     this.ws.send(JSON.stringify(frame));
   }
 
-  sendAndWait(
-    frame: StarfishFrame,
-    timeout = DEFAULT_REQUEST_TIMEOUT,
-  ): Promise<StarfishFrame> {
+  sendAndWait(frame: StarfishFrame, timeout = DEFAULT_REQUEST_TIMEOUT): Promise<StarfishFrame> {
     const promise = this.pending.add(frame.id, timeout);
     this.send(frame);
     return promise;
@@ -113,14 +110,9 @@ export class Connection {
       return this.options.ws(this.options.server);
     }
 
-    const WS =
-      typeof globalThis !== "undefined"
-        ? (globalThis as any).WebSocket
-        : undefined;
+    const WS = typeof globalThis !== "undefined" ? (globalThis as any).WebSocket : undefined;
     if (!WS) {
-      throw new Error(
-        "No WebSocket implementation available. Provide one via options.ws.",
-      );
+      throw new Error("No WebSocket implementation available. Provide one via options.ws.");
     }
     return new WS(this.options.server) as WebSocketLike;
   }
@@ -140,7 +132,11 @@ export class Connection {
         };
 
     const welcome = await this.sendAndWait({
-      v: 1, id: nextId("hello"), type: "client.hello", ts: Date.now(), payload,
+      v: 1,
+      id: nextId("hello"),
+      type: "client.hello",
+      ts: Date.now(),
+      payload,
     });
 
     this.clientId = welcome.payload.clientId;
@@ -176,8 +172,7 @@ export class Connection {
     this.state$.set("reconnecting");
 
     const delay = Math.min(
-      opts.baseDelay * Math.pow(2, this.reconnectAttempt) +
-        Math.random() * opts.baseDelay,
+      opts.baseDelay * Math.pow(2, this.reconnectAttempt) + Math.random() * opts.baseDelay,
       opts.maxDelay,
     );
     this.reconnectAttempt++;

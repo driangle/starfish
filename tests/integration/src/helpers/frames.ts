@@ -21,12 +21,23 @@ export function helloFrame(opts?: {
     payload.auth = { type: "none" };
   }
 
-  return { v: 1, id: uniqueId("hello"), type: "client.hello", ts: Date.now(), payload };
+  return {
+    v: 1,
+    id: uniqueId("hello"),
+    type: "client.hello",
+    ts: Date.now(),
+    payload,
+  };
 }
 
 export function joinFrame(
   session: string,
-  opts?: { create?: boolean; name?: string; role?: string; meta?: Record<string, any> },
+  opts?: {
+    create?: boolean;
+    name?: string;
+    role?: string;
+    meta?: Record<string, any>;
+  },
 ): StarfishFrame {
   return {
     v: 1,
@@ -51,7 +62,13 @@ export function subscribeFrame(session: string, topic: string): StarfishFrame {
 }
 
 export function unsubscribeFrame(session: string, topic: string): StarfishFrame {
-  return { v: 1, id: uniqueId("unsub"), type: "topic.unsubscribe", session, topic };
+  return {
+    v: 1,
+    id: uniqueId("unsub"),
+    type: "topic.unsubscribe",
+    session,
+    topic,
+  };
 }
 
 export function publishFrame(
@@ -76,7 +93,14 @@ export function directSendFrame(
   to: string | string[],
   payload: any,
 ): StarfishFrame {
-  return { v: 1, id: uniqueId("send"), type: "client.send", session, to, payload };
+  return {
+    v: 1,
+    id: uniqueId("send"),
+    type: "client.send",
+    session,
+    to,
+    payload,
+  };
 }
 
 export function broadcastFrame(
@@ -139,11 +163,7 @@ export function clockSyncFrame(): StarfishFrame {
   return { v: 1, id: uniqueId("clock"), type: "clock.sync", ts: Date.now() };
 }
 
-export function rtcOfferFrame(
-  session: string,
-  to: string,
-  sdp: string,
-): StarfishFrame {
+export function rtcOfferFrame(session: string, to: string, sdp: string): StarfishFrame {
   return {
     v: 1,
     id: uniqueId("rtc_offer"),
@@ -154,11 +174,7 @@ export function rtcOfferFrame(
   };
 }
 
-export function rtcAnswerFrame(
-  session: string,
-  to: string,
-  sdp: string,
-): StarfishFrame {
+export function rtcAnswerFrame(session: string, to: string, sdp: string): StarfishFrame {
   return {
     v: 1,
     id: uniqueId("rtc_answer"),
@@ -169,11 +185,7 @@ export function rtcAnswerFrame(
   };
 }
 
-export function rtcIceFrame(
-  session: string,
-  to: string,
-  candidate: any,
-): StarfishFrame {
+export function rtcIceFrame(session: string, to: string, candidate: any): StarfishFrame {
   return {
     v: 1,
     id: uniqueId("rtc_ice"),

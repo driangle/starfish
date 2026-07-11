@@ -23,8 +23,12 @@ function createMockClient() {
     peers$,
     presence,
     clientId: "test-client-id",
-    connect: vi.fn(async () => { connection$.set("connected"); }),
-    disconnect: vi.fn(async () => { connection$.set("disconnected"); }),
+    connect: vi.fn(async () => {
+      connection$.set("connected");
+    }),
+    disconnect: vi.fn(async () => {
+      connection$.set("disconnected");
+    }),
     join: vi.fn(async () => ({})),
     leave: vi.fn(async () => {}),
     subscribe: vi.fn(async () => ({})),
@@ -36,8 +40,18 @@ function createMockClient() {
     }),
     send: vi.fn(),
     broadcast: vi.fn(),
-    save: vi.fn(async () => ({ key: "", scope: "session", data: null, version: 1 })),
-    get: vi.fn(async () => ({ key: "", scope: "session", data: null, version: 1 })),
+    save: vi.fn(async () => ({
+      key: "",
+      scope: "session",
+      data: null,
+      version: 1,
+    })),
+    get: vi.fn(async () => ({
+      key: "",
+      scope: "session",
+      data: null,
+      version: 1,
+    })),
     key$: vi.fn((key: string) => {
       if (!keyStreams.has(key)) keyStreams.set(key, new EventStream());
       return keyStreams.get(key)!;
