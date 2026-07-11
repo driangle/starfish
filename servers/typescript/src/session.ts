@@ -2,9 +2,11 @@ import type { Client, ClientInfo } from "./client.js";
 import type { StarfishFrame } from "./types.js";
 import type { Hub } from "./hub.js";
 import { PresenceThrottle } from "./presence.js";
+import { DataStore } from "./data_store.js";
 
 export class Session {
   readonly name: string;
+  readonly data = new DataStore();
   private clients = new Map<string, Client>();
   private topics = new Map<string, Map<string, Client>>();
   private presence: PresenceThrottle;

@@ -17,6 +17,7 @@ import {
   handleSessionBroadcast,
 } from "./handler_messaging.js";
 import { handlePresenceSet } from "./handler_presence.js";
+import { handleDataSave, handleDataGet } from "./handler_data.js";
 import { handleClockSync, handleAck, handleNack } from "./handler_system.js";
 import { handleClientHello } from "./handler_connection.js";
 
@@ -63,6 +64,14 @@ export class Handler {
     this.handlers.set(
       "presence.set",
       this.requireAuth(this.requireSession((c, f) => handlePresenceSet(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "data.save",
+      this.requireAuth(this.requireSession((c, f) => handleDataSave(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "data.get",
+      this.requireAuth(this.requireSession((c, f) => handleDataGet(this.hub, c, f))),
     );
     this.handlers.set(
       "clock.sync",

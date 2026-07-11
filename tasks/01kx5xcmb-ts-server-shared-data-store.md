@@ -1,7 +1,7 @@
 ---
 id: "01kx5xcmb"
 title: "TS Server: Shared data store"
-status: pending
+status: completed
 priority: high
 effort: medium
 type: feature
@@ -10,6 +10,7 @@ parent: "01kwyst4k"
 dependencies: ["01kx5xcm0"]
 created_at: 2026-07-10
 phase: v0.1
+completed_at: 2026-07-11
 ---
 
 # TS Server: Shared data store
@@ -24,21 +25,21 @@ Port from Go server's `data_store.go` and `handler_data.go`. The data store supp
 
 ## Tasks
 
-- [ ] Implement `DataStore` class with `session` and `self` (client) scopes
-- [ ] Implement versioned `DataEntry` (value + version counter)
-- [ ] Implement `replace` operation (full value replacement)
-- [ ] Implement `merge` operation (shallow merge of object keys)
-- [ ] Implement `set.add` and `set.remove` operations
-- [ ] Implement `list.add` and `list.remove` operations
-- [ ] Implement `counter.add` operation
-- [ ] Implement `delete` operation
-- [ ] Implement `data.save` handler with operation dispatch
-- [ ] Implement `data.get` handler → `data.value` response
-- [ ] Implement optimistic concurrency (`expectedVersion` check → `data.conflict` on mismatch)
-- [ ] Broadcast `data.changed` for session-scoped mutations only
-- [ ] Validate data payload size (max 256KB)
-- [ ] Reject cross-client `self` scope access with `data.forbidden`
-- [ ] Write unit tests for all 8 operations and conflict detection
+- [x] Implement `DataStore` class with `session` and `self` (client) scopes
+- [x] Implement versioned `DataEntry` (value + version counter)
+- [x] Implement `replace` operation (full value replacement)
+- [x] Implement `merge` operation (shallow merge of object keys)
+- [x] Implement `set.add` and `set.remove` operations
+- [x] Implement `list.add` and `list.remove` operations
+- [x] Implement `counter.add` operation
+- [x] Implement `delete` operation
+- [x] Implement `data.save` handler with operation dispatch
+- [x] Implement `data.get` handler → `data.value` response
+- [x] Implement optimistic concurrency (`expectedVersion` check → `data.conflict` on mismatch)
+- [x] Broadcast `data.changed` for session-scoped mutations only
+- [x] Validate data payload size (max 256KB)
+- [x] Reject cross-client `self` scope access with `data.forbidden`
+- [x] Write unit tests for all 8 operations and conflict detection
 
 ## Acceptance Criteria
 
