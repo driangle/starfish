@@ -6,4 +6,5 @@ node_modules/
 
 # Build artifacts
 examples/p5js/starfish-p5.global.js
+adapters/threejs/dist/
 servers/typescript/dist/

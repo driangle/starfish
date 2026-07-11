@@ -1,13 +1,14 @@
 ---
 title: "Implement Three.js Adapter"
 id: "01kwyst79"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["adapter", "threejs", "typescript"]
 created_at: "2026-07-07"
 dependencies: ["01kwyst27"]
 phase: v0.1
+completed_at: 2026-07-11
 ---
 
 # Implement Three.js Adapter
@@ -18,17 +19,17 @@ Implement the Three.js adapter for Starfish, built on the TypeScript SDK. This a
 
 ## Tasks
 
-- [ ] Set up project with TypeScript SDK as dependency
-- [ ] Design Three.js-friendly API that fits the render loop and scene graph
-- [ ] Implement `starfishThree` factory that wraps `StarfishClient`
-- [ ] Provide hooks for Three.js lifecycle: connect on init, cleanup on dispose
-- [ ] Expose presence API mapped to 3D transforms (position, rotation, scale)
-- [ ] Expose topic pub/sub with Three.js-style event patterns
-- [ ] Provide shared data helpers for collaborative 3D state
-- [ ] Implement peer representation helpers (create/update/remove 3D objects per peer)
-- [ ] Support high-frequency streaming for pose/transform data via RTC channels
+- [x] Set up project with TypeScript SDK as dependency
+- [x] Design Three.js-friendly API that fits the render loop and scene graph
+- [x] Implement `starfishThree` factory that wraps `StarfishClient`
+- [x] Provide hooks for Three.js lifecycle: connect on init, cleanup on dispose
+- [x] Expose presence API mapped to 3D transforms (position, rotation, scale)
+- [x] Expose topic pub/sub with Three.js-style event patterns
+- [x] Provide shared data helpers for collaborative 3D state
+- [x] Implement peer representation helpers (create/update/remove 3D objects per peer)
+- [x] Support high-frequency streaming for pose/transform data via RTC channels
 - [ ] Add example scenes demonstrating common patterns (shared scene, avatar sync)
-- [ ] Write tests for adapter integration with the SDK
+- [x] Write tests for adapter integration with the SDK
 
 ## Acceptance Criteria
 
