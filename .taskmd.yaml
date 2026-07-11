@@ -3,4 +3,6 @@ id:
   strategy: ulid
   length: 9
 phases:
-  - v0.1
+  - id: v0.1
+    name: "v0.1"
+    description: "Initial server implementation"
