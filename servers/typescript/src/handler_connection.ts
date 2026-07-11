@@ -2,7 +2,8 @@ import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
 import type { Hub } from "./hub.js";
 import type { ResumeEntry } from "./resume.js";
-import { createErrorFrame, ERR_RESUME_INVALID } from "./errors.js";
+import { createErrorFrame, ERR_RESUME_INVALID, ERR_PAYLOAD_TOO_LARGE } from "./errors.js";
+import { MAX_CLIENT_META_SIZE } from "./limits.js";
 
 type HelloPayload = {
   client?: { name?: string; role?: string; meta?: unknown };
@@ -80,6 +81,13 @@ function handleFreshHello(
 
   client.id = clientId;
   if (payload.client) {
+    if (payload.client.meta !== undefined) {
+      const metaSize = JSON.stringify(payload.client.meta).length;
+      if (metaSize > MAX_CLIENT_META_SIZE) {
+        client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_PAYLOAD_TOO_LARGE));
+        return;
+      }
+    }
     client.name = payload.client.name ?? "";
     client.role = payload.client.role ?? "";
     client.meta = payload.client.meta;

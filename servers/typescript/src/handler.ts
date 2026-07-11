@@ -20,6 +20,12 @@ import { handlePresenceSet } from "./handler_presence.js";
 import { handleDataSave, handleDataGet } from "./handler_data.js";
 import { handleClockSync, handleAck, handleNack } from "./handler_system.js";
 import { handleClientHello } from "./handler_connection.js";
+import {
+  handleRTCConnect,
+  handleRTCOffer,
+  handleRTCAnswer,
+  handleRTCIce,
+} from "./handler_rtc.js";
 
 type HandlerFunc = (client: Client, frame: StarfishFrame) => void;
 
@@ -72,6 +78,22 @@ export class Handler {
     this.handlers.set(
       "data.get",
       this.requireAuth(this.requireSession((c, f) => handleDataGet(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "rtc.connect",
+      this.requireAuth(this.requireSession((c, f) => handleRTCConnect(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "rtc.offer",
+      this.requireAuth(this.requireSession((c, f) => handleRTCOffer(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "rtc.answer",
+      this.requireAuth(this.requireSession((c, f) => handleRTCAnswer(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "rtc.ice",
+      this.requireAuth(this.requireSession((c, f) => handleRTCIce(this.hub, c, f))),
     );
     this.handlers.set(
       "clock.sync",

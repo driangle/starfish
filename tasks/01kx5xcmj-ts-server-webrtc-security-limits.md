@@ -1,7 +1,7 @@
 ---
 id: "01kx5xcmj"
 title: "TS Server: WebRTC relay, security & limits"
-status: pending
+status: completed
 priority: high
 effort: medium
 type: feature
@@ -10,6 +10,7 @@ parent: "01kwyst4k"
 dependencies: ["01kx5xcm4", "01kx5xcme"]
 created_at: 2026-07-10
 phase: v0.1
+completed_at: 2026-07-11
 ---
 
 # TS Server: WebRTC relay, security & limits
@@ -24,17 +25,17 @@ Port from Go server's `handler_rtc.go` (signaling relay), `limits.go` (size enfo
 
 ## Tasks
 
-- [ ] Implement `rtc.connect` handler (notify target peer)
-- [ ] Implement `rtc.offer` / `rtc.answer` / `rtc.ice` relay (forward with `from` overwrite)
-- [ ] Validate both RTC peers are in the same session
-- [ ] Implement `topic.peers` distribution for RTC peer discovery
-- [ ] Enforce payload size limits on all handlers (WS 64KB, presence 8KB, data 256KB, topic name 128 chars, client meta 16KB)
-- [ ] Enforce session membership on all session-scoped handlers
-- [ ] Enforce `from` overwrite on ALL outbound frames (audit all send paths)
-- [ ] Reject unsupported protocol versions with `protocol.unsupported_version`
-- [ ] Return correct error codes for all error conditions (all 19 codes)
-- [ ] Write unit tests for RTC relay routing
-- [ ] Write integration-style tests for security rule enforcement
+- [x] Implement `rtc.connect` handler (notify target peer)
+- [x] Implement `rtc.offer` / `rtc.answer` / `rtc.ice` relay (forward with `from` overwrite)
+- [x] Validate both RTC peers are in the same session
+- [x] Implement `topic.peers` distribution for RTC peer discovery
+- [x] Enforce payload size limits on all handlers (WS 64KB, presence 8KB, data 256KB, topic name 128 chars, client meta 16KB)
+- [x] Enforce session membership on all session-scoped handlers
+- [x] Enforce `from` overwrite on ALL outbound frames (audit all send paths)
+- [x] Reject unsupported protocol versions with `protocol.unsupported_version`
+- [x] Return correct error codes for all error conditions (all 19 codes)
+- [x] Write unit tests for RTC relay routing
+- [x] Write integration-style tests for security rule enforcement
 
 ## Acceptance Criteria
 
