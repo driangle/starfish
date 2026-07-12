@@ -1,4 +1,4 @@
-.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python check-sdk-python-lite check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk test-integration install-hooks lint lint-sdk-typescript lint-sdk-python lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang format format-sdk-python format-check format-check-sdk-typescript format-check-sdk-python format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang
+.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python check-sdk-python-lite check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk-python-golang test-sdk-python-typescript test-sdk-python test-sdk test-integration install-hooks lint lint-sdk-typescript lint-sdk-python lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang format format-sdk-python format-check format-check-sdk-typescript format-check-sdk-python format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
@@ -62,7 +62,15 @@ test-sdk-typescript-typescript: ## Run TypeScript SDK integration tests against 
 
 test-sdk-typescript: test-sdk-typescript-golang test-sdk-typescript-typescript ## Run TypeScript SDK integration tests against all servers
 
-test-sdk: test-sdk-typescript ## Run all SDK integration tests against all servers
+test-sdk-python-golang: ## Run Python SDK integration tests against the Go server
+	@./scripts/run-sdk-integration-tests.sh python golang
+
+test-sdk-python-typescript: ## Run Python SDK integration tests against the TypeScript server
+	@./scripts/run-sdk-integration-tests.sh python typescript
+
+test-sdk-python: test-sdk-python-golang test-sdk-python-typescript ## Run Python SDK integration tests against all servers
+
+test-sdk: test-sdk-typescript test-sdk-python ## Run all SDK integration tests against all servers
 
 test-integration: test-golang test-typescript test-sdk ## Run all integration tests (protocol + SDK)
 

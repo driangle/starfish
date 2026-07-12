@@ -80,6 +80,16 @@ run_sdk_typescript() {
   STARFISH_SERVER_URL="ws://localhost:$port/starfish" npx vitest run --config integration/vitest.config.ts --reporter=verbose
 }
 
+run_sdk_python() {
+  local port=$1
+  echo "Running Python SDK integration tests..."
+  cd "$ROOT_DIR/sdks/python"
+
+  pip install -e ".[dev]" --quiet 2>/dev/null
+
+  STARFISH_SERVER_URL="ws://localhost:$port/starfish" pytest integration/ -v
+}
+
 # --- Main ---
 
 if [[ "$PORT" -eq 0 ]]; then
@@ -108,9 +118,12 @@ case "$SDK_TYPE" in
   typescript)
     run_sdk_typescript "$PORT"
     ;;
+  python)
+    run_sdk_python "$PORT"
+    ;;
   *)
     echo "Unknown SDK type: $SDK_TYPE" >&2
-    echo "Supported SDK types: typescript" >&2
+    echo "Supported SDK types: typescript, python" >&2
     exit 1
     ;;
 esac
