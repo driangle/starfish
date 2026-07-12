@@ -3,6 +3,8 @@ target
 .DS_Store
 node_modules/
 .build/
+__pycache__/
+*.pyc
 
 # Build artifacts
 examples/p5js/starfish-p5.global.js

@@ -1,7 +1,7 @@
 ---
 id: "01kx98jzf"
 title: "Python SDK: Session, Topics, and Messaging"
-status: pending
+status: completed
 priority: high
 effort: medium
 parent: "01kwyst2r"
@@ -9,6 +9,7 @@ phase: v0.1
 dependencies: ["01kx98jye"]
 tags: ["sdk", "python"]
 created_at: 2026-07-11
+completed_at: 2026-07-12
 ---
 
 # Python SDK: Session, Topics, and Messaging
@@ -19,12 +20,12 @@ Implement session management, topic pub/sub, direct messaging, and broadcast on 
 
 ## Tasks
 
-- [ ] Implement `session.py` — `join`/`leave`, client list tracking from `session.joined` + `client.connected`/`client.disconnected` events
-- [ ] Implement `topics.py` — `subscribe`/`unsubscribe`/`publish`, async iterator for topic messages
-- [ ] Implement `messaging.py` — `send()` for direct messages, `broadcast()` with `include_self` option
-- [ ] Wire session, topics, and messaging into `StarfishClient` facade
-- [ ] Write integration tests for session lifecycle (join, leave, client tracking)
-- [ ] Write integration tests for topic pub/sub and messaging
+- [x] Implement `session.py` — `join`/`leave`, client list tracking from `session.joined` + `client.connected`/`client.disconnected` events
+- [x] Implement `topics.py` — `subscribe`/`unsubscribe`/`publish`, async iterator for topic messages
+- [x] Implement `messaging.py` — `send()` for direct messages, `broadcast()` with `include_self` option
+- [x] Wire session, topics, and messaging into `StarfishClient` facade
+- [x] Write integration tests for session lifecycle (join, leave, client tracking)
+- [x] Write integration tests for topic pub/sub and messaging
 
 ## Acceptance Criteria
 

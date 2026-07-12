@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Callable
+from typing import Any, Callable
 
 from .clock import Clock
 from .connection import Connection
 from .emitter import EventStream, Observable, Unsubscribe
 from .events import Events
 from .heartbeat import Heartbeat
+from .messaging import Messaging
+from .session import ClientInfo, JoinOptions, Session
+from .topics import Topics
 from .types import (
     ConnectionState,
     EventFilter,
+    FrameOptions,
     StarfishClientOptions,
     StarfishFrame,
 )
@@ -22,8 +26,11 @@ class StarfishClient:
         self._heartbeat = Heartbeat(self._connection)
         self.clock = Clock(self._connection)
         self._events = Events()
+        self._session = Session(self._connection)
+        self._topics = Topics(self._connection, self._session)
+        self._messaging = Messaging(self._connection, self._session)
 
-        self._connection.frames.subscribe(lambda frame: self._events.dispatch(frame))
+        self._connection.frames.subscribe(self._handle_frame)
         self._connection.state.subscribe(self._on_state_change)
 
     def _on_state_change(self, state: ConnectionState) -> None:
@@ -31,6 +38,11 @@ class StarfishClient:
             self._heartbeat.start()
         else:
             self._heartbeat.stop()
+
+    def _handle_frame(self, frame: StarfishFrame) -> None:
+        self._session.handle_frame(frame)
+        self._topics.handle_frame(frame)
+        self._events.dispatch(frame)
 
     @property
     def connection_state(self) -> Observable[ConnectionState]:
@@ -40,12 +52,62 @@ class StarfishClient:
     def client_id(self) -> str | None:
         return self._connection.client_id
 
+    @property
+    def session(self) -> Session:
+        return self._session
+
+    @property
+    def clients(self) -> Observable[list[ClientInfo]]:
+        return self._session.clients
+
+    @property
+    def peers(self) -> Observable[list[ClientInfo]]:
+        return self._session.peers
+
     async def connect(self) -> None:
         await self._connection.connect()
 
     async def disconnect(self) -> None:
         self._heartbeat.stop()
         await self._connection.disconnect()
+
+    # --- Session ---
+
+    async def join(self, session: str, options: JoinOptions | None = None) -> StarfishFrame:
+        return await self._session.join(session, options)
+
+    async def leave(self) -> None:
+        await self._session.leave()
+
+    # --- Topics ---
+
+    async def subscribe(
+        self, topic: str, callback: Callable[[StarfishFrame], None] | None = None
+    ) -> StarfishFrame:
+        return await self._topics.subscribe(topic, callback)
+
+    async def unsubscribe(self, topic: str) -> None:
+        await self._topics.unsubscribe(topic)
+
+    async def publish(self, topic: str, payload: Any, options: FrameOptions | None = None) -> None:
+        await self._topics.publish(topic, payload, options)
+
+    def topic_stream(self, topic: str) -> EventStream[StarfishFrame]:
+        return self._topics.topic_stream(topic)
+
+    # --- Messaging ---
+
+    async def send(
+        self, to: str | list[str], payload: Any, options: FrameOptions | None = None
+    ) -> None:
+        await self._messaging.send(to, payload, options)
+
+    async def broadcast(
+        self, payload: Any, *, include_self: bool = False, options: FrameOptions | None = None
+    ) -> None:
+        await self._messaging.broadcast(payload, include_self=include_self, options=options)
+
+    # --- Events ---
 
     def events(self, filter: EventFilter | None = None) -> EventStream[StarfishFrame]:
         return self._events.events(filter)
