@@ -1,42 +1,118 @@
 ---
-title: "Implement TouchDesigner Adapter"
+title: "Build starfishClient TOX Component"
 id: "01kwyst7v"
 status: pending
 priority: medium
 type: feature
-tags: ["adapter", "touchdesigner", "python"]
+tags: ["adapter", "touchdesigner", "python", "tox"]
 created_at: "2026-07-07"
 dependencies: ["01kwyst2r"]
 phase: v0.1
 ---
 
-# Implement TouchDesigner Adapter
+# Build starfishClient TOX Component
 
 ## Objective
 
-Implement the TouchDesigner adapter for Starfish, built on the Python SDK. This adapter provides a DAT operator for TouchDesigner so artists can integrate Starfish into TD networks for live visuals, installations, and performances. Located in `adapters/touchdesigner/`.
+Build a reusable `.tox` component (`starfishClient`) for TouchDesigner that wraps the existing Starfish Python SDK (`StarfishClient`) rather than reimplementing the protocol. The TOX is the primary integration point for artists using Starfish in TD networks for live visuals, installations, and performances. Located in `adapters/touchdesigner/`.
 
 ## Tasks
 
-- [ ] Set up project structure for TouchDesigner DAT integration
-- [ ] Design TD-idiomatic API using DAT callbacks and CHOP/DAT patterns
-- [ ] Implement StarfishDAT operator wrapping the Python SDK `StarfishClient`
-- [ ] Provide connection management tied to TD component lifecycle
-- [ ] Expose presence as DAT table rows (peer data readable by other operators)
-- [ ] Expose topic pub/sub through TD callbacks and DAT outputs
-- [ ] Provide shared data as readable/writable DAT tables
-- [ ] Implement CHOP output for high-frequency numeric streams (sensor data, positions)
-- [ ] Support parameter pages for server URL, session name, client config
-- [ ] Add example TD project demonstrating common patterns
-- [ ] Write tests for adapter logic (outside TD environment)
+### Custom Parameters
+
+- [ ] Create `starfishClient` COMP with custom parameter pages
+- [ ] **Connection page**: server URL, auto-connect toggle
+- [ ] **Session page**: session name, join-on-connect toggle
+- [ ] **Identity page**: client name, role, metadata (JSON string)
+- [ ] **Auth page**: auth type menu (none/token), token string
+- [ ] **WebRTC page**: prefer-transport menu (ws/rtc/auto), fallback toggle
+- [ ] **Reconnect page**: enabled toggle, max retries, base delay, max delay
+
+### SDK Integration & Async Bridge
+
+- [ ] Initialize `StarfishClient` from custom parameter values
+- [ ] Run SDK async event loop on a background thread (must not block TD cook)
+- [ ] Implement thread-safe update queue: SDK callbacks enqueue updates, TD cook thread applies them
+- [ ] Bind COMP lifecycle (create/destroy/enable/disable) to SDK connect/disconnect
+- [ ] Re-initialize client when connection parameters change
+
+### DAT Outputs
+
+- [ ] **Messages DAT**: table output for incoming topic messages and direct messages (columns: timestamp, type, from, topic, payload)
+- [ ] **Presence DAT**: table output for current peer presence data (columns: client_id, name, role, payload)
+- [ ] **Events DAT**: table output for connection/session/error events (columns: timestamp, type, details)
+- [ ] **State DAT**: single-row table showing connection state, session name, client ID, error info
+- [ ] Ring-buffer or max-row limit on Messages/Events DATs to prevent unbounded growth
+
+### CHOP Outputs
+
+- [ ] **Connection CHOP**: channels for connection state (connected, reconnecting, etc.), latency
+- [ ] **Presence Count CHOP**: channel for current peer count
+
+### Topic Subscribe/Publish
+
+- [ ] Subscribe to topics via custom parameter (comma-separated) or Python API
+- [ ] Auto-resubscribe to topics on reconnect
+- [ ] Publish to a topic from Python API (`op('starfishClient').Publish(topic, payload)`)
+- [ ] Route topic messages to Messages DAT output
+
+### Direct Messaging & Broadcast
+
+- [ ] Send direct message to one or more clients via Python API
+- [ ] Broadcast to all peers via Python API
+- [ ] Route incoming direct/broadcast messages to Messages DAT output
+
+### Shared Data Operations
+
+- [ ] Save/get shared data via Python API
+- [ ] Surface data change events in Events DAT
+
+### Presence
+
+- [ ] Set local presence via Python API or custom parameter (JSON string)
+- [ ] Reflect all peer presence in Presence DAT
+- [ ] Update Presence DAT on peer join/leave/change
+
+### Reconnection
+
+- [ ] Automatic reconnect using SDK `ReconnectOptions` (driven by custom parameters)
+- [ ] Auto-rejoin session and resubscribe to topics after reconnect
+- [ ] Surface reconnection events in Events DAT and Connection CHOP
+
+### Promoted Python API
+
+- [ ] Expose promoted methods on the COMP extension:
+  - `Connect()`, `Disconnect()`
+  - `Join(session, options=None)`, `Leave()`
+  - `Subscribe(topic)`, `Unsubscribe(topic)`, `Publish(topic, payload, options=None)`
+  - `Send(to, payload, options=None)`, `Broadcast(payload, include_self=False, options=None)`
+  - `PresenceSet(payload)`
+  - `Save(options)`, `Get(key, scope='session')`
+- [ ] Expose read-only promoted properties: `ConnectionState`, `ClientId`, `SessionName`, `Peers`
+
+### Helper Components
+
+- [ ] **topicToChop**: child COMP that converts a JSON topic stream into CHOP channels (configurable key mapping)
+- [ ] **chopPublisher**: child COMP that publishes CHOP channel values to a topic at a configurable, rate-limited frequency
+
+### Testing & Examples
+
+- [ ] Write unit tests for the async bridge / update queue logic (outside TD)
+- [ ] Write unit tests for DAT/CHOP output formatting logic
+- [ ] Add example `.toe` project demonstrating: connect, subscribe, publish, presence, multi-instance communication
 
 ## Acceptance Criteria
 
-- Adapter wraps Python SDK without re-implementing protocol logic
-- DAT operator connects/disconnects with TD component lifecycle
-- Presence data available as DAT table for downstream operators
-- Topic messages trigger callbacks and/or populate DAT outputs
-- Shared data readable as DAT tables
-- Parameter pages allow configuration without code
-- Example project demonstrates multi-instance TD communication
-- Clean teardown when component is deleted/disabled
+- Component is a single `.tox` file that can be dropped into any TD project
+- All protocol communication goes through the Python SDK — no direct WebSocket or frame handling
+- Custom parameters allow full configuration without writing any Python
+- Network I/O runs on a background thread; TD cook thread never blocks on SDK calls
+- SDK callbacks enqueue updates that are applied safely during TD execution
+- Messages, presence, events, connection state, and errors are surfaced through DAT and CHOP outputs
+- Topics auto-resubscribe and session auto-rejoins after reconnect
+- Promoted Python API provides full SDK functionality for advanced users
+- `topicToChop` helper converts JSON topic data to CHOP channels
+- `chopPublisher` helper publishes CHOP values at a rate-limited frequency
+- WebRTC transport preference is configurable but transport details are hidden from most users
+- Clean teardown when component is deleted or disabled (background thread stops, connection closes)
+- Example project demonstrates common patterns with multiple TD instances
