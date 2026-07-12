@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from .connection import Connection
-from .emitter import EventStream, Unsubscribe
+from .emitter import EventStream
 from .id import next_id
 from .limits import validate_topic_name
 from .session import Session

@@ -1,7 +1,9 @@
 from .client import StarfishClient
 from .clock import Clock
+from .data import ConflictError, Data, DataOp, DataResult, SaveOptions
 from .emitter import EventStream, Observable, Unsubscribe
 from .messaging import Messaging
+from .presence import Presence
 from .session import ClientInfo, JoinOptions, Session
 from .topics import Topics
 from .types import (
@@ -24,7 +26,11 @@ __all__ = [
     "ClientIdentity",
     "ClientInfo",
     "Clock",
+    "ConflictError",
     "ConnectionState",
+    "Data",
+    "DataOp",
+    "DataResult",
     "DeliveryOptions",
     "EventFilter",
     "EventStream",
@@ -32,7 +38,9 @@ __all__ = [
     "JoinOptions",
     "Messaging",
     "Observable",
+    "Presence",
     "ReconnectOptions",
+    "SaveOptions",
     "Session",
     "StarfishClient",
     "StarfishClientOptions",

@@ -1,12 +1,13 @@
 ---
 title: "Implement Python SDK"
 id: "01kwyst2r"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["sdk", "python"]
 created_at: "2026-07-07"
 phase: v0.1
+completed_at: 2026-07-12
 ---
 
 # Implement Python SDK
@@ -17,26 +18,26 @@ Implement the Python client SDK for the Starfish protocol (v0.1) as defined in `
 
 ## Tasks
 
-- [ ] Set up Python project (pyproject.toml, package structure)
-- [ ] Define core types/dataclasses: `StarfishFrame`, `StarfishError`, `Options`, `Delivery`
-- [ ] Implement `StarfishClient` class with asyncio WebSocket connection lifecycle
-- [ ] Implement `client.hello` / `server.welcome` handshake
-- [ ] Implement reconnection with `resumeToken` support
-- [ ] Implement session management (`join`, `leave`)
-- [ ] Implement topic pub/sub (`subscribe`, `unsubscribe`, `publish`)
-- [ ] Implement direct messaging (`send`)
-- [ ] Implement broadcast (`broadcast` with `include_self` option)
-- [ ] Implement presence (`presence_set`, presence callback/async iterator)
-- [ ] Implement shared data operations (`save`, `get` with all ops and optimistic concurrency)
-- [ ] Implement heartbeat (application-level `ping`/`pong`)
-- [ ] Implement clock sync (`clock_sync`, `clock_now`, `clock_offset`)
-- [ ] Implement event filtering (async iterators or callback-based)
-- [ ] Implement message ID generation and `reply_to` correlation
-- [ ] Implement transport selection logic
-- [ ] Add payload size validation per protocol limits
-- [ ] Write unit tests for message framing
-- [ ] Write integration tests for session lifecycle and pub/sub
-- [ ] Write integration tests for data operations
+- [x] Set up Python project (pyproject.toml, package structure)
+- [x] Define core types/dataclasses: `StarfishFrame`, `StarfishError`, `Options`, `Delivery`
+- [x] Implement `StarfishClient` class with asyncio WebSocket connection lifecycle
+- [x] Implement `client.hello` / `server.welcome` handshake
+- [x] Implement reconnection with `resumeToken` support
+- [x] Implement session management (`join`, `leave`)
+- [x] Implement topic pub/sub (`subscribe`, `unsubscribe`, `publish`)
+- [x] Implement direct messaging (`send`)
+- [x] Implement broadcast (`broadcast` with `include_self` option)
+- [x] Implement presence (`presence_set`, presence callback/async iterator)
+- [x] Implement shared data operations (`save`, `get` with all ops and optimistic concurrency)
+- [x] Implement heartbeat (application-level `ping`/`pong`)
+- [x] Implement clock sync (`clock_sync`, `clock_now`, `clock_offset`)
+- [x] Implement event filtering (async iterators or callback-based)
+- [x] Implement message ID generation and `reply_to` correlation
+- [x] Implement transport selection logic
+- [x] Add payload size validation per protocol limits
+- [x] Write unit tests for message framing
+- [x] Write integration tests for session lifecycle and pub/sub
+- [x] Write integration tests for data operations
 
 ## Sub-tasks
 

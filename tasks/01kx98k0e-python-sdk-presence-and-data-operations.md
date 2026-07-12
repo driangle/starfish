@@ -1,7 +1,7 @@
 ---
 id: "01kx98k0e"
 title: "Python SDK: Presence and Data Operations"
-status: pending
+status: completed
 priority: high
 effort: medium
 parent: "01kwyst2r"
@@ -9,6 +9,7 @@ phase: v0.1
 dependencies: ["01kx98jye"]
 tags: ["sdk", "python"]
 created_at: 2026-07-11
+completed_at: 2026-07-12
 ---
 
 # Python SDK: Presence and Data Operations
@@ -19,13 +20,13 @@ Implement presence tracking and shared data operations on top of the Python SDK 
 
 ## Tasks
 
-- [ ] Implement `presence.py` — `presence_set()`, presence tracking (dict of client_id → presence data), async iterator or callback for updates
-- [ ] Implement `data.py` — `save()` and `get()` with all ops (`replace`, `merge`, `set.add`/`set.remove`, `list.add`/`list.remove`, `counter.add`, `delete`)
-- [ ] Implement optimistic concurrency support (`expected_version`) with conflict error handling
-- [ ] Handle `data.changed` events for real-time data updates
-- [ ] Wire presence and data into `StarfishClient` facade
-- [ ] Write integration tests for presence updates
-- [ ] Write integration tests for data operations and conflict resolution
+- [x] Implement `presence.py` — `presence_set()`, presence tracking (dict of client_id → presence data), async iterator or callback for updates
+- [x] Implement `data.py` — `save()` and `get()` with all ops (`replace`, `merge`, `set.add`/`set.remove`, `list.add`/`list.remove`, `counter.add`, `delete`)
+- [x] Implement optimistic concurrency support (`expected_version`) with conflict error handling
+- [x] Handle `data.changed` events for real-time data updates
+- [x] Wire presence and data into `StarfishClient` facade
+- [x] Write integration tests for presence updates
+- [x] Write integration tests for data operations and conflict resolution
 
 ## Acceptance Criteria
 

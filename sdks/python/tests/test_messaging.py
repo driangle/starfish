@@ -7,7 +7,7 @@ import pytest
 from starfish.connection import Connection
 from starfish.messaging import Messaging
 from starfish.session import Session
-from starfish.types import StarfishClientOptions, StarfishFrame
+from starfish.types import StarfishClientOptions
 
 
 def make_connection() -> Connection:

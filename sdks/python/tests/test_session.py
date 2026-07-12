@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
 from starfish.connection import Connection
-from starfish.session import ClientInfo, JoinOptions, Session
+from starfish.session import JoinOptions, Session
 from starfish.types import StarfishClientOptions, StarfishFrame
 
 

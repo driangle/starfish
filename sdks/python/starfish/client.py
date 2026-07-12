@@ -5,10 +5,12 @@ from typing import Any, Callable
 
 from .clock import Clock
 from .connection import Connection
+from .data import Data, DataResult, SaveOptions
 from .emitter import EventStream, Observable, Unsubscribe
 from .events import Events
 from .heartbeat import Heartbeat
 from .messaging import Messaging
+from .presence import Presence
 from .session import ClientInfo, JoinOptions, Session
 from .topics import Topics
 from .types import (
@@ -29,6 +31,8 @@ class StarfishClient:
         self._session = Session(self._connection)
         self._topics = Topics(self._connection, self._session)
         self._messaging = Messaging(self._connection, self._session)
+        self._presence = Presence(self._connection, self._session)
+        self._data = Data(self._connection, self._session)
 
         self._connection.frames.subscribe(self._handle_frame)
         self._connection.state.subscribe(self._on_state_change)
@@ -42,6 +46,8 @@ class StarfishClient:
     def _handle_frame(self, frame: StarfishFrame) -> None:
         self._session.handle_frame(frame)
         self._topics.handle_frame(frame)
+        self._presence.handle_frame(frame)
+        self._data.handle_frame(frame)
         self._events.dispatch(frame)
 
     @property
@@ -106,6 +112,33 @@ class StarfishClient:
         self, payload: Any, *, include_self: bool = False, options: FrameOptions | None = None
     ) -> None:
         await self._messaging.broadcast(payload, include_self=include_self, options=options)
+
+    # --- Presence ---
+
+    @property
+    def presence(self) -> Observable[dict[Any, Any]]:
+        return self._presence.presence
+
+    def presence_set(self, payload: Any) -> None:
+        self._presence.set(payload)
+
+    async def presence_set_async(self, payload: Any) -> None:
+        await self._presence.set_async(payload)
+
+    # --- Data ---
+
+    @property
+    def data_changed(self) -> EventStream[DataResult]:
+        return self._data.changed
+
+    def data_key_stream(self, key: str) -> EventStream[DataResult]:
+        return self._data.key_stream(key)
+
+    async def save(self, options: SaveOptions) -> DataResult:
+        return await self._data.save(options)
+
+    async def get(self, key: str, scope: str = "session") -> DataResult:
+        return await self._data.get(key, scope)  # type: ignore[arg-type]
 
     # --- Events ---
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -115,9 +115,7 @@ class TestTopics:
         topics.topic_stream("updates").subscribe(lambda f: received.append(f))
 
         topics.handle_frame(
-            StarfishFrame(
-                v=1, id="m1", type="topic.message", topic="updates", payload={"v": 1}
-            )
+            StarfishFrame(v=1, id="m1", type="topic.message", topic="updates", payload={"v": 1})
         )
 
         assert len(received) == 1
@@ -130,8 +128,6 @@ class TestTopics:
         received = []
         topics.topic_stream("chat").subscribe(lambda f: received.append(f))
 
-        topics.handle_frame(
-            StarfishFrame(v=1, id="m1", type="client.connected", payload={})
-        )
+        topics.handle_frame(StarfishFrame(v=1, id="m1", type="client.connected", payload={}))
 
         assert len(received) == 0
