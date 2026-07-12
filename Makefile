@@ -1,11 +1,11 @@
-.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-sdk-typescript-integration check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk test-integration install-hooks lint lint-sdk-typescript lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang format format-check format-check-sdk-typescript format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang
+.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python check-sdk-python-lite check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk test-integration install-hooks lint lint-sdk-typescript lint-sdk-python lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang format format-sdk-python format-check format-check-sdk-typescript format-check-sdk-python format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
 # --- Check-lite (lint + compile only, no tests) ---
 
-check-lite: lint format-check check-golang-lite check-sdk-typescript-lite check-sdk-typescript-integration check-server-typescript-lite check-integration ## Lint, format-check, and compile all projects (no tests)
+check-lite: lint format-check check-golang-lite check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python-lite check-server-typescript-lite check-integration ## Lint, format-check, and compile all projects (no tests)
 
 check-golang-lite: ## Vet the Go server (no tests)
 	@echo "==> go vet (servers/golang)"
@@ -13,7 +13,7 @@ check-golang-lite: ## Vet the Go server (no tests)
 
 # --- Check (lint, compile, unit test — no servers needed) ---
 
-check: check-lite check-golang check-sdk-typescript check-server-typescript ## Run all lint, compile, and unit test checks
+check: check-lite check-golang check-sdk-typescript check-sdk-python check-server-typescript ## Run all lint, compile, and unit test checks
 
 check-golang: check-golang-lite ## Vet and unit-test the Go server
 	@echo "==> go test (servers/golang)"
@@ -28,6 +28,13 @@ check-sdk-typescript-integration: ## Type-check the TypeScript SDK integration t
 check-sdk-typescript: check-sdk-typescript-lite ## Type-check and unit-test the TypeScript SDK
 	@echo "==> vitest run (sdks/typescript)"
 	@cd sdks/typescript && npx vitest run
+
+check-sdk-python-lite: ## Lint the Python SDK (no tests)
+	@cd sdks/python && pip install -e ".[dev]" --quiet 2>/dev/null && echo "==> ruff check (sdks/python)" && ruff check starfish/ tests/
+
+check-sdk-python: check-sdk-python-lite ## Lint and unit-test the Python SDK
+	@echo "==> pytest (sdks/python)"
+	@cd sdks/python && pytest tests/
 
 check-server-typescript-lite: ## Type-check the TypeScript server (no tests)
 	@cd servers/typescript && npm install --silent 2>/dev/null && echo "==> tsc --noEmit (servers/typescript)" && npx tsc --noEmit
@@ -61,10 +68,13 @@ test-integration: test-golang test-typescript test-sdk ## Run all integration te
 
 # --- Lint (file-length rules) ---
 
-lint: lint-sdk-typescript lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang ## Run file-length linting across all projects
+lint: lint-sdk-typescript lint-sdk-python lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang ## Run file-length linting across all projects
 
 lint-sdk-typescript: ## Lint the TypeScript SDK
 	@cd sdks/typescript && npm install --silent 2>/dev/null && echo "==> eslint (sdks/typescript)" && npx eslint .
+
+lint-sdk-python: ## Lint the Python SDK
+	@cd sdks/python && echo "==> ruff check (sdks/python)" && ruff check starfish/ tests/
 
 lint-server-typescript: ## Lint the TypeScript server
 	@cd servers/typescript && npm install --silent 2>/dev/null && echo "==> eslint (servers/typescript)" && npx eslint .
@@ -84,7 +94,7 @@ lint-golang: ## Lint the Go server (file length)
 
 # --- Format (auto-fix) ---
 
-format: ## Auto-format all projects
+format: format-sdk-python ## Auto-format all projects
 	@echo "==> prettier --write (sdks/typescript)"
 	@cd sdks/typescript && npx prettier --write .
 	@echo "==> prettier --write (adapters/p5js)"
@@ -98,10 +108,16 @@ format: ## Auto-format all projects
 
 # --- Format check (CI-safe, no writes) ---
 
-format-check: format-check-sdk-typescript format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang ## Check formatting across all projects
+format-check: format-check-sdk-typescript format-check-sdk-python format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang ## Check formatting across all projects
+
+format-sdk-python: ## Format the Python SDK
+	@cd sdks/python && echo "==> ruff format (sdks/python)" && ruff format starfish/ tests/
 
 format-check-sdk-typescript: ## Check formatting for the TypeScript SDK
 	@cd sdks/typescript && npm install --silent 2>/dev/null && echo "==> prettier --check (sdks/typescript)" && npx prettier --check .
+
+format-check-sdk-python: ## Check formatting for the Python SDK
+	@cd sdks/python && echo "==> ruff format --check (sdks/python)" && ruff format --check starfish/ tests/
 
 format-check-adapters-p5js: ## Check formatting for the p5.js adapter
 	@cd adapters/p5js && npm install --silent 2>/dev/null && echo "==> prettier --check (adapters/p5js)" && npx prettier --check .
