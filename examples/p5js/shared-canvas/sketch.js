@@ -40,9 +40,6 @@ function setup() {
 }
 
 function draw() {
-  // update() is still needed for presence tracking, even if we don't render cursors here.
-  sf.update();
-
   // Connection indicator
   noStroke();
   fill(sf.connected ? "#0f0" : "#f00");

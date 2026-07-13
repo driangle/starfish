@@ -1,6 +1,6 @@
 # Multiplayer Cursors
 
-Every connected user sees all other users' cursors moving in real-time. Demonstrates presence tracking, peer rendering, and auto-cursor sync.
+Every connected user sees all other users' cursors moving in real-time. Demonstrates presence tracking and peer rendering.
 
 ## Running
 
@@ -35,7 +35,7 @@ Open `http://localhost:3000/cursors/` in two or more browser tabs. Move your mou
 
 - `starfishP5({ url, session, name, meta })` — create adapter
 - `sf.start()` — connect and join session
-- `sf.update()` — send cursor position (call in `draw()`)
-- `sf.eachPeer(fn)` — iterate peers with their position
+- `sf.setPresence(data)` — broadcast presence data (e.g. cursor position)
+- `sf.eachPeer(fn)` — iterate peers with their presence data
 - `sf.peers` — read connected peer list
 - `sf.connected` — check connection status

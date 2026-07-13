@@ -44,7 +44,7 @@ function setup() {
 }
 
 function draw() {
-  sf.update();
+  sf.setPresence({ x: mouseX, y: mouseY });
   background(0, 0, 10, 20);
 
   translate(width / 2, height / 2);
@@ -82,10 +82,10 @@ function drawPeers() {
   sf.eachPeer((peer) => {
     fill(0, 0, 80);
     noStroke();
-    ellipse(peer.x, peer.y, 8, 8);
+    ellipse(peer.presence.x, peer.presence.y, 8, 8);
     textSize(10);
     textAlign(CENTER);
-    text(peer.name ?? peer.id.slice(0, 6), peer.x, peer.y - 10);
+    text(peer.name ?? peer.id.slice(0, 6), peer.presence.x, peer.presence.y - 10);
   });
 }
 

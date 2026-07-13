@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { StarfishP5 } from "../starfish-p5.js";
-import { PresenceTracker } from "../presence-tracker.js";
 import { Observable, EventStream } from "@starfish/client";
 import type { StarfishFrame, DataResult } from "@starfish/client";
 
@@ -75,7 +74,12 @@ function createStarfishP5(mockClient: ReturnType<typeof createMockClient>) {
   );
   (sf as any).subscriptions.push(
     mockClient.presence$.subscribe((presenceMap: Map<string, any>) => {
-      (sf as any)._peers = PresenceTracker.toPeers(presenceMap, mockClient.clientId);
+      const peers: any[] = [];
+      for (const [id, data] of presenceMap) {
+        if (id === mockClient.clientId) continue;
+        peers.push({ id, name: data?.name, presence: data ?? {} });
+      }
+      (sf as any)._peers = peers;
     }),
   );
   (sf as any).subscriptions.push(
@@ -136,15 +140,15 @@ describe("StarfishP5", () => {
 
       mockClient.presence$.set(
         new Map([
-          ["test-client-id", { x: 0, y: 0 }],
+          ["test-client-id", { status: "idle" }],
           ["peer-1", { x: 100, y: 200, name: "Alice" }],
         ]),
       );
 
       expect(sf.peers).toHaveLength(1);
       expect(sf.peers[0].id).toBe("peer-1");
-      expect(sf.peers[0].x).toBe(100);
-      expect(sf.peers[0].y).toBe(200);
+      expect(sf.peers[0].name).toBe("Alice");
+      expect(sf.peers[0].presence).toEqual({ x: 100, y: 200, name: "Alice" });
     });
   });
 
@@ -154,8 +158,8 @@ describe("StarfishP5", () => {
 
       mockClient.presence$.set(
         new Map([
-          ["peer-1", { x: 10, y: 20 }],
-          ["peer-2", { x: 30, y: 40 }],
+          ["peer-1", { status: "active" }],
+          ["peer-2", { status: "idle" }],
         ]),
       );
 
@@ -163,6 +167,33 @@ describe("StarfishP5", () => {
       sf.eachPeer((peer) => ids.push(peer.id));
 
       expect(ids).toEqual(["peer-1", "peer-2"]);
+    });
+  });
+
+  describe("setPresence", () => {
+    it("broadcasts exactly what the user passes", async () => {
+      await sf.start();
+      sf.setPresence({ x: 10, y: 20, color: "red" });
+
+      expect(mockClient.presence.set).toHaveBeenCalledWith({ x: 10, y: 20, color: "red" });
+    });
+
+    it("throttles updates", async () => {
+      const throttled = new StarfishP5({
+        url: "ws://test",
+        session: "s",
+        presence: { throttleMs: 1000 },
+      });
+      (throttled as any).client = mockClient;
+      (throttled as any)._connected = true;
+
+      await throttled.start();
+      throttled.setPresence({ a: 1 });
+      throttled.setPresence({ a: 2 });
+      throttled.setPresence({ a: 3 });
+
+      expect(mockClient.presence.set).toHaveBeenCalledTimes(1);
+      expect(mockClient.presence.set).toHaveBeenCalledWith({ a: 1 });
     });
   });
 

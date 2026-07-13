@@ -1,9 +1,9 @@
 // Multiplayer Cursors
 // ------------------
-// Demonstrates: presence tracking, peer rendering, auto-cursor sync
+// Demonstrates: presence tracking, peer rendering
 //
 // Each connected user sees every other user's cursor in real-time.
-// Presence data (mouseX/mouseY) is sent automatically via sf.update().
+// Cursor position is sent explicitly via sf.setPresence() in draw().
 //
 // Open this page in multiple browser tabs to see it in action.
 
@@ -31,9 +31,9 @@ function setup() {
 function draw() {
   background(30);
 
-  // update() sends your cursor position to all peers at a throttled rate (default 50ms).
-  // Call it every frame in draw().
-  sf.update();
+  // setPresence() broadcasts your data to all peers at a throttled rate (default 50ms).
+  // Here we send cursor coordinates so other peers can render our cursor.
+  sf.setPresence({ x: mouseX, y: mouseY });
 
   // --- Draw your own cursor ---
   fill(255);
@@ -43,14 +43,13 @@ function draw() {
 
   // --- Draw each connected peer's cursor ---
   // eachPeer() iterates over all peers with their latest presence data.
-  // peer.x / peer.y come from auto-cursor tracking.
-  // peer.data contains the full presence payload (including meta fields).
+  // peer.presence contains exactly what each peer passed to setPresence().
   sf.eachPeer((peer) => {
-    const c = peer.data?.color ?? "#ff0";
+    const c = peer.presence?.color ?? "#ff0";
     fill(c);
     noStroke();
-    ellipse(peer.x, peer.y, 14, 14);
-    text(peer.name ?? peer.id.slice(0, 6), peer.x, peer.y - 18);
+    ellipse(peer.presence.x, peer.presence.y, 14, 14);
+    text(peer.name ?? peer.id.slice(0, 6), peer.presence.x, peer.presence.y - 18);
   });
 
   // --- Connection status HUD ---

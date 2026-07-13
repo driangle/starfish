@@ -5,13 +5,13 @@ import {
   type DataResult,
 } from "@starfish/client";
 import type { StarfishP5Options, PeerPresence } from "./types.js";
-import { PresenceTracker } from "./presence-tracker.js";
 import { hookRemove } from "./p5-lifecycle.js";
+
+const DEFAULT_THROTTLE_MS = 50;
 
 export class StarfishP5 {
   readonly client: StarfishClient;
   private readonly options: StarfishP5Options;
-  private tracker: PresenceTracker | null = null;
   private _peers: PeerPresence[] = [];
   private _connected = false;
   private subscriptions: Unsubscribe[] = [];
@@ -20,9 +20,13 @@ export class StarfishP5 {
     cb: (payload: any, from: string) => void;
   }> = [];
   private sharedCache = new Map<string, unknown>();
+  private lastPresenceTime = 0;
+  private readonly throttleMs: number;
 
   constructor(options: StarfishP5Options) {
     this.options = options;
+    this.throttleMs = options.presence?.throttleMs ?? DEFAULT_THROTTLE_MS;
+
     this.client = new StarfishClient({
       server: options.url,
       client: {
@@ -41,7 +45,7 @@ export class StarfishP5 {
 
     this.subscriptions.push(
       this.client.presence$.subscribe((presenceMap) => {
-        this._peers = PresenceTracker.toPeers(presenceMap, this.client.clientId);
+        this._peers = StarfishP5.toPeers(presenceMap, this.client.clientId);
       }),
     );
 
@@ -60,20 +64,10 @@ export class StarfishP5 {
     await this.client.connect();
     await this.client.join(this.options.session);
 
-    this.tracker = new PresenceTracker(
-      this.client.presence,
-      this.options.p5,
-      this.options.presence,
-    );
-
     for (const { topic, cb } of this.pendingSubscriptions) {
       await this.subscribeInternal(topic, cb);
     }
     this.pendingSubscriptions = [];
-  }
-
-  update(): void {
-    this.tracker?.update();
   }
 
   async stop(): Promise<void> {
@@ -81,7 +75,6 @@ export class StarfishP5 {
       unsub();
     }
     this.subscriptions = [];
-    this.tracker = null;
     await this.client.disconnect();
   }
 
@@ -104,7 +97,10 @@ export class StarfishP5 {
   }
 
   setPresence(data: Record<string, unknown>): void {
-    this.tracker?.setData(data);
+    const now = Date.now();
+    if (now - this.lastPresenceTime < this.throttleMs) return;
+    this.lastPresenceTime = now;
+    this.client.presence.set(data);
   }
 
   on(topic: string, cb: (payload: any, from: string) => void): void {
@@ -153,5 +149,18 @@ export class StarfishP5 {
 
   broadcast(payload: any): void {
     this.client.broadcast(payload);
+  }
+
+  private static toPeers(presenceMap: Map<string, any>, selfId: string | null): PeerPresence[] {
+    const peers: PeerPresence[] = [];
+    for (const [id, data] of presenceMap) {
+      if (id === selfId) continue;
+      peers.push({
+        id,
+        name: data?.name,
+        presence: data ?? {},
+      });
+    }
+    return peers;
   }
 }

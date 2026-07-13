@@ -43,4 +43,5 @@ Open `http://localhost:3000/generative-art/` in two or more browser tabs. Use th
 
 - `sf.setShared(key, data)` -- sync generative parameters to all peers
 - `sf.onShared(key, cb)` -- receive parameter changes from any peer
+- `sf.setPresence(data)` -- broadcast cursor position
 - `sf.eachPeer(fn)` -- overlay peer cursors on the artwork

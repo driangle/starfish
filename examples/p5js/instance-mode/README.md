@@ -33,6 +33,6 @@ Open `http://localhost:3000/instance-mode/`. Two canvases appear side by side, e
 
 ## Adapter API used
 
-- `starfishP5({ url, session, p5 })` — pass the p5 instance for correct mouse tracking
+- `starfishP5({ url, session, p5 })` — pass the p5 instance for cleanup hooks
 - Multiple independent adapter instances on one page
 - Instance mode pattern: `new p5((p) => { ... })` with `p5: p` option

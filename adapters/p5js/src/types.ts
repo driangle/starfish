@@ -1,13 +1,10 @@
 import type { ReconnectOptions } from "@starfish/client";
 
 export interface P5Instance {
-  mouseX: number;
-  mouseY: number;
   remove?: () => void;
 }
 
 export interface PresenceOptions {
-  autoTrackCursor?: boolean;
   throttleMs?: number;
 }
 
@@ -25,7 +22,5 @@ export interface StarfishP5Options {
 export interface PeerPresence {
   id: string;
   name?: string;
-  x: number;
-  y: number;
-  data: Record<string, unknown>;
+  presence: Record<string, unknown>;
 }

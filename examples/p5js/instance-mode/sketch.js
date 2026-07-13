@@ -2,9 +2,8 @@
 // -------------
 // Demonstrates: using starfishP5 with p5.js instance mode
 //
-// In instance mode, pass the p5 instance via the `p5` option so the adapter
-// reads mouseX/mouseY from the correct sketch. This allows multiple p5
-// sketches on the same page, each with their own Starfish connection.
+// This allows multiple p5 sketches on the same page, each with their own
+// Starfish connection. Cursor tracking is done explicitly via setPresence().
 //
 // This example creates two side-by-side canvases in the same session,
 // simulating two separate peers on one page.
@@ -17,7 +16,6 @@ const sketchA = (p) => {
     p.textAlign(p.CENTER, p.CENTER);
     p.textSize(12);
 
-    // Pass the p5 instance so presence tracking reads from this sketch's mouse
     sf = starfishP5({
       url: "ws://localhost:8080/starfish",
       session: "instance-demo",
@@ -31,7 +29,7 @@ const sketchA = (p) => {
 
   p.draw = () => {
     p.background(30);
-    sf.update();
+    sf.setPresence({ x: p.mouseX, y: p.mouseY });
 
     // Draw own cursor
     p.fill(255);
@@ -42,10 +40,10 @@ const sketchA = (p) => {
 
     // Draw peers (including the right canvas if connected)
     sf.eachPeer((peer) => {
-      p.fill(peer.data?.color ?? "#ff0");
+      p.fill(peer.presence?.color ?? "#ff0");
       p.noStroke();
-      p.ellipse(peer.x, peer.y, 12, 12);
-      p.text(peer.name ?? peer.id.slice(0, 6), peer.x, peer.y - 16);
+      p.ellipse(peer.presence.x, peer.presence.y, 12, 12);
+      p.text(peer.name ?? peer.id.slice(0, 6), peer.presence.x, peer.presence.y - 16);
     });
 
     // HUD
@@ -80,7 +78,7 @@ const sketchB = (p) => {
 
   p.draw = () => {
     p.background(20, 20, 40);
-    sf.update();
+    sf.setPresence({ x: p.mouseX, y: p.mouseY });
 
     p.fill(255);
     p.noStroke();
@@ -89,10 +87,10 @@ const sketchB = (p) => {
     p.text("You (right)", p.mouseX, p.mouseY - 16);
 
     sf.eachPeer((peer) => {
-      p.fill(peer.data?.color ?? "#ff0");
+      p.fill(peer.presence?.color ?? "#ff0");
       p.noStroke();
-      p.ellipse(peer.x, peer.y, 12, 12);
-      p.text(peer.name ?? peer.id.slice(0, 6), peer.x, peer.y - 16);
+      p.ellipse(peer.presence.x, peer.presence.y, 12, 12);
+      p.text(peer.name ?? peer.id.slice(0, 6), peer.presence.x, peer.presence.y - 16);
     });
 
     p.fill(sf.connected ? "#0f0" : "#f00");

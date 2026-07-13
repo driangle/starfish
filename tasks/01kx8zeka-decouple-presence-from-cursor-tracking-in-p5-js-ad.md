@@ -1,12 +1,13 @@
 ---
 title: "Decouple presence from cursor tracking in p5.js adapter"
 id: "01kx8zeka"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["adapter", "p5js", "refactor"]
 created_at: "2026-07-11"
 phase: v0.1
+completed_at: 2026-07-12
 ---
 
 # Decouple presence from cursor tracking in p5.js adapter
@@ -17,14 +18,14 @@ Make presence in the p5.js adapter generic, matching the approach used in the Th
 
 ## Tasks
 
-- [ ] Remove `autoTrackCursor` logic from `PresenceTracker` — presence should only broadcast what the user explicitly sets
-- [ ] Make `setPresence(data)` accept arbitrary `Record<string, unknown>` without merging cursor position
-- [ ] Remove `x`/`y` fields from `PeerPresence` type — replace with generic `presence: Record<string, unknown>`
-- [ ] Remove `getMousePosition` and cursor-related code from `p5-lifecycle.ts`
-- [ ] Simplify or remove `PresenceTracker` if it only handles throttling (inline throttle into `StarfishP5`)
-- [ ] Remove `update()` method if it no longer serves a purpose (cursor polling was its only job)
-- [ ] Update tests to reflect the new generic presence API
-- [ ] Ensure the `P5Instance` type no longer requires `mouseX`/`mouseY`
+- [x] Remove `autoTrackCursor` logic from `PresenceTracker` — presence should only broadcast what the user explicitly sets
+- [x] Make `setPresence(data)` accept arbitrary `Record<string, unknown>` without merging cursor position
+- [x] Remove `x`/`y` fields from `PeerPresence` type — replace with generic `presence: Record<string, unknown>`
+- [x] Remove `getMousePosition` and cursor-related code from `p5-lifecycle.ts`
+- [x] Simplify or remove `PresenceTracker` if it only handles throttling (inline throttle into `StarfishP5`)
+- [x] Remove `update()` method if it no longer serves a purpose (cursor polling was its only job)
+- [x] Update tests to reflect the new generic presence API
+- [x] Ensure the `P5Instance` type no longer requires `mouseX`/`mouseY`
 
 ## Acceptance Criteria
 
