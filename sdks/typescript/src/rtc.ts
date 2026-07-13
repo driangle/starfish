@@ -4,6 +4,7 @@ import type { Session } from "./session.js";
 import { nextId } from "./id.js";
 import { Observable, EventStream } from "./emitter.js";
 import { MAX_RTC_CONTROL_SIZE, validatePayloadSize } from "./limits.js";
+import { validateSerializable } from "./validate.js";
 import {
   CHANNEL_CONFIGS,
   CHANNEL_SIZE_LIMITS,
@@ -123,6 +124,7 @@ export class RTC {
       throw new Error(`DataChannel ${channel} not open for peer: ${peerId}`);
     }
 
+    validateSerializable(frame, "RTC frame");
     const json = JSON.stringify(frame);
     const limit = CHANNEL_SIZE_LIMITS[channel] ?? MAX_RTC_CONTROL_SIZE;
     validatePayloadSize(json, limit, `RTC ${channel} payload`);
@@ -157,11 +159,9 @@ export class RTC {
   getPeerState(peerId: string): RTCPeerState | null {
     return this.peers.get(peerId)?.state ?? null;
   }
-
   hasPeer(peerId: string): boolean {
     return this.peers.has(peerId);
   }
-
   isPeerConnected(peerId: string): boolean {
     return this.peers.get(peerId)?.state === "connected";
   }

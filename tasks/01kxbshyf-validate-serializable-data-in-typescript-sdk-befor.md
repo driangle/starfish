@@ -1,11 +1,12 @@
 ---
 title: "Validate serializable data in TypeScript SDK before JSON.stringify"
 id: "01kxbshyf"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["sdk", "typescript", "validation"]
 created_at: "2026-07-12"
+completed_at: 2026-07-13
 ---
 
 # Validate serializable data in TypeScript SDK before JSON.stringify
@@ -23,13 +24,13 @@ Add validation to the TypeScript SDK to detect non-JSON-serializable values (fun
 
 ## Tasks
 
-- [ ] Create a `validateSerializable(value, label)` utility that walks the value and throws a descriptive `StarfishError` if it encounters a non-serializable type (function, undefined, Symbol, BigInt, circular ref)
-- [ ] Call the validator in `Data.save()` before stringifying `options.data`
-- [ ] Call the validator in `Presence.set()` before stringifying the payload
-- [ ] Call the validator in `Connection.send()` or at each callsite (`publish`, `send`, `broadcast`) — choose the narrowest choke point
-- [ ] Call the validator in `RTC.send()` before stringifying the frame
-- [ ] Add unit tests covering: functions, undefined values, Symbols, BigInt, circular objects, and nested non-serializable values
-- [ ] Ensure error messages include the key path to the offending value (e.g. `"data.callback is a function and cannot be serialized"`)
+- [x] Create a `validateSerializable(value, label)` utility that walks the value and throws a descriptive `StarfishError` if it encounters a non-serializable type (function, undefined, Symbol, BigInt, circular ref)
+- [x] Call the validator in `Data.save()` before stringifying `options.data`
+- [x] Call the validator in `Presence.set()` before stringifying the payload
+- [x] Call the validator in `Connection.send()` or at each callsite (`publish`, `send`, `broadcast`) — choose the narrowest choke point
+- [x] Call the validator in `RTC.send()` before stringifying the frame
+- [x] Add unit tests covering: functions, undefined values, Symbols, BigInt, circular objects, and nested non-serializable values
+- [x] Ensure error messages include the key path to the offending value (e.g. `"data.callback is a function and cannot be serialized"`)
 
 ## Acceptance Criteria
 

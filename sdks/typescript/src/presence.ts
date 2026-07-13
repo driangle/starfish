@@ -4,6 +4,7 @@ import type { Session } from "./session.js";
 import { nextId } from "./id.js";
 import { Observable } from "./emitter.js";
 import { MAX_PRESENCE_SIZE, validatePayloadSize } from "./limits.js";
+import { validateSerializable } from "./validate.js";
 
 export class Presence {
   private connection: Connection;
@@ -19,6 +20,7 @@ export class Presence {
 
   set(payload: any): void {
     const sessionName = this.requireSession();
+    validateSerializable(payload, "Presence payload");
     const json = JSON.stringify(payload);
     validatePayloadSize(json, MAX_PRESENCE_SIZE, "Presence payload");
 

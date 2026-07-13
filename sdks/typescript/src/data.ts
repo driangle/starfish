@@ -4,6 +4,7 @@ import type { Session } from "./session.js";
 import { nextId } from "./id.js";
 import { EventStream } from "./emitter.js";
 import { MAX_DATA_VALUE_SIZE, validatePayloadSize } from "./limits.js";
+import { validateSerializable } from "./validate.js";
 
 export class Data {
   private connection: Connection;
@@ -47,6 +48,7 @@ export class Data {
     const sessionName = this.requireSession();
 
     if (options.data !== undefined) {
+      validateSerializable(options.data, "Data value");
       const json = JSON.stringify(options.data);
       validatePayloadSize(json, MAX_DATA_VALUE_SIZE, "Data value");
     }

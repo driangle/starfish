@@ -7,6 +7,7 @@ import type {
 import { nextId, resetIdCounter } from "./id.js";
 import { Observable, EventStream } from "./emitter.js";
 import { PendingRequests } from "./pending.js";
+import { validateSerializable } from "./validate.js";
 
 const DEFAULT_REQUEST_TIMEOUT = 10_000;
 
@@ -96,6 +97,7 @@ export class Connection {
     if (!this.ws || this.ws.readyState !== 1) {
       throw new Error("Not connected");
     }
+    validateSerializable(frame, "Frame");
     this.ws.send(JSON.stringify(frame));
   }
 
