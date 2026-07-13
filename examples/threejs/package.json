@@ -1,0 +1,14 @@
+{
+  "name": "@starfish/examples-threejs",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Example Three.js scenes using the Starfish adapter",
+  "type": "module",
+  "scripts": {
+    "build": "cp ../../adapters/threejs/dist/starfish-three.global.js ./starfish-three.global.js",
+    "serve": "npm run build && npx serve ."
+  },
+  "dependencies": {
+    "@starfish/three": "file:../../adapters/threejs"
+  }
+}

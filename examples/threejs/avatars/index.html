@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Starfish — 3D Avatar Sync</title>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  </script>
+  <script src="../starfish-three.global.js"></script>
+  <script type="module" src="scene.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #111; }
+    #hud {
+      position: fixed; top: 12px; left: 12px;
+      color: #ccc; font: 14px/1.4 monospace;
+      pointer-events: none; user-select: none;
+    }
+    #hud .dot {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 50%; margin-right: 6px; vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-text">connecting...</span>
+  </div>
+</body>
+</html>
