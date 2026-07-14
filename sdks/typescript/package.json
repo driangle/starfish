@@ -1,7 +1,21 @@
 {
-  "name": "@starfish/client",
+  "name": "@driangle/starfish-client",
   "version": "0.0.1",
   "description": "TypeScript client SDK for the Starfish realtime protocol",
+  "license": "MIT",
+  "author": "Starfish Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/driangle/starfish",
+    "directory": "sdks/typescript"
+  },
+  "keywords": [
+    "starfish",
+    "realtime",
+    "websockets",
+    "collaborative",
+    "protocol"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
