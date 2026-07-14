@@ -1,7 +1,7 @@
 ---
 title: "Publish Three.js adapter to npm"
 id: "01kxaf03e"
-status: pending
+status: in-progress
 priority: medium
 type: chore
 tags: ["publish", "adapter", "threejs"]
@@ -18,13 +18,13 @@ Publish the Three.js adapter (`adapters/threejs`) to npm so users can `npm insta
 
 ## Tasks
 
-- [ ] Verify `package.json` has correct name, version, description, and repository fields
-- [ ] Ensure build output is correct and entry points are configured
-- [ ] Add a LICENSE file if not present
-- [ ] Configure `.npmignore` or `files` field to exclude test/dev files
+- [x] Verify `package.json` has correct name, version, description, and repository fields
+- [x] Ensure build output is correct and entry points are configured
+- [x] Add a LICENSE file if not present
+- [x] Configure `.npmignore` or `files` field to exclude test/dev files
 - [ ] Publish to npm (`npm publish`)
 - [ ] Verify installation works via `npm install`
-- [ ] Add installation instructions to the adapter README
+- [x] Add installation instructions to the adapter README
 
 ## Acceptance Criteria
 

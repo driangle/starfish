@@ -3,7 +3,7 @@ import {
   type StarfishFrame,
   type Unsubscribe,
   type DataResult,
-} from "@starfish/client";
+} from "@driangle/starfish-client";
 import type { StarfishThreeOptions, Peer } from "./types.js";
 import { PeerManager } from "./peer-manager.js";
 

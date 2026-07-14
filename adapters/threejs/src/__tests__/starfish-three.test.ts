@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { StarfishThree } from "../starfish-three.js";
-import { Observable, EventStream } from "@starfish/client";
-import type { StarfishFrame, DataResult } from "@starfish/client";
+import { Observable, EventStream } from "@driangle/starfish-client";
+import type { StarfishFrame, DataResult } from "@driangle/starfish-client";
 
 function createMockClient() {
   const connection$ = new Observable<string>("disconnected");

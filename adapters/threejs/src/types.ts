@@ -1,4 +1,4 @@
-import type { ReconnectOptions } from "@starfish/client";
+import type { ReconnectOptions } from "@driangle/starfish-client";
 
 export interface Peer {
   id: string;
