@@ -20,8 +20,8 @@ Set up the Go server (`servers/golang`) for public distribution via pkg.go.dev s
 
 - [x] Ensure `go.mod` is properly configured with the correct module path
 - [x] Add a LICENSE file if not present
-- [ ] Tag a release version (e.g. `servers/golang/v0.1.0`)
-- [ ] Verify the module appears on pkg.go.dev after tagging
+- [x] Tag a release version (e.g. `servers/golang/v0.1.0`)
+- [ ] Verify the module appears on pkg.go.dev after tagging (blocked: repo is currently private)
 - [x] Add installation/usage instructions to the server README
 
 ## Acceptance Criteria
