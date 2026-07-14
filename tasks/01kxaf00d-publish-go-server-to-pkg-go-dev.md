@@ -1,13 +1,14 @@
 ---
 title: "Publish Go server to pkg.go.dev"
 id: "01kxaf00d"
-status: in-progress
+status: completed
 priority: medium
 type: chore
 tags: ["publish", "server", "golang"]
 phase: v0.1
 created_at: "2026-07-12"
 dependencies: [01kwyst5m, 01kxgg8s0]
+completed_at: 2026-07-14
 ---
 
 # Publish Go server to pkg.go.dev
@@ -21,7 +22,7 @@ Set up the Go server (`servers/golang`) for public distribution via pkg.go.dev s
 - [x] Ensure `go.mod` is properly configured with the correct module path
 - [x] Add a LICENSE file if not present
 - [x] Tag a release version (e.g. `servers/golang/v0.1.0`)
-- [ ] Verify the module appears on pkg.go.dev after tagging (blocked: repo is currently private)
+- [x] Verify the module appears on pkg.go.dev after tagging
 - [x] Add installation/usage instructions to the server README
 
 ## Acceptance Criteria
