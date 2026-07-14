@@ -1,11 +1,12 @@
 ---
 title: "Add basic README to each relevant folder in the project"
 id: "01kxaeh3a"
-status: pending
+status: completed
 priority: low
 type: chore
 tags: ["documentation"]
 created_at: "2026-07-12"
+completed_at: 2026-07-14
 ---
 
 # Add basic README to each relevant folder in the project
@@ -16,14 +17,14 @@ Add a basic README.md to the top-level project directory and each relevant subfo
 
 ## Tasks
 
-- [ ] Add top-level `README.md` with project overview, structure, and quickstart
-- [ ] Add `adapters/README.md` describing available adapters and their purpose
-- [ ] Add `protocol/README.md` explaining the Starfish protocol
-- [ ] Add `sdks/README.md` listing available SDKs and linking to each
-- [ ] Add `servers/README.md` describing server implementations
-- [ ] Add `examples/README.md` with an overview of example projects
-- [ ] Add `scripts/README.md` describing available utility scripts
-- [ ] Add `tests/README.md` explaining test organization and how to run them
+- [x] Add top-level `README.md` with project overview, structure, and quickstart
+- [x] Add `adapters/README.md` describing available adapters and their purpose
+- [x] Add `protocol/README.md` explaining the Starfish protocol
+- [x] Add `sdks/README.md` listing available SDKs and linking to each
+- [x] Add `servers/README.md` describing server implementations
+- [x] Add `examples/README.md` with an overview of example projects
+- [x] Add `scripts/README.md` describing available utility scripts
+- [x] Add `tests/README.md` explaining test organization and how to run them
 
 ## Acceptance Criteria
 
