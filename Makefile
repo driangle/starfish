@@ -90,7 +90,7 @@ lint-sdk-typescript: ## Lint the TypeScript SDK
 	@cd sdks/typescript && npm install --silent 2>/dev/null && echo "==> eslint (sdks/typescript)" && npx eslint .
 
 lint-sdk-python: ## Lint the Python SDK
-	@cd sdks/python && echo "==> ruff check (sdks/python)" && ruff check starfish/ tests/
+	@cd sdks/python && pip install -e ".[dev]" --quiet 2>/dev/null && echo "==> ruff check (sdks/python)" && ruff check starfish/ tests/
 
 lint-server-typescript: ## Lint the TypeScript server
 	@cd servers/typescript && npm install --silent 2>/dev/null && echo "==> eslint (servers/typescript)" && npx eslint .
@@ -127,13 +127,13 @@ format: format-sdk-python ## Auto-format all projects
 format-check: format-check-sdk-typescript format-check-sdk-python format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang ## Check formatting across all projects
 
 format-sdk-python: ## Format the Python SDK
-	@cd sdks/python && echo "==> ruff format (sdks/python)" && ruff format starfish/ tests/
+	@cd sdks/python && pip install -e ".[dev]" --quiet 2>/dev/null && echo "==> ruff format (sdks/python)" && ruff format starfish/ tests/
 
 format-check-sdk-typescript: ## Check formatting for the TypeScript SDK
 	@cd sdks/typescript && npm install --silent 2>/dev/null && echo "==> prettier --check (sdks/typescript)" && npx prettier --check .
 
 format-check-sdk-python: ## Check formatting for the Python SDK
-	@cd sdks/python && echo "==> ruff format --check (sdks/python)" && ruff format --check starfish/ tests/
+	@cd sdks/python && pip install -e ".[dev]" --quiet 2>/dev/null && echo "==> ruff format --check (sdks/python)" && ruff format --check starfish/ tests/
 
 format-check-adapters-p5js: ## Check formatting for the p5.js adapter
 	@cd adapters/p5js && npm install --silent 2>/dev/null && echo "==> prettier --check (adapters/p5js)" && npx prettier --check .
