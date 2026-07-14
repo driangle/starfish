@@ -1,7 +1,7 @@
 ---
 title: "Publish TypeScript SDK to npm"
 id: "01kxaezzb"
-status: pending
+status: in-progress
 priority: medium
 type: chore
 tags: ["publish", "sdk", "typescript"]
