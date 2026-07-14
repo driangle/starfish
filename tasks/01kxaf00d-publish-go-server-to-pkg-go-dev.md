@@ -7,7 +7,7 @@ type: chore
 tags: ["publish", "server", "golang"]
 phase: v0.1
 created_at: "2026-07-12"
-dependencies: [01kwyst5m]
+dependencies: [01kwyst5m, 01kxgg8s0]
 ---
 
 # Publish Go server to pkg.go.dev

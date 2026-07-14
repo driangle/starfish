@@ -7,7 +7,7 @@ type: chore
 tags: ["publish", "server", "typescript"]
 phase: v0.1
 created_at: "2026-07-12"
-dependencies: [01kwyst4k]
+dependencies: [01kwyst4k, 01kxgg8s0]
 ---
 
 # Publish TypeScript server to npm

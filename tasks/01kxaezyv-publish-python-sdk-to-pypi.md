@@ -7,7 +7,7 @@ type: chore
 tags: ["publish", "sdk", "python"]
 phase: v0.1
 created_at: "2026-07-12"
-dependencies: [01kwyst2r]
+dependencies: [01kwyst2r, 01kxgg8s0]
 ---
 
 # Publish Python SDK to PyPI

@@ -7,7 +7,7 @@ type: chore
 tags: ["publish", "adapter", "p5js"]
 phase: v0.1
 created_at: "2026-07-12"
-dependencies: [01kwyst6q]
+dependencies: [01kwyst6q, 01kxgg8s0]
 ---
 
 # Publish p5.js adapter to npm
