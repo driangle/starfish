@@ -40,15 +40,6 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
-      # Build SDK first — adapter depends on it
-      - name: Install SDK
-        run: npm ci
-        working-directory: sdks/typescript
-
-      - name: Build SDK
-        run: npm run build
-        working-directory: sdks/typescript
-
       - name: Install
         run: npm ci
         working-directory: adapters/threejs

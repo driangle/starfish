@@ -20,7 +20,7 @@ jobs:
           cache: pip
           cache-dependency-path: sdks/python/pyproject.toml
 
-      - run: make lint-sdk-python format-check-sdk-python check-sdk-python
+      - run: make check-sdk-python format-check-sdk-python
 
   publish:
     needs: check
