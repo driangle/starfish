@@ -1,6 +1,7 @@
 import { defineConfig } from "vitepress";
 
 export default defineConfig({
+  base: "/starfish/",
   title: "Starfish",
   description:
     "Transport-neutral realtime protocol for creative coding",
