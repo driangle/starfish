@@ -48,6 +48,41 @@ export default defineConfig({
             { text: "Overview", link: "/cookbook/" },
           ],
         },
+        {
+          text: "Getting Connected",
+          items: [
+            { text: "Automatic Reconnection", link: "/cookbook/auto-reconnect" },
+            { text: "Connection State Changes", link: "/cookbook/connection-state" },
+          ],
+        },
+        {
+          text: "Sessions & Presence",
+          items: [
+            { text: "Track Who's Online", link: "/cookbook/presence" },
+          ],
+        },
+        {
+          text: "Messaging",
+          items: [
+            { text: "Publish/Subscribe", link: "/cookbook/pub-sub" },
+            { text: "Reliable vs Unreliable", link: "/cookbook/reliable-vs-unreliable" },
+            { text: "Targeted Messaging", link: "/cookbook/targeted-messaging" },
+            { text: "Request/Reply Pattern", link: "/cookbook/request-reply" },
+          ],
+        },
+        {
+          text: "Data & State",
+          items: [
+            { text: "Shared State", link: "/cookbook/shared-state" },
+          ],
+        },
+        {
+          text: "Advanced",
+          items: [
+            { text: "Event Filtering", link: "/cookbook/event-filtering" },
+            { text: "WebRTC Data Channels", link: "/cookbook/webrtc-data-channels" },
+          ],
+        },
       ],
       "/reference/": [
         {
