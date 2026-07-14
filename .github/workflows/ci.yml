@@ -10,7 +10,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      sdk-typescript: ${{ steps.filter.outputs.sdk-typescript }}
+      sdk-python: ${{ steps.filter.outputs.sdk-python }}
+      server-golang: ${{ steps.filter.outputs.server-golang }}
+      server-typescript: ${{ steps.filter.outputs.server-typescript }}
+      adapter-p5js: ${{ steps.filter.outputs.adapter-p5js }}
+      adapter-threejs: ${{ steps.filter.outputs.adapter-threejs }}
+      integration: ${{ steps.filter.outputs.integration }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            sdk-typescript:
+              - 'sdks/typescript/**'
+            sdk-python:
+              - 'sdks/python/**'
+            server-golang:
+              - 'servers/golang/**'
+            server-typescript:
+              - 'servers/typescript/**'
+            adapter-p5js:
+              - 'adapters/p5js/**'
+            adapter-threejs:
+              - 'adapters/threejs/**'
+            integration:
+              - 'tests/integration/**'
+
+  check-sdk-typescript:
+    needs: changes
+    if: needs.changes.outputs.sdk-typescript == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,17 +53,16 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: |
-            sdks/typescript/package-lock.json
-            servers/typescript/package-lock.json
-            adapters/p5js/package-lock.json
-            tests/integration/package-lock.json
-            examples/typescript/package-lock.json
+          cache-dependency-path: sdks/typescript/package-lock.json
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.26"
-          cache-dependency-path: servers/golang/go.sum
+      - run: make lint-sdk-typescript format-check-sdk-typescript check-sdk-typescript
+
+  check-sdk-python:
+    needs: changes
+    if: needs.changes.outputs.sdk-python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
@@ -37,4 +70,84 @@ jobs:
           cache: pip
           cache-dependency-path: sdks/python/pyproject.toml
 
-      - run: make check
+      - run: make check-sdk-python format-check-sdk-python
+
+  check-server-golang:
+    needs: changes
+    if: needs.changes.outputs.server-golang == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: servers/golang/go.sum
+
+      - run: make lint-golang format-check-golang check-golang
+
+  check-server-typescript:
+    needs: changes
+    if: needs.changes.outputs.server-typescript == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: servers/typescript/package-lock.json
+
+      - run: make lint-server-typescript check-server-typescript
+
+  check-adapter-p5js:
+    needs: changes
+    if: needs.changes.outputs.adapter-p5js == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: adapters/p5js/package-lock.json
+
+      - run: make lint-adapters-p5js format-check-adapters-p5js
+
+  check-adapter-threejs:
+    needs: changes
+    if: needs.changes.outputs.adapter-threejs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: adapters/threejs/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: adapters/threejs
+
+      - name: Type-check
+        run: npx tsc --noEmit
+        working-directory: adapters/threejs
+
+  check-integration:
+    needs: changes
+    if: needs.changes.outputs.integration == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tests/integration/package-lock.json
+
+      - run: make lint-integration check-integration
