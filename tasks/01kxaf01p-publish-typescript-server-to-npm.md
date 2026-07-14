@@ -1,7 +1,7 @@
 ---
 title: "Publish TypeScript server to npm"
 id: "01kxaf01p"
-status: pending
+status: in-progress
 priority: medium
 type: chore
 tags: ["publish", "server", "typescript"]
@@ -18,13 +18,13 @@ Publish the TypeScript server (`servers/typescript`) to npm so users can install
 
 ## Tasks
 
-- [ ] Verify `package.json` has correct name, version, description, repository, and bin fields
-- [ ] Ensure build output is correct and entry points are configured
-- [ ] Add a LICENSE file if not present
-- [ ] Configure `.npmignore` or `files` field to exclude test/dev files
-- [ ] Publish to npm (`npm publish`)
+- [x] Verify `package.json` has correct name, version, description, repository, and bin fields
+- [x] Ensure build output is correct and entry points are configured
+- [x] Add a LICENSE file if not present
+- [x] Configure `.npmignore` or `files` field to exclude test/dev files
+- [x] Publish to npm (`npm publish`)
 - [ ] Verify installation and startup works via `npm install`
-- [ ] Add installation/usage instructions to the server README
+- [x] Add installation/usage instructions to the server README
 
 ## Acceptance Criteria
 

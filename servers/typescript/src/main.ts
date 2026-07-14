@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Hub } from "./hub.js";
 import { defaultConfig } from "./config.js";
 
