@@ -1,12 +1,13 @@
 ---
 id: "01kxgfzte"
 title: "Add GitHub Actions CI check workflow"
-status: pending
+status: completed
 priority: high
 phase: v0.1
 dependencies: []
 tags: ["ci", "github-actions"]
 created_at: 2026-07-14
+completed_at: 2026-07-14
 ---
 
 # Add GitHub Actions CI check workflow
@@ -17,11 +18,11 @@ Create a `.github/workflows/ci.yml` workflow that runs the project's existing `m
 
 ## Tasks
 
-- [ ] Create `.github/workflows/ci.yml`
-- [ ] Trigger on pull_request and push to dev/main branches
-- [ ] Set up Node.js 20, Python 3.10+, Go 1.26, and Swift toolchain
-- [ ] Run `make check` which covers all packages (TS SDK, TS server, Python SDK, Go server, Swift SDK, adapters, integration type-checks)
-- [ ] Cache npm, pip, and Go module dependencies for faster runs
+- [x] Create `.github/workflows/ci.yml`
+- [x] Trigger on pull_request and push to dev/main branches
+- [x] Set up Node.js 20, Python 3.10+, Go 1.26, and Swift toolchain
+- [x] Run `make check` which covers all packages (TS SDK, TS server, Python SDK, Go server, Swift SDK, adapters, integration type-checks)
+- [x] Cache npm, pip, and Go module dependencies for faster runs
 
 ## Acceptance Criteria
 
