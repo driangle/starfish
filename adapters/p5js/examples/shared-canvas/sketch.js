@@ -29,8 +29,6 @@ function setup() {
 }
 
 function draw() {
-  sf.update();
-
   // Connection indicator
   noStroke();
   fill(sf.connected ? "#0f0" : "#f00");

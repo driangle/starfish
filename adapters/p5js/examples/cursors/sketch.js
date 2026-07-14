@@ -20,7 +20,9 @@ function setup() {
 
 function draw() {
   background(30);
-  sf.update();
+
+  // Broadcast own cursor position
+  sf.setPresence({ x: mouseX, y: mouseY });
 
   // Draw own cursor
   fill(255);
@@ -30,10 +32,10 @@ function draw() {
 
   // Draw each peer's cursor
   sf.eachPeer((peer) => {
-    fill(peer.data?.color ?? "#ff0");
+    fill(peer.presence?.color ?? "#ff0");
     noStroke();
-    ellipse(peer.x, peer.y, 12, 12);
-    text(peer.name ?? peer.id.slice(0, 6), peer.x, peer.y - 16);
+    ellipse(peer.presence.x, peer.presence.y, 12, 12);
+    text(peer.name ?? peer.id.slice(0, 6), peer.presence.x, peer.presence.y - 16);
   });
 
   // Connection status
