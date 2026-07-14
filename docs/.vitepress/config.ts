@@ -16,9 +16,28 @@ export default defineConfig({
     sidebar: {
       "/guide/": [
         {
-          text: "Guide",
+          text: "Getting Started",
           items: [
             { text: "Introduction", link: "/guide/" },
+            { text: "Installation", link: "/guide/installation" },
+            { text: "Quick Start", link: "/guide/quick-start" },
+          ],
+        },
+        {
+          text: "Essentials",
+          items: [
+            { text: "Core Concepts", link: "/guide/core-concepts" },
+            { text: "Configuration", link: "/guide/configuration" },
+            { text: "API Overview", link: "/guide/api-overview" },
+          ],
+        },
+        {
+          text: "In Depth",
+          items: [
+            { text: "Architecture", link: "/guide/architecture" },
+            { text: "Common Workflows", link: "/guide/workflows" },
+            { text: "Best Practices", link: "/guide/best-practices" },
+            { text: "Troubleshooting", link: "/guide/troubleshooting" },
           ],
         },
       ],
