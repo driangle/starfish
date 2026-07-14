@@ -7,7 +7,7 @@ effort: medium
 dependencies: ["01kwyst3n", "01kwyst5m"]
 tags: ["sdk", "go", "testing", "integration"]
 created_at: 2026-07-09
-phase: v0.1
+phase: v0.2
 ---
 
 # Integration tests: Go SDK × Go server

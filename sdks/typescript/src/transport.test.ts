@@ -70,7 +70,7 @@ describe("selectTransport", () => {
       try {
         selectTransport(frame({ to: "alice" }), delivery, rtc);
       } catch (e: any) {
-        expect(e.code).toBe("transport.unavailable");
+        expect(e.code).toBe("TRANSPORT_UNAVAILABLE");
       }
     });
 

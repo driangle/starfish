@@ -6,7 +6,7 @@ priority: medium
 dependencies: ["01kwyst3n"]
 tags: ["sdk", "go", "examples"]
 created_at: 2026-07-08
-phase: v0.1
+phase: v0.2
 ---
 
 # Create Go SDK example project

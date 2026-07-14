@@ -85,5 +85,12 @@ export function createMockConnection(): Connection & {
 }
 
 export function createMockSession(current: string | null = "test-session"): Session {
-  return { current, clientId: "client_self" } as any;
+  return {
+    current,
+    clientId: "client_self",
+    require: () => {
+      if (!current) throw new Error("Not in a session. Call join() first.");
+      return current;
+    },
+  } as any;
 }

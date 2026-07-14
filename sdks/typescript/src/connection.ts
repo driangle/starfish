@@ -1,8 +1,9 @@
-import type {
-  StarfishFrame,
-  StarfishClientOptions,
-  WebSocketLike,
-  ConnectionState,
+import {
+  StarfishError,
+  type StarfishFrame,
+  type StarfishClientOptions,
+  type WebSocketLike,
+  type ConnectionState,
 } from "./types.js";
 import { nextId, resetIdCounter } from "./id.js";
 import { Observable, EventStream } from "./emitter.js";
@@ -59,7 +60,7 @@ export class Connection {
       this.ws.onerror = (ev: any) => {
         if (this.state$.value === "connecting") {
           this.state$.set("disconnected");
-          reject(new Error("WebSocket connection failed"));
+          reject(new StarfishError("CONNECTION_FAILED", "WebSocket connection failed"));
         }
       };
 
@@ -80,7 +81,7 @@ export class Connection {
   async disconnect(): Promise<void> {
     this.intentionalClose = true;
     this.cancelReconnect();
-    this.pending.rejectAll(new Error("Client disconnected"));
+    this.pending.rejectAll(new StarfishError("DISCONNECTED", "Client disconnected"));
 
     if (this.ws) {
       this.ws.onclose = null;
@@ -95,7 +96,7 @@ export class Connection {
 
   send(frame: StarfishFrame): void {
     if (!this.ws || this.ws.readyState !== 1) {
-      throw new Error("Not connected");
+      throw new StarfishError("NOT_CONNECTED", "Not connected");
     }
     validateSerializable(frame, "Frame");
     this.ws.send(JSON.stringify(frame));
@@ -114,7 +115,10 @@ export class Connection {
 
     const WS = typeof globalThis !== "undefined" ? (globalThis as any).WebSocket : undefined;
     if (!WS) {
-      throw new Error("No WebSocket implementation available. Provide one via options.ws.");
+      throw new StarfishError(
+        "NO_WEBSOCKET",
+        "No WebSocket implementation available. Provide one via options.ws.",
+      );
     }
     return new WS(this.options.server) as WebSocketLike;
   }
@@ -159,7 +163,7 @@ export class Connection {
       return;
     }
 
-    this.pending.rejectAll(new Error("Connection lost"));
+    this.pending.rejectAll(new StarfishError("CONNECTION_LOST", "Connection lost"));
     this.scheduleReconnect();
   }
 

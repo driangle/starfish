@@ -1,4 +1,4 @@
-import type { StarfishFrame } from "./types.js";
+import { StarfishError, type StarfishFrame } from "./types.js";
 
 interface PendingEntry {
   resolve: (frame: StarfishFrame) => void;
@@ -13,7 +13,9 @@ export class PendingRequests {
     return new Promise<StarfishFrame>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(messageId);
-        reject(new Error(`Request ${messageId} timed out after ${timeout}ms`));
+        reject(
+          new StarfishError("REQUEST_TIMEOUT", `Request ${messageId} timed out after ${timeout}ms`),
+        );
       }, timeout);
 
       this.pending.set(messageId, { resolve, reject, timer });
@@ -31,7 +33,7 @@ export class PendingRequests {
 
     if (frame.type === "error" && frame.error) {
       entry.reject(
-        Object.assign(new Error(frame.error.message), {
+        new StarfishError("SERVER_ERROR", frame.error.message, {
           code: frame.error.code,
           details: frame.error.details,
         }),

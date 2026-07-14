@@ -6,6 +6,7 @@ priority: medium
 type: chore
 tags: ["publish", "server", "typescript"]
 created_at: "2026-07-12"
+dependencies: [01kwyst4k]
 ---
 
 # Publish TypeScript server to npm

@@ -8,7 +8,7 @@ type: chore
 tags: ["testing", "integration", "python"]
 dependencies: ["01kwyst53"]
 created_at: "2026-07-11"
-phase: v0.1
+phase: v0.2
 ---
 
 # Protocol integration tests against Python server

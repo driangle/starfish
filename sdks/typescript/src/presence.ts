@@ -1,4 +1,4 @@
-import type { StarfishFrame } from "./types.js";
+import { StarfishError, type StarfishFrame } from "./types.js";
 import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 import { nextId } from "./id.js";
@@ -50,7 +50,7 @@ export class Presence {
   private requireSession(): string {
     const session = this.session.current;
     if (!session) {
-      throw new Error("Not in a session. Call join() first.");
+      throw new StarfishError("NO_SESSION", "Not in a session. Call join() first.");
     }
     return session;
   }

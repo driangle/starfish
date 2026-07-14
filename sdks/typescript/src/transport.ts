@@ -1,4 +1,4 @@
-import type { StarfishFrame, DeliveryOptions, StarfishError } from "./types.js";
+import { StarfishError, type StarfishFrame, type DeliveryOptions } from "./types.js";
 
 export interface RTCState {
   isPeerConnected(peerId: string): boolean;
@@ -42,11 +42,10 @@ function selectRTC(
     return { transport: "ws" };
   }
 
-  const error: StarfishError = {
-    code: "transport.unavailable",
-    message: "RTC transport is not available and fallback is disabled",
-  };
-  throw error;
+  throw new StarfishError(
+    "TRANSPORT_UNAVAILABLE",
+    "RTC transport is not available and fallback is disabled",
+  );
 }
 
 function selectAuto(

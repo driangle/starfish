@@ -6,7 +6,7 @@ priority: high
 type: feature
 tags: ["sdk", "swift", "ios"]
 created_at: "2026-07-09"
-phase: v0.1
+phase: v0.3
 ---
 
 # Implement Swift SDK

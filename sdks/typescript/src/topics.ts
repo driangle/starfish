@@ -1,4 +1,4 @@
-import type { StarfishFrame, FrameOptions } from "./types.js";
+import { StarfishError, type StarfishFrame, type FrameOptions } from "./types.js";
 import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 import type { RTC } from "./rtc.js";
@@ -143,7 +143,7 @@ export class Topics {
   private requireSession(): string {
     const session = this.session.current;
     if (!session) {
-      throw new Error("Not in a session. Call join() first.");
+      throw new StarfishError("NO_SESSION", "Not in a session. Call join() first.");
     }
     return session;
   }

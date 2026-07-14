@@ -6,6 +6,7 @@ priority: medium
 type: chore
 tags: ["publish", "adapter", "p5js"]
 created_at: "2026-07-12"
+dependencies: [01kwyst6q]
 ---
 
 # Publish p5.js adapter to npm

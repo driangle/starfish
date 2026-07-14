@@ -1,14 +1,15 @@
-import type {
-  StarfishFrame,
-  StarfishClientOptions,
-  JoinOptions,
-  SaveOptions,
-  DataResult,
-  EventFilter,
-  ClientInfo,
-  ConnectionState,
-  FrameOptions,
-  RTCPeerInfo,
+import {
+  StarfishError,
+  type StarfishFrame,
+  type StarfishClientOptions,
+  type JoinOptions,
+  type SaveOptions,
+  type DataResult,
+  type EventFilter,
+  type ClientInfo,
+  type ConnectionState,
+  type FrameOptions,
+  type RTCPeerInfo,
 } from "./types.js";
 import { Connection } from "./connection.js";
 import { Heartbeat } from "./heartbeat.js";
@@ -160,7 +161,10 @@ export class StarfishClient {
 
   private get rtc(): RTC {
     if (!this._rtc) {
-      throw new Error("RTC is not enabled. Provide rtc options in StarfishClientOptions.");
+      throw new StarfishError(
+        "RTC_NOT_ENABLED",
+        "RTC is not enabled. Provide rtc options in StarfishClientOptions.",
+      );
     }
     return this._rtc;
   }

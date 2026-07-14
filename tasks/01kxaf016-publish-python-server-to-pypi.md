@@ -6,6 +6,8 @@ priority: medium
 type: chore
 tags: ["publish", "server", "python"]
 created_at: "2026-07-12"
+dependencies: [01kwyst53]
+phase: v0.2
 ---
 
 # Publish Python server to PyPI

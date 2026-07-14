@@ -1,8 +1,8 @@
 export { StarfishClient } from "./client.js";
+export { StarfishError } from "./types.js";
 
 export type {
   StarfishFrame,
-  StarfishError,
   DeliveryOptions,
   FrameOptions,
   StarfishClientOptions,

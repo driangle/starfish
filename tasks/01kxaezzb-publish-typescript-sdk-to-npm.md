@@ -6,6 +6,7 @@ priority: medium
 type: chore
 tags: ["publish", "sdk", "typescript"]
 created_at: "2026-07-12"
+dependencies: [01kwyst27]
 ---
 
 # Publish TypeScript SDK to npm

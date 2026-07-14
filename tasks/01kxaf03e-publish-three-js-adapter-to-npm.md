@@ -6,6 +6,7 @@ priority: medium
 type: chore
 tags: ["publish", "adapter", "threejs"]
 created_at: "2026-07-12"
+dependencies: [01kwyst79]
 ---
 
 # Publish Three.js adapter to npm

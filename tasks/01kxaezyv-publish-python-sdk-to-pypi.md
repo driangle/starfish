@@ -6,6 +6,7 @@ priority: medium
 type: chore
 tags: ["publish", "sdk", "python"]
 created_at: "2026-07-12"
+dependencies: [01kwyst2r]
 ---
 
 # Publish Python SDK to PyPI

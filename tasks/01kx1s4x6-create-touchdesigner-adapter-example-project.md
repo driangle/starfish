@@ -6,7 +6,7 @@ priority: medium
 dependencies: ["01kwyst7v"]
 tags: ["adapter", "touchdesigner", "examples"]
 created_at: 2026-07-08
-phase: v0.1
+phase: v0.3
 ---
 
 # Create TouchDesigner adapter example project

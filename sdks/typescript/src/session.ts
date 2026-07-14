@@ -1,4 +1,4 @@
-import type { StarfishFrame, JoinOptions, ClientInfo } from "./types.js";
+import { StarfishError, type StarfishFrame, type JoinOptions, type ClientInfo } from "./types.js";
 import type { Connection } from "./connection.js";
 import { nextId } from "./id.js";
 import { Observable } from "./emitter.js";
@@ -21,6 +21,13 @@ export class Session {
 
   get clientId(): string | null {
     return this.connection.clientId;
+  }
+
+  require(): string {
+    if (!this._session) {
+      throw new StarfishError("NO_SESSION", "Not in a session. Call join() first.");
+    }
+    return this._session;
   }
 
   async join(session: string, options?: JoinOptions): Promise<StarfishFrame> {

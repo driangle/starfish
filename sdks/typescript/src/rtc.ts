@@ -1,4 +1,11 @@
-import type { StarfishFrame, RTCOptions, RTCPeerState, RTCPeerInfo, PeerEntry } from "./types.js";
+import {
+  StarfishError,
+  type StarfishFrame,
+  type RTCOptions,
+  type RTCPeerState,
+  type RTCPeerInfo,
+  type PeerEntry,
+} from "./types.js";
 import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 import { nextId } from "./id.js";
@@ -44,12 +51,12 @@ export class RTC {
       peers: this.peers,
       frames$: this.frames$,
       updatePeers: () => this.updateObservable(),
-      requireSession: () => this.requireSession(),
+      requireSession: () => this.session.require(),
     };
   }
 
   async connect(peerId: string, channels = DEFAULT_CHANNELS): Promise<void> {
-    const sessionName = this.requireSession();
+    const sessionName = this.session.require();
     const ctx = this.signalingCtx;
 
     const pc = createPeerConnection({ peerId, ...ctx });
@@ -116,12 +123,15 @@ export class RTC {
   sendToPeer(peerId: string, channel: string, frame: StarfishFrame): void {
     const entry = this.peers.get(peerId);
     if (!entry) {
-      throw new Error(`No RTC connection to peer: ${peerId}`);
+      throw new StarfishError("RTC_NO_PEER", `No RTC connection to peer: ${peerId}`);
     }
 
     const dc = entry.channels.get(channel);
     if (!dc || dc.readyState !== "open") {
-      throw new Error(`DataChannel ${channel} not open for peer: ${peerId}`);
+      throw new StarfishError(
+        "RTC_CHANNEL_NOT_OPEN",
+        `DataChannel ${channel} not open for peer: ${peerId}`,
+      );
     }
 
     validateSerializable(frame, "RTC frame");
@@ -165,36 +175,21 @@ export class RTC {
   isPeerConnected(peerId: string): boolean {
     return this.peers.get(peerId)?.state === "connected";
   }
-
   getConnectedPeerIds(): string[] {
     return [...this.peers].filter(([, e]) => e.state === "connected").map(([id]) => id);
   }
 
   private sendSignal(type: string, session: string, to: string, payload?: any): void {
-    this.connection.send({
-      v: 1,
-      id: nextId("rtc"),
-      type,
-      session,
-      to,
-      payload,
-    });
+    this.connection.send({ v: 1, id: nextId("rtc"), type, session, to, payload });
   }
 
   private updateObservable(): void {
-    const infos = [...this.peers].map(([peerId, entry]) => ({
-      peerId,
-      state: entry.state,
-      channels: Array.from(entry.channels.keys()),
-    }));
-    this.rtcPeers$.set(infos);
-  }
-
-  private requireSession(): string {
-    const session = this.session.current;
-    if (!session) {
-      throw new Error("Not in a session. Call join() first.");
-    }
-    return session;
+    this.rtcPeers$.set(
+      [...this.peers].map(([peerId, entry]) => ({
+        peerId,
+        state: entry.state,
+        channels: Array.from(entry.channels.keys()),
+      })),
+    );
   }
 }

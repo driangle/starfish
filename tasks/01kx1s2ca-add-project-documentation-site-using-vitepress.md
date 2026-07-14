@@ -1,7 +1,7 @@
 ---
 id: "01kx1s2ca"
 title: "Add project documentation site using VitePress"
-status: pending
+status: in-progress
 priority: medium
 dependencies: []
 tags: ["docs", "vitepress"]
@@ -13,26 +13,24 @@ phase: v0.1
 
 ## Objective
 
-Set up a VitePress-powered documentation site for the Starfish project covering the protocol specification, SDK references, server guides, adapter usage, and getting started tutorials.
+Set up a VitePress-powered documentation site for the Starfish project with skeleton structure, theming, navigation, and GitHub Pages deployment. Content tasks (user guide, cookbook) will populate the site after this scaffolding is in place.
 
 ## Tasks
 
 - [ ] Initialize VitePress project in `docs/` with config, theme, and navigation structure
 - [ ] Add a landing page with project overview and quick links
-- [ ] Add a "Getting Started" guide covering installation, server setup, and first connection
-- [ ] Add protocol specification pages (converted/linked from `protocol/spec/`)
-- [ ] Add SDK reference pages for TypeScript, Python, and Go SDKs
-- [ ] Add server deployment and configuration guides
-- [ ] Add adapter guides for p5.js, Three.js, and TouchDesigner
+- [ ] Create placeholder directory structure for content sections: `docs/guide/`, `docs/cookbook/`, `docs/reference/`, `docs/adapters/`
 - [ ] Configure sidebar navigation grouping docs by category
 - [ ] Add search functionality
-- [ ] Add a build script and npm commands for dev/build/preview
+- [ ] Add build scripts and npm commands for dev/build/preview
+- [ ] Set up GitHub Actions workflow to deploy the site to GitHub Pages on push to main
 - [ ] Ensure the site builds without errors and can be deployed as static files
 
 ## Acceptance Criteria
 
 - `npm run docs:dev` starts a local VitePress dev server
 - `npm run docs:build` produces a static site in `docs/.vitepress/dist/`
-- Documentation covers all major project areas: protocol, SDKs, servers, adapters
+- GitHub Actions workflow deploys the built site to GitHub Pages
+- Sidebar navigation structure is configured for guide, cookbook, reference, and adapter sections
 - Navigation is organized and searchable
 - Site renders correctly in modern browsers
