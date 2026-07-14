@@ -2,6 +2,8 @@
 
 A transport-neutral realtime protocol for creative coding -- networked performance, multiplayer sketches, installations, live visuals, and distributed browser-based artworks.
 
+**[Documentation](https://driangle.github.io/starfish/)**
+
 Starfish provides sessions, presence, topic pub/sub, direct and broadcast messaging, shared data operations, and event streams over WebSocket with optional WebRTC peer-to-peer data channels.
 
 ## Project Structure
