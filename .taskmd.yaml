@@ -5,4 +5,10 @@ id:
 phases:
   - id: v0.1
     name: "v0.1"
-    description: "Initial server implementation"
+    description: "Ship what's built — publish packages, documentation, and polish"
+  - id: v0.2
+    name: "v0.2"
+    description: "Complete SDK/server matrix — Go SDK and Python server"
+  - id: v0.3
+    name: "v0.3"
+    description: "Ecosystem expansion — TouchDesigner, Swift SDK, JVM SDK/server"
