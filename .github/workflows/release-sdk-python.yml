@@ -1,0 +1,57 @@
+name: Release SDK / Python
+
+on:
+  push:
+    tags:
+      - "sdks/python/v*"
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: sdks/python/pyproject.toml
+
+      - run: make lint-sdk-python format-check-sdk-python check-sdk-python
+
+  publish:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build package
+        run: python -m build
+        working-directory: sdks/python
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdks/python/dist/
+          password: ${{ secrets.PYPI_TOKEN }}
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
