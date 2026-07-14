@@ -1,0 +1,148 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            sdks/typescript/package-lock.json
+            servers/typescript/package-lock.json
+            adapters/p5js/package-lock.json
+            tests/integration/package-lock.json
+            examples/typescript/package-lock.json
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: servers/golang/go.sum
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: sdks/python/pyproject.toml
+
+      - uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "5.9"
+
+      - run: make check
+
+  publish-npm:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      # Build and publish @starfish/client first (adapters depend on it)
+      - name: Install @starfish/client
+        run: npm ci
+        working-directory: sdks/typescript
+
+      - name: Build @starfish/client
+        run: npm run build
+        working-directory: sdks/typescript
+
+      - name: Publish @starfish/client
+        run: npm publish --access public
+        working-directory: sdks/typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Build and publish @starfish/server
+      - name: Install @starfish/server
+        run: npm ci
+        working-directory: servers/typescript
+
+      - name: Build @starfish/server
+        run: npm run build
+        working-directory: servers/typescript
+
+      - name: Publish @starfish/server
+        run: npm publish --access public
+        working-directory: servers/typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Build and publish @starfish/p5
+      - name: Install @starfish/p5
+        run: npm ci
+        working-directory: adapters/p5js
+
+      - name: Build @starfish/p5
+        run: npm run build
+        working-directory: adapters/p5js
+
+      - name: Publish @starfish/p5
+        run: npm publish --access public
+        working-directory: adapters/p5js
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Build and publish @starfish/three
+      - name: Install @starfish/three
+        run: npm ci
+        working-directory: adapters/threejs
+
+      - name: Build @starfish/three
+        run: npm run build
+        working-directory: adapters/threejs
+
+      - name: Publish @starfish/three
+        run: npm publish --access public
+        working-directory: adapters/threejs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-pypi:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build package
+        run: python -m build
+        working-directory: sdks/python
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdks/python/dist/
+          password: ${{ secrets.PYPI_TOKEN }}
+
+  github-release:
+    needs: [publish-npm, publish-pypi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

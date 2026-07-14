@@ -1,12 +1,13 @@
 ---
 id: "01kxgg8s0"
 title: "Add GitHub Actions release workflow for publishing packages"
-status: pending
+status: completed
 priority: high
 phase: v0.1
 dependencies: ["01kxgfzte"]
 tags: ["ci", "github-actions", "release"]
 created_at: 2026-07-14
+completed_at: 2026-07-14
 ---
 
 # Add GitHub Actions release workflow for publishing packages
@@ -29,12 +30,12 @@ The monorepo has these publishable packages for v0.1:
 
 ## Tasks
 
-- [ ] Create `.release.conf` listing all version files for the release script
-- [ ] Create `.github/workflows/release.yml` triggered on `v*` tag pushes
-- [ ] Add job to build and publish npm packages (`@starfish/client`, `@starfish/server`, `@starfish/p5`, `@starfish/three`) using `NPM_TOKEN` secret
-- [ ] Add job to build and publish Python SDK to PyPI using trusted publishing or `PYPI_TOKEN` secret
-- [ ] Add job to create a GitHub Release with the tag
-- [ ] Ensure each publish job runs `make check` or equivalent build/test step before publishing
+- [x] Create `.release.conf` listing all version files for the release script
+- [x] Create `.github/workflows/release.yml` triggered on `v*` tag pushes
+- [x] Add job to build and publish npm packages (`@starfish/client`, `@starfish/server`, `@starfish/p5`, `@starfish/three`) using `NPM_TOKEN` secret
+- [x] Add job to build and publish Python SDK to PyPI using trusted publishing or `PYPI_TOKEN` secret
+- [x] Add job to create a GitHub Release with the tag
+- [x] Ensure each publish job runs `make check` or equivalent build/test step before publishing
 
 ## Acceptance Criteria
 
