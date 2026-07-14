@@ -1,7 +1,7 @@
 ---
 title: "Implement Swift SDK"
 id: "01kx31rc3"
-status: pending
+status: in-progress
 priority: high
 type: feature
 tags: ["sdk", "swift", "ios"]
