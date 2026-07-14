@@ -5,6 +5,7 @@ status: pending
 priority: medium
 type: chore
 tags: ["publish", "server", "typescript"]
+phase: v0.1
 created_at: "2026-07-12"
 dependencies: [01kwyst4k]
 ---

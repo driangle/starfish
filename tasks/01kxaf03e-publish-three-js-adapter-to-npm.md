@@ -5,6 +5,7 @@ status: pending
 priority: medium
 type: chore
 tags: ["publish", "adapter", "threejs"]
+phase: v0.1
 created_at: "2026-07-12"
 dependencies: [01kwyst79]
 ---
