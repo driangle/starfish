@@ -1,11 +1,11 @@
-.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python check-sdk-python-lite check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk-python-golang test-sdk-python-typescript test-sdk-python test-sdk test-integration install-hooks lint lint-sdk-typescript lint-sdk-python lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang format format-sdk-python format-check format-check-sdk-typescript format-check-sdk-python format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang
+.PHONY: help check check-lite check-golang check-golang-lite check-sdk-typescript check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python check-sdk-python-lite check-sdk-swift check-sdk-swift-lite check-server-typescript check-server-typescript-lite check-integration test-golang test-typescript test-sdk-typescript-golang test-sdk-typescript-typescript test-sdk-typescript test-sdk-python-golang test-sdk-python-typescript test-sdk-python test-sdk test-integration install-hooks lint lint-sdk-typescript lint-sdk-python lint-server-typescript lint-adapters-p5js lint-integration lint-examples-typescript lint-golang format format-sdk-python format-check format-check-sdk-typescript format-check-sdk-python format-check-adapters-p5js format-check-integration format-check-examples-typescript format-check-golang
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
 # --- Check-lite (lint + compile only, no tests) ---
 
-check-lite: lint format-check check-golang-lite check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python-lite check-server-typescript-lite check-integration ## Lint, format-check, and compile all projects (no tests)
+check-lite: lint format-check check-golang-lite check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python-lite check-sdk-swift-lite check-server-typescript-lite check-integration ## Lint, format-check, and compile all projects (no tests)
 
 check-golang-lite: ## Vet the Go server (no tests)
 	@echo "==> go vet (servers/golang)"
@@ -13,7 +13,7 @@ check-golang-lite: ## Vet the Go server (no tests)
 
 # --- Check (lint, compile, unit test — no servers needed) ---
 
-check: check-lite check-golang check-sdk-typescript check-sdk-python check-server-typescript ## Run all lint, compile, and unit test checks
+check: check-lite check-golang check-sdk-typescript check-sdk-python check-sdk-swift check-server-typescript ## Run all lint, compile, and unit test checks
 
 check-golang: check-golang-lite ## Vet and unit-test the Go server
 	@echo "==> go test (servers/golang)"
@@ -35,6 +35,14 @@ check-sdk-python-lite: ## Lint the Python SDK (no tests)
 check-sdk-python: check-sdk-python-lite ## Lint and unit-test the Python SDK
 	@echo "==> pytest (sdks/python)"
 	@cd sdks/python && pytest tests/
+
+check-sdk-swift-lite: ## Compile the Swift SDK (no tests)
+	@echo "==> swift build (sdks/swift)"
+	@cd sdks/swift && swift build
+
+check-sdk-swift: check-sdk-swift-lite ## Compile and unit-test the Swift SDK
+	@echo "==> swift test (sdks/swift)"
+	@cd sdks/swift && swift test
 
 check-server-typescript-lite: ## Type-check the TypeScript server (no tests)
 	@cd servers/typescript && npm install --silent 2>/dev/null && echo "==> tsc --noEmit (servers/typescript)" && npx tsc --noEmit
