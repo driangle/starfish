@@ -3,7 +3,7 @@ import {
   type StarfishFrame,
   type Unsubscribe,
   type DataResult,
-} from "@starfish/client";
+} from "@driangle/starfish-client";
 import type { StarfishP5Options, PeerPresence } from "./types.js";
 import { hookRemove } from "./p5-lifecycle.js";
 

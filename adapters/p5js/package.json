@@ -1,7 +1,23 @@
 {
-  "name": "@starfish/p5",
+  "name": "@driangle/starfish-p5",
   "version": "0.0.1",
   "description": "p5.js adapter for the Starfish realtime protocol",
+  "license": "MIT",
+  "author": "Starfish Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/driangle/starfish",
+    "directory": "adapters/p5js"
+  },
+  "keywords": [
+    "starfish",
+    "realtime",
+    "websockets",
+    "collaborative",
+    "p5js",
+    "p5",
+    "creative-coding"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,7 +40,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@starfish/client": "file:../../sdks/typescript"
+    "@driangle/starfish-client": "^0.0.1"
   },
   "devDependencies": {
     "@typescript-eslint/parser": "^8.63.0",
