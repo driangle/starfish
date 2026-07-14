@@ -10,3 +10,5 @@ __pycache__/
 examples/p5js/starfish-p5.global.js
 adapters/threejs/dist/
 servers/typescript/dist/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
