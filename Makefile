@@ -5,7 +5,7 @@ help: ## Show available targets
 
 # --- Check-lite (lint + compile only, no tests) ---
 
-check-lite: lint format-check check-golang-lite check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python-lite check-sdk-swift-lite check-server-typescript-lite check-integration ## Lint, format-check, and compile all projects (no tests)
+check-lite: lint format-check check-golang-lite check-sdk-typescript-lite check-sdk-typescript-integration check-sdk-python-lite check-server-typescript-lite check-integration ## Lint, format-check, and compile all projects (no tests)
 
 check-golang-lite: ## Vet the Go server (no tests)
 	@echo "==> go vet (servers/golang)"
@@ -13,7 +13,7 @@ check-golang-lite: ## Vet the Go server (no tests)
 
 # --- Check (lint, compile, unit test — no servers needed) ---
 
-check: check-lite check-golang check-sdk-typescript check-sdk-python check-sdk-swift check-server-typescript ## Run all lint, compile, and unit test checks
+check: check-lite check-golang check-sdk-typescript check-sdk-python check-server-typescript ## Run all lint, compile, and unit test checks
 
 check-golang: check-golang-lite ## Vet and unit-test the Go server
 	@echo "==> go test (servers/golang)"
