@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   check:
@@ -136,8 +137,34 @@ jobs:
           packages-dir: sdks/python/dist/
           password: ${{ secrets.PYPI_TOKEN }}
 
+  publish-docker:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        run: echo "tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: servers/golang
+          push: true
+          tags: |
+            ghcr.io/driangle/starfish-server:${{ steps.version.outputs.tag }}
+            ghcr.io/driangle/starfish-server:latest
+
   github-release:
-    needs: [publish-npm, publish-pypi]
+    needs: [publish-npm, publish-pypi, publish-docker]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

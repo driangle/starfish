@@ -1,12 +1,13 @@
 ---
 title: "Docker image for Starfish server (Go)"
 id: "01kxgjazj"
-status: pending
+status: completed
 priority: medium
 type: chore
 tags: ["docker", "ci", "deployment"]
 phase: "v0.1"
 created_at: "2026-07-14"
+completed_at: 2026-07-14
 ---
 
 # Docker image for Starfish server (Go)
@@ -17,11 +18,11 @@ Create a Docker image for the Go-based Starfish server (`servers/golang/`) and p
 
 ## Tasks
 
-- [ ] Create a `Dockerfile` in `servers/golang/` with a multi-stage build (build stage using `golang:1.26-alpine`, runtime stage using `alpine` or `scratch`)
-- [ ] Add a `.dockerignore` file to exclude test files and unnecessary artifacts
-- [ ] Add a GitHub Actions workflow (or extend `release.yml`) to build and push the Docker image to `ghcr.io` on version tags
-- [ ] Tag images with the git tag version and `latest`
-- [ ] Verify the image runs correctly: listens on port 8080, accepts WebSocket connections at `/starfish`
+- [x] Create a `Dockerfile` in `servers/golang/` with a multi-stage build (build stage using `golang:1.26-alpine`, runtime stage using `alpine` or `scratch`)
+- [x] Add a `.dockerignore` file to exclude test files and unnecessary artifacts
+- [x] Add a GitHub Actions workflow (or extend `release.yml`) to build and push the Docker image to `ghcr.io` on version tags
+- [x] Tag images with the git tag version and `latest`
+- [x] Verify the image runs correctly: listens on port 8080, accepts WebSocket connections at `/starfish`
 
 ## Acceptance Criteria
 
