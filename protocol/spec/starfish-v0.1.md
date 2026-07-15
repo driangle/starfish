@@ -9,6 +9,7 @@ and distributed browser-based artworks.
 Starfish supports:
 
 - Sessions
+- Pools (matchmaking)
 - Presence
 - Topic publish/subscribe
 - Direct messaging
@@ -28,15 +29,16 @@ WebSocket is the required control plane. WebRTC is an optional data plane.
 
 A Starfish network contains:
 
-| Concept   | Description                                            |
-| --------- | ------------------------------------------------------ |
-| Server    | Authoritative session coordinator and WebSocket router. |
-| Session   | Named realtime room.                                   |
-| Client    | Participant connected to a session.                    |
-| Topic     | Named pub/sub channel scoped to a session.             |
-| Peer      | Another client in the same session.                    |
-| Transport | `"ws"` or `"rtc"`.                                     |
-| Data store| Scoped key-value state maintained by the server.       |
+| Concept    | Description                                            |
+| ---------- | ------------------------------------------------------ |
+| Server     | Authoritative session coordinator and WebSocket router. |
+| Session    | Named realtime room.                                   |
+| Pool       | Named matchmaking queue that pairs clients into sessions. |
+| Client     | Participant connected to a session.                    |
+| Topic      | Named pub/sub channel scoped to a session.             |
+| Peer       | Another client in the same session.                    |
+| Transport  | `"ws"` or `"rtc"`.                                     |
+| Data store | Scoped key-value state maintained by the server.       |
 
 ### 2.1 Transport Responsibilities
 
@@ -44,6 +46,7 @@ A Starfish network contains:
 
 - Authentication
 - Joining and leaving sessions
+- Pool matchmaking
 - Presence
 - Subscription management
 - WebRTC signaling
@@ -122,8 +125,8 @@ Server replies with `server.welcome`:
 ### 3.2 Reconnection
 
 On WebSocket disconnect, the server holds the client's state (session
-memberships, topic subscriptions, presence) for the duration of
-`resumeTimeout` (provided in `server.welcome`). During this window, other
+memberships, pool memberships, topic subscriptions, presence) for the duration
+of `resumeTimeout` (provided in `server.welcome`). During this window, other
 clients see the disconnected client as temporarily offline -- the server
 does NOT emit `client.disconnected` immediately.
 
@@ -146,7 +149,7 @@ does NOT emit `client.disconnected` immediately.
 
 If the token is valid and not expired, the server responds with
 `server.welcome` and the original `clientId`. The client's session
-memberships, topic subscriptions, and presence are restored:
+memberships, pool memberships, topic subscriptions, and presence are restored:
 
 ```json
 {
@@ -163,6 +166,7 @@ memberships, topic subscriptions, and presence are restored:
     "serverTime": 1783440002010,
     "heartbeatInterval": 15000,
     "sessions": ["show-abc"],
+    "pools": ["distant-touch"],
     "rtc": {
       "iceServers": [
         { "urls": "stun:stun.l.google.com:19302" }
@@ -177,7 +181,8 @@ token is invalidated.
 
 **Resume failed or expired:** If the token is invalid or the timeout has
 elapsed, the server responds with a fresh `server.welcome` (new `clientId`,
-`resumed: false`). The client must re-join sessions and re-subscribe.
+`resumed: false`). The client must re-join sessions, re-enter pools, and
+re-subscribe.
 
 **Fresh connection** (no resume): Omit `resumeToken` from `client.hello`.
 The server assigns a new `clientId` with no prior state.
@@ -189,8 +194,10 @@ re-established after reconnection, even on successful resume.
 
 1. The server emits `client.disconnected` with reason `"timeout"` to all
    sessions the client was in.
-2. The client's state is destroyed.
-3. The `resumeToken` is invalidated.
+2. The server emits `pool.member.left` with reason `"timeout"` to all
+   pools the client was in.
+3. The client's state is destroyed.
+4. The `resumeToken` is invalidated.
 
 ---
 
@@ -424,9 +431,470 @@ Valid disconnect reasons: `"left"`, `"timeout"`, `"kicked"`, `"error"`.
 
 ---
 
-## 7. Topic Pub/Sub
+## 7. Pools
 
-### 7.1 Subscribe
+Pools are named matchmaking queues that pair clients into sessions. A pool
+collects waiting members and groups them based on a configurable mode. The
+server enforces the matching rules and guarantees atomic match execution.
+
+Pools use WebSocket only.
+
+### 7.1 Core Concepts
+
+| Concept     | Description                                                |
+| ----------- | ---------------------------------------------------------- |
+| Pool        | Named matchmaking queue with a fixed mode and group size.  |
+| Member      | Client waiting in the pool.                                |
+| Matchmaker  | Privileged client that controls matching in delegated mode. |
+| Claim       | Request to pair with a specific member.                    |
+| Match       | Server-confirmed grouping. Members receive a session name. |
+
+### 7.2 Modes
+
+The mode is set at pool creation and is immutable for the pool's lifetime.
+It determines how members are matched.
+
+| Mode          | Who matches   | Members visible | How it works                                 |
+| ------------- | ------------- | --------------- | -------------------------------------------- |
+| `auto`        | Server        | No              | Server pairs members automatically (FIFO). Default. |
+| `claim`       | Any member    | Yes             | First claim wins. Server matches immediately. |
+| `mutual`      | Both members  | Yes             | Both must claim each other.                  |
+| `propose`     | Both members  | Yes             | One proposes, other accepts or rejects.      |
+| `delegated`   | Matchmaker    | Matchmaker only | Only matchmaker-role clients can assign groups. |
+
+**Auto mode** is the default and the simplest. Members enter the pool and
+the server pairs them in FIFO order. Members do not see each other and
+cannot send claims. This mode scales to any pool size.
+
+**Claim-based modes** (`claim`, `mutual`, `propose`) give members visibility
+into the full member list. Members choose who to match with using client-side
+logic. These modes are designed for small to medium pools where member
+visibility is practical.
+
+**Delegated mode** gives matching control to a matchmaker client. Regular
+members do not see each other. The matchmaker receives member events and
+assigns groups. This mode scales to any pool size.
+
+### 7.3 Enter Pool
+
+Minimal example (auto mode, the common case):
+
+```json
+{
+  "v": 1,
+  "id": "msg_100",
+  "type": "pool.enter",
+  "payload": {
+    "pool": "distant-touch",
+    "create": true,
+    "groupSize": 2
+  }
+}
+```
+
+Full example with all fields:
+
+```json
+{
+  "v": 1,
+  "id": "msg_100",
+  "type": "pool.enter",
+  "payload": {
+    "pool": "distant-touch",
+    "create": true,
+    "mode": "claim",
+    "groupSize": 2,
+    "role": "member",
+    "attributes": {
+      "mood": "calm",
+      "language": "en"
+    },
+    "filter": {
+      "language": "@self"
+    }
+  }
+}
+```
+
+| Field        | Description                                                     |
+| ------------ | --------------------------------------------------------------- |
+| `pool`       | Pool name.                                                      |
+| `create`     | Create the pool if it doesn't exist. Same pattern as `session.join`. |
+| `mode`       | Matching mode. Default `"auto"`. Only used on creation, ignored if pool exists. |
+| `groupSize`  | Number of clients per match. Only used on creation.             |
+| `role`       | `"member"` (default) or `"matchmaker"` (delegated mode only).   |
+| `attributes` | Opaque metadata about this member. Broadcast to other members in claim-based modes, or to the matchmaker in delegated mode. Used by filters in auto mode. |
+| `filter`     | Matching filter for auto mode. See section 7.4.                 |
+
+If the pool does not exist and `create` is false or omitted, the server
+returns a `pool.not_found` error.
+
+**Response (auto and delegated modes):**
+
+```json
+{
+  "v": 1,
+  "id": "msg_101",
+  "type": "pool.entered",
+  "replyTo": "msg_100",
+  "payload": {
+    "pool": "distant-touch",
+    "mode": "auto",
+    "groupSize": 2
+  }
+}
+```
+
+In auto and delegated modes, the response does not include a member list.
+Members are invisible to each other.
+
+**Response (claim-based modes):**
+
+```json
+{
+  "v": 1,
+  "id": "msg_101",
+  "type": "pool.entered",
+  "replyTo": "msg_100",
+  "payload": {
+    "pool": "distant-touch",
+    "mode": "claim",
+    "groupSize": 2,
+    "members": [
+      { "id": "client_a7f3", "attributes": { "mood": "calm" } },
+      { "id": "client_b912", "attributes": { "mood": "wild" } }
+    ]
+  }
+}
+```
+
+In claim-based modes, the response includes the full member list so the
+client can begin making matching decisions.
+
+### 7.4 Filters (auto mode)
+
+In auto mode, the server matches members automatically. By default, matching
+is FIFO -- the two longest-waiting members are paired. Filters allow members
+to constrain who they can be matched with.
+
+A filter is a set of attribute keys with expected values. A match is only
+made when all filters on **both** sides are satisfied.
+
+**Literal value** -- match with members who have this exact attribute value:
+
+```json
+{
+  "filter": {
+    "language": "en"
+  }
+}
+```
+
+**`@self` reference** -- match with members who have the same value as this
+member's own attribute:
+
+```json
+{
+  "filter": {
+    "language": "@self"
+  }
+}
+```
+
+If a member enters with `attributes: { "language": "en" }` and
+`filter: { "language": "@self" }`, the server will only match them with
+other members whose `language` attribute is `"en"`.
+
+**Multiple filters** are combined with AND. All must be satisfied:
+
+```json
+{
+  "attributes": { "language": "en", "region": "europe" },
+  "filter": {
+    "language": "@self",
+    "region": "@self"
+  }
+}
+```
+
+**Filter compatibility:** A match requires that both members' filters are
+satisfied by the other's attributes. If member A filters on
+`{ "language": "@self" }` and member B has no filter, the match still
+requires B's `language` attribute to equal A's. B's lack of filter means
+B accepts anyone -- but A's filter still constrains the match.
+
+If a member's filter references an attribute key that the other member does
+not have, the filter is not satisfied and the match is skipped.
+
+Filters are ignored in claim-based and delegated modes. In those modes,
+matching decisions are made by clients or the matchmaker, not the server.
+
+### 7.5 Leave Pool
+
+```json
+{
+  "v": 1,
+  "id": "msg_102",
+  "type": "pool.leave",
+  "payload": {
+    "pool": "distant-touch"
+  }
+}
+```
+
+### 7.6 Pool Member Events
+
+Member events are broadcast differently depending on the mode:
+
+- **Auto mode:** No member events are sent. Members are invisible.
+- **Claim-based modes:** Member events are sent to all members.
+- **Delegated mode:** Member events are sent to matchmaker clients only.
+
+When a member enters the pool:
+
+```json
+{
+  "v": 1,
+  "id": "evt_100",
+  "type": "pool.member.joined",
+  "payload": {
+    "pool": "distant-touch",
+    "member": {
+      "id": "client_c441",
+      "attributes": { "mood": "energetic" }
+    }
+  }
+}
+```
+
+When a member leaves or is removed:
+
+```json
+{
+  "v": 1,
+  "id": "evt_101",
+  "type": "pool.member.left",
+  "payload": {
+    "pool": "distant-touch",
+    "memberId": "client_c441",
+    "reason": "left"
+  }
+}
+```
+
+Valid reasons: `"left"`, `"matched"`, `"timeout"`, `"disconnected"`.
+
+### 7.7 Claiming (claim, mutual, propose modes)
+
+Members send `pool.claim` to request a match with a specific target. Claims
+are not available in auto or delegated modes.
+
+```json
+{
+  "v": 1,
+  "id": "msg_110",
+  "type": "pool.claim",
+  "payload": {
+    "pool": "distant-touch",
+    "target": "client_b912"
+  }
+}
+```
+
+Behavior depends on the pool's mode:
+
+**Claim:** The server matches immediately. The target has no say. The
+server responds with `pool.matched` to both clients.
+
+**Mutual:** The server records the claim. If the target has also claimed the
+claimer, the match is confirmed and both receive `pool.matched`. If not yet
+mutual, the server acknowledges the pending claim:
+
+```json
+{
+  "v": 1,
+  "id": "msg_111",
+  "type": "pool.claim.pending",
+  "replyTo": "msg_110",
+  "payload": {
+    "pool": "distant-touch",
+    "target": "client_b912"
+  }
+}
+```
+
+**Propose:** The target receives a proposal:
+
+```json
+{
+  "v": 1,
+  "id": "evt_110",
+  "type": "pool.proposal",
+  "payload": {
+    "pool": "distant-touch",
+    "from": "client_a7f3",
+    "attributes": { "mood": "calm" }
+  }
+}
+```
+
+The target responds with accept or reject:
+
+```json
+{
+  "v": 1,
+  "id": "msg_112",
+  "type": "pool.accept",
+  "payload": {
+    "pool": "distant-touch",
+    "from": "client_a7f3"
+  }
+}
+```
+
+```json
+{
+  "v": 1,
+  "id": "msg_113",
+  "type": "pool.reject",
+  "payload": {
+    "pool": "distant-touch",
+    "from": "client_a7f3"
+  }
+}
+```
+
+On rejection, the claimer receives:
+
+```json
+{
+  "v": 1,
+  "id": "evt_111",
+  "type": "pool.claim.rejected",
+  "payload": {
+    "pool": "distant-touch",
+    "target": "client_b912"
+  }
+}
+```
+
+Both sides remain in the pool and can try again with other members.
+
+### 7.8 Assigning (delegated mode)
+
+In delegated mode, only clients with `role: "matchmaker"` can control
+matching. Regular members cannot see each other or send claims. The
+matchmaker receives `pool.member.joined` and `pool.member.left` events
+and uses them to make matching decisions.
+
+```json
+{
+  "v": 1,
+  "id": "msg_120",
+  "type": "pool.assign",
+  "payload": {
+    "pool": "distant-touch",
+    "groups": [
+      ["client_a7f3", "client_b912"],
+      ["client_c441", "client_d228"]
+    ]
+  }
+}
+```
+
+The server validates that all referenced clients are current pool members
+and that each group matches the pool's `groupSize`. The matchmaker receives
+confirmation:
+
+```json
+{
+  "v": 1,
+  "id": "msg_121",
+  "type": "pool.assigned",
+  "replyTo": "msg_120",
+  "payload": {
+    "pool": "distant-touch",
+    "matched": [
+      { "group": ["client_a7f3", "client_b912"], "session": "dt-a1b2c3" },
+      { "group": ["client_c441", "client_d228"], "session": "dt-d4e5f6" }
+    ]
+  }
+}
+```
+
+The matchmaker stays in the pool -- it is not consumed by matching. It can
+assign multiple batches over time.
+
+A matchmaker that disconnects does not affect existing members. Members
+remain in the pool until matched, until they leave, or until their
+connection times out. A new matchmaker can enter the pool at any time.
+
+### 7.9 Match Result
+
+On successful match (in any mode), all matched members receive:
+
+```json
+{
+  "v": 1,
+  "id": "evt_120",
+  "type": "pool.matched",
+  "payload": {
+    "pool": "distant-touch",
+    "session": "dt-a1b2c3",
+    "peers": [
+      { "id": "client_a7f3", "attributes": { "mood": "calm" } },
+      { "id": "client_b912", "attributes": { "mood": "wild" } }
+    ]
+  }
+}
+```
+
+After `pool.matched`:
+
+1. Matched members are removed from the pool.
+2. In claim-based modes, other pool members receive `pool.member.left` with
+   `reason: "matched"` for each matched member. In delegated mode, the
+   matchmaker receives these events. In auto mode, no events are sent.
+3. Matched members are **not** automatically joined to the session. They must
+   call `session.join` with the provided session name. This gives clients time
+   to transition (show a "matched" screen, load assets, etc.).
+4. The session name is server-generated and unique.
+
+### 7.10 Group Size
+
+The `groupSize` field determines how many members form a match. It is set at
+pool creation and is immutable.
+
+- `groupSize: 2` -- pair matching (distant-touch, 1v1 games).
+- `groupSize: 3` or higher -- group matching (team games, ensemble performances).
+
+In claim-based modes (`claim`, `mutual`, `propose`), all members of a
+group must be resolved before the match fires. For `groupSize > 2` in
+`claim` mode, the server collects claims until a complete group is formed:
+when N members have all claimed each other (directly or transitively), the
+match fires.
+
+For `groupSize > 2` in `delegated` mode, the matchmaker specifies complete
+groups in `pool.assign`.
+
+For `groupSize > 2` in `auto` mode, the server collects members until
+`groupSize` is reached (respecting filters), then fires the match.
+
+### 7.11 Pool Lifecycle
+
+- A pool is created on the first `pool.enter` with `create: true`.
+- A pool is destroyed when the last member (including matchmakers) leaves.
+- Mode and group size are immutable after creation.
+- Members that disconnect enter the resume window (same as sessions). If
+  they reconnect, their pool membership is restored. If the resume window
+  expires, `pool.member.left` fires with `reason: "timeout"`.
+- Pending claims are cleared when a member leaves or is matched.
+
+---
+
+## 8. Topic Pub/Sub
+
+### 8.1 Subscribe
 
 ```json
 {
@@ -451,7 +919,7 @@ Response:
 }
 ```
 
-### 7.2 Unsubscribe
+### 8.2 Unsubscribe
 
 ```json
 {
@@ -463,7 +931,7 @@ Response:
 }
 ```
 
-### 7.3 Publish
+### 8.3 Publish
 
 ```json
 {
@@ -505,9 +973,9 @@ the topic.
 
 ---
 
-## 8. Direct Messaging
+## 9. Direct Messaging
 
-### 8.1 Send to Client
+### 9.1 Send to Client
 
 ```json
 {
@@ -540,7 +1008,7 @@ Delivered as:
 
 ---
 
-## 9. Broadcast
+## 10. Broadcast
 
 Broadcast sends to all clients in the current session except the sender.
 
@@ -583,13 +1051,13 @@ starfish.broadcast(payload, { includeSelf: false })
 
 ---
 
-## 10. Presence
+## 11. Presence
 
 Presence is ephemeral per-client metadata scoped to a session. It is always
 full-replace -- there is no partial diff. Clients send the complete presence
 object each time.
 
-### 10.1 Set Presence
+### 11.1 Set Presence
 
 ```json
 {
@@ -606,7 +1074,7 @@ object each time.
 }
 ```
 
-### 10.2 Presence Update Event
+### 11.2 Presence Update Event
 
 ```json
 {
@@ -624,7 +1092,7 @@ object each time.
 }
 ```
 
-### 10.3 Throttling
+### 11.3 Throttling
 
 Servers SHOULD throttle presence broadcasts. Recommended default: at most one
 broadcast per client per 50ms (20 Hz). Clients sending faster than the throttle
@@ -639,11 +1107,11 @@ delivery for presence.
 
 ---
 
-## 11. Shared Data Operations
+## 12. Shared Data Operations
 
 Data operations are server-authoritative and MUST use WebSocket.
 
-### 11.1 Save
+### 12.1 Save
 
 ```json
 {
@@ -698,7 +1166,7 @@ Response:
 | `counter.add`  | Add numeric value to counter.                |
 | `delete`       | Delete the key.                              |
 
-### 11.2 Conflict Resolution
+### 12.2 Conflict Resolution
 
 The default conflict strategy is **last-write-wins**. Clients that need
 stronger guarantees can use **optimistic concurrency** via `expectedVersion`.
@@ -755,7 +1223,7 @@ retry without an extra `data.get` round-trip.
 
 For a new key that does not yet exist, use `"expectedVersion": 0`.
 
-### 11.3 Get
+### 12.3 Get
 
 ```json
 {
@@ -788,7 +1256,7 @@ Response:
 }
 ```
 
-### 11.4 Data Change Event
+### 12.4 Data Change Event
 
 Broadcast to all clients in the session when a shared value changes:
 
@@ -811,11 +1279,11 @@ Broadcast to all clients in the session when a shared value changes:
 
 ---
 
-## 12. WebRTC
+## 13. WebRTC
 
 WebRTC is optional and always coordinated through WebSocket signaling.
 
-### 12.1 Responsibilities
+### 13.1 Responsibilities
 
 **The WebSocket server** is responsible for:
 
@@ -834,9 +1302,9 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 
 ---
 
-## 13. RTC Connection Lifecycle
+## 14. RTC Connection Lifecycle
 
-### 13.1 Request Peer Connection
+### 14.1 Request Peer Connection
 
 ```json
 {
@@ -851,7 +1319,7 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 }
 ```
 
-### 13.2 RTC Offer
+### 14.2 RTC Offer
 
 ```json
 {
@@ -867,7 +1335,7 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 }
 ```
 
-### 13.3 RTC Answer
+### 14.3 RTC Answer
 
 ```json
 {
@@ -883,7 +1351,7 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 }
 ```
 
-### 13.4 ICE Candidate
+### 14.4 ICE Candidate
 
 ```json
 {
@@ -899,7 +1367,7 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 }
 ```
 
-### 13.5 RTC Connected
+### 14.5 RTC Connected
 
 ```json
 {
@@ -912,7 +1380,7 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 }
 ```
 
-### 13.6 RTC Disconnected
+### 14.6 RTC Disconnected
 
 ```json
 {
@@ -930,11 +1398,11 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 
 ---
 
-## 14. RTC DataChannels
+## 15. RTC DataChannels
 
 Starfish defines three standard DataChannel lanes.
 
-### 14.1 Control Channel
+### 15.1 Control Channel
 
 **Label:** `starfish.control`
 
@@ -949,7 +1417,7 @@ Used for:
 - Acknowledgements
 - Peer-level protocol events
 
-### 14.2 Stream Channel
+### 15.2 Stream Channel
 
 **Label:** `starfish.stream`
 
@@ -964,7 +1432,7 @@ Used for:
 - Audio analysis
 - Continuous ephemeral values
 
-### 14.3 State Channel
+### 15.3 State Channel
 
 **Label:** `starfish.state`
 
@@ -982,22 +1450,22 @@ All RTC DataChannel payloads use the same Starfish frame envelope.
 
 ---
 
-## 15. Transport Selection
+## 16. Transport Selection
 
 The client chooses transport based on `options.delivery.preferTransport`.
 
-### 15.1 `preferTransport: "ws"`
+### 16.1 `preferTransport: "ws"`
 
 Always send through WebSocket.
 
-### 15.2 `preferTransport: "rtc"`
+### 16.2 `preferTransport: "rtc"`
 
 Send through RTC if available. If unavailable:
 
 - If `fallback: true`: send through WebSocket.
 - If `fallback: false`: fail with `transport.unavailable` error.
 
-### 15.3 `preferTransport: "auto"`
+### 16.3 `preferTransport: "auto"`
 
 Recommended default routing:
 
@@ -1005,6 +1473,7 @@ Recommended default routing:
 | -------------------------------------- | ------------------------------------ |
 | `data.*`                               | WebSocket only                       |
 | `session.*`                            | WebSocket only                       |
+| `pool.*`                               | WebSocket only                       |
 | `presence.*`                           | WebSocket                            |
 | `topic.publish` (reliable)             | WebSocket                            |
 | `topic.publish` (unreliable / latest)  | RTC if peer path exists, else WS     |
@@ -1014,7 +1483,7 @@ Recommended default routing:
 
 ---
 
-## 16. Topic Routing over RTC
+## 17. Topic Routing over RTC
 
 Topic subscription authority remains server-side. A client may only receive
 RTC topic messages for topics it has subscribed to through WebSocket.
@@ -1036,7 +1505,7 @@ The subscription map may be stale. This is acceptable -- Starfish uses
 - A recently unsubscribed client may receive messages it no longer wants.
   The receiver drops them.
 
-### 16.1 Subscription Map Event
+### 17.1 Subscription Map Event
 
 ```json
 {
@@ -1053,7 +1522,7 @@ The subscription map may be stale. This is acceptable -- Starfish uses
 
 ---
 
-## 17. Acknowledgements
+## 18. Acknowledgements
 
 Any frame may request acknowledgement via `options.requireAck: true`.
 
@@ -1108,7 +1577,7 @@ Negative acknowledgement:
 
 ---
 
-## 18. Error Format
+## 19. Error Format
 
 ```typescript
 type StarfishError = {
@@ -1133,33 +1602,40 @@ Error response:
 }
 ```
 
-### 18.1 Error Codes
+### 19.1 Error Codes
 
-| Code                           | Description                          |
-| ------------------------------ | ------------------------------------ |
-| `auth.required`                | Authentication required.             |
-| `auth.failed`                  | Authentication failed.               |
-| `session.not_found`            | Session does not exist.              |
-| `session.full`                 | Session is at capacity.              |
-| `client.not_found`             | Target client not found.             |
-| `topic.invalid`                | Invalid topic name.                  |
-| `topic.not_subscribed`         | Client not subscribed to topic.      |
-| `transport.unavailable`        | Requested transport not available.   |
-| `rtc.failed`                   | RTC connection failed.               |
-| `data.invalid_op`              | Invalid data operation.              |
-| `data.conflict`                | Version mismatch (optimistic concurrency). |
-| `data.forbidden`               | Not authorized for data operation.   |
-| `rate_limited`                 | Client is sending too fast.          |
-| `payload.too_large`            | Payload exceeds size limit.          |
-| `protocol.invalid_frame`       | Malformed frame.                     |
-| `protocol.unsupported_version` | Unsupported protocol version.        |
-| `resume.invalid`               | Resume token is invalid.             |
-| `resume.expired`               | Resume token has expired.            |
-| `internal_error`               | Server internal error.               |
+| Code                           | Description                               |
+| ------------------------------ | ----------------------------------------- |
+| `auth.required`                | Authentication required.                  |
+| `auth.failed`                  | Authentication failed.                    |
+| `session.not_found`            | Session does not exist.                   |
+| `session.full`                 | Session is at capacity.                   |
+| `client.not_found`             | Target client not found.                  |
+| `topic.invalid`                | Invalid topic name.                       |
+| `topic.not_subscribed`         | Client not subscribed to topic.           |
+| `transport.unavailable`        | Requested transport not available.        |
+| `rtc.failed`                   | RTC connection failed.                    |
+| `data.invalid_op`              | Invalid data operation.                   |
+| `data.conflict`                | Version mismatch (optimistic concurrency).|
+| `data.forbidden`               | Not authorized for data operation.        |
+| `pool.not_found`               | Pool does not exist.                      |
+| `pool.not_member`              | Client is not in this pool.               |
+| `pool.target_not_found`        | Claim target is not in the pool.          |
+| `pool.already_matched`         | Target was already matched.               |
+| `pool.mode_mismatch`           | Operation not allowed in this pool mode.  |
+| `pool.role_required`           | Operation requires matchmaker role.       |
+| `pool.invalid_group`           | Group does not match pool's group size.   |
+| `rate_limited`                 | Client is sending too fast.               |
+| `payload.too_large`            | Payload exceeds size limit.               |
+| `protocol.invalid_frame`       | Malformed frame.                          |
+| `protocol.unsupported_version` | Unsupported protocol version.             |
+| `resume.invalid`               | Resume token is invalid.                  |
+| `resume.expired`               | Resume token has expired.                 |
+| `internal_error`               | Server internal error.                    |
 
 ---
 
-## 19. Heartbeats
+## 20. Heartbeats
 
 Starfish uses application-level heartbeats (not WebSocket ping frames) for
 visibility across both transports and to enable latency measurement.
@@ -1195,7 +1671,7 @@ RTC peers MAY send heartbeats over the control channel using the same format.
 
 ---
 
-## 20. Clock Sync
+## 21. Clock Sync
 
 Server time sync is part of the WebSocket control plane.
 
@@ -1238,7 +1714,7 @@ starfish.at(time, callback)    // schedule at server time
 
 ---
 
-## 21. Event Stream
+## 22. Event Stream
 
 All lifecycle and protocol events use normal Starfish frames. The SDK provides
 filtered event streams.
@@ -1251,30 +1727,38 @@ starfish.events$({ topic: "lights" })
 starfish.events$({ from: "client_a7f3" })
 ```
 
-### 21.1 Event Types
+### 22.1 Event Types
 
-| Event type            | Trigger                          |
-| --------------------- | -------------------------------- |
-| `client.connected`    | Client joined session.           |
-| `client.disconnected` | Client left or timed out.        |
-| `session.joined`      | This client joined a session.    |
-| `session.left`        | This client left a session.      |
-| `presence.updated`    | Client presence changed.         |
-| `topic.subscribed`    | Subscription confirmed.          |
-| `topic.unsubscribed`  | Unsubscription confirmed.        |
-| `topic.message`       | Topic message received.          |
-| `client.message`      | Direct message received.         |
-| `data.changed`        | Shared data value changed.       |
-| `rtc.connected`       | RTC peer connection established. |
-| `rtc.disconnected`    | RTC peer connection lost.        |
-| `transport.changed`   | Active transport changed.        |
-| `error`               | Error occurred.                  |
-| `ack`                 | Positive acknowledgement.        |
-| `nack`                | Negative acknowledgement.        |
+| Event type            | Trigger                              |
+| --------------------- | ------------------------------------ |
+| `client.connected`    | Client joined session.               |
+| `client.disconnected` | Client left or timed out.            |
+| `session.joined`      | This client joined a session.        |
+| `session.left`        | This client left a session.          |
+| `presence.updated`    | Client presence changed.             |
+| `topic.subscribed`    | Subscription confirmed.              |
+| `topic.unsubscribed`  | Unsubscription confirmed.            |
+| `topic.message`       | Topic message received.              |
+| `client.message`      | Direct message received.             |
+| `data.changed`        | Shared data value changed.           |
+| `pool.entered`        | This client entered a pool.          |
+| `pool.member.joined`  | Member entered the pool.             |
+| `pool.member.left`    | Member left the pool.                |
+| `pool.matched`        | This client was matched.             |
+| `pool.proposal`       | Received a match proposal.           |
+| `pool.claim.pending`  | Claim recorded, awaiting mutual.     |
+| `pool.claim.rejected` | Proposal was rejected by target.     |
+| `pool.assigned`       | Matchmaker: assignment confirmed.    |
+| `rtc.connected`       | RTC peer connection established.     |
+| `rtc.disconnected`    | RTC peer connection lost.            |
+| `transport.changed`   | Active transport changed.            |
+| `error`               | Error occurred.                      |
+| `ack`                 | Positive acknowledgement.            |
+| `nack`                | Negative acknowledgement.            |
 
 ---
 
-## 22. SDK API Reference
+## 23. SDK API Reference
 
 Recommended JavaScript/TypeScript API surface:
 
@@ -1294,6 +1778,28 @@ const starfish = new StarfishClient({
 // Session
 await starfish.join("show-abc", { name: "projector-left", role: "visuals" })
 await starfish.leave()
+
+// Pools (auto mode — the common case)
+await starfish.pool.enter("distant-touch", { groupSize: 2 })
+await starfish.pool.leave("distant-touch")
+
+// Pools (auto mode with filter)
+await starfish.pool.enter("distant-touch", {
+  groupSize: 2,
+  attributes: { language: "en" },
+  filter: { language: "@self" }
+})
+
+// Pools (claim-based modes)
+await starfish.pool.enter("lobby", { mode: "claim", groupSize: 2 })
+starfish.pool.claim("lobby", "client_b912")
+starfish.pool.accept("lobby", "client_a7f3")   // propose mode
+starfish.pool.reject("lobby", "client_a7f3")   // propose mode
+starfish.pool.members$    // Observable of pool members (claim-based modes only)
+
+// Pools (delegated mode)
+await starfish.pool.enter("lobby", { mode: "delegated", role: "matchmaker" })
+starfish.pool.assign("lobby", [["client_a7f3", "client_b912"]])
 
 // Topics
 starfish.subscribe("lights", msg => { /* callback */ })
@@ -1328,7 +1834,7 @@ starfish.at(serverTime, callback)
 
 ---
 
-## 23. Security Rules
+## 24. Security Rules
 
 Servers MUST enforce the following:
 
@@ -1342,10 +1848,16 @@ Servers MUST enforce the following:
    for data mutations.
 6. WebRTC signaling is only allowed between clients in the same session.
 7. Servers SHOULD support optional session tokens for authentication.
+8. Pool claims and assignments are server-authoritative. The server validates
+   that targets are current pool members before executing any match.
+9. In delegated pool mode, only clients with `role: "matchmaker"` may send
+   `pool.assign`. The server MUST reject `pool.assign` from non-matchmaker
+   clients. The server MUST reject `pool.claim` from any client in an auto
+   or delegated pool.
 
 ---
 
-## 24. Payload Limits
+## 25. Payload Limits
 
 Recommended defaults:
 
@@ -1357,6 +1869,8 @@ Recommended defaults:
 | Presence payload     | 8 KB       |
 | Data value           | 256 KB     |
 | Topic name length    | 128 chars  |
+| Pool name length     | 128 chars  |
+| Pool attributes      | 8 KB       |
 | Client metadata      | 16 KB      |
 
 Large binary assets SHOULD NOT be sent through Starfish frames. Use URLs,
@@ -1364,7 +1878,7 @@ hashes, or external asset references instead.
 
 ---
 
-## 25. Binary Payloads
+## 26. Binary Payloads
 
 v0.1 is JSON-first. Binary support is deferred to a future version.
 
@@ -1389,7 +1903,7 @@ of this specification.
 
 ---
 
-## 26. Versioning
+## 27. Versioning
 
 The protocol version is the `v` field on every frame. Current version: `1`.
 
@@ -1412,14 +1926,14 @@ agree on protocol version `1`.
 
 ---
 
-## 27. Design Principles
+## 28. Design Principles
 
 1. **One envelope, two transports.** Every message uses the same frame format
    regardless of whether it travels over WebSocket or WebRTC.
 
-2. **WebSocket provides correctness.** Session state, subscriptions, data
-   operations, and signaling are always routed through the reliable control
-   plane.
+2. **WebSocket provides correctness.** Session state, subscriptions, pool
+   matching, data operations, and signaling are always routed through the
+   reliable control plane.
 
 3. **WebRTC provides speed.** Low-latency, high-frequency data can bypass the
    server when peer connections are available.
@@ -1427,3 +1941,8 @@ agree on protocol version `1`.
 4. **Creative coders should not need to think about transport.** The SDK
    abstracts transport selection. Users who want control over latency,
    reliability, or topology can opt in via delivery options.
+
+5. **Server provides mechanics, clients provide intelligence.** The server
+   enforces rules (atomicity, authorization, delivery) but does not make
+   application-level decisions. Matching logic, pairing preferences, and
+   session behavior are determined by client code.
