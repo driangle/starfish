@@ -10,6 +10,7 @@ from .emitter import EventStream, Observable, Unsubscribe
 from .events import Events
 from .heartbeat import Heartbeat
 from .messaging import Messaging
+from .pool import Pool, PoolEnteredResult, PoolEnterOptions, PoolMatchResult, PoolMember
 from .presence import Presence
 from .session import ClientInfo, JoinOptions, Session
 from .topics import Topics
@@ -33,6 +34,7 @@ class StarfishClient:
         self._messaging = Messaging(self._connection, self._session)
         self._presence = Presence(self._connection, self._session)
         self._data = Data(self._connection, self._session)
+        self._pool = Pool(self._connection)
 
         self._connection.frames.subscribe(self._handle_frame)
         self._connection.state.subscribe(self._on_state_change)
@@ -48,6 +50,7 @@ class StarfishClient:
         self._topics.handle_frame(frame)
         self._presence.handle_frame(frame)
         self._data.handle_frame(frame)
+        self._pool.handle_frame(frame)
         self._events.dispatch(frame)
 
     @property
@@ -139,6 +142,33 @@ class StarfishClient:
 
     async def get(self, key: str, scope: str = "session") -> DataResult:
         return await self._data.get(key, scope)  # type: ignore[arg-type]
+
+    # --- Pool ---
+
+    async def pool_enter(self, options: PoolEnterOptions) -> PoolEnteredResult:
+        return await self._pool.enter(options)
+
+    async def pool_leave(self, pool: str) -> None:
+        await self._pool.leave(pool)
+
+    async def pool_claim(self, pool: str, target: str) -> None:
+        await self._pool.claim(pool, target)
+
+    async def pool_accept(self, pool: str, from_: str) -> None:
+        await self._pool.accept(pool, from_)
+
+    async def pool_reject(self, pool: str, from_: str) -> None:
+        await self._pool.reject(pool, from_)
+
+    async def pool_assign(self, pool: str, groups: list[list[str]]) -> StarfishFrame:
+        return await self._pool.assign(pool, groups)
+
+    def pool_members(self, pool: str) -> Observable[list[PoolMember]]:
+        return self._pool.members(pool)
+
+    @property
+    def pool_matched(self) -> EventStream[PoolMatchResult]:
+        return self._pool.matched
 
     # --- Events ---
 

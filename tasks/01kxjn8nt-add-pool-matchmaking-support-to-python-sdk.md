@@ -1,13 +1,14 @@
 ---
 title: "Add pool matchmaking support to Python SDK"
 id: "01kxjn8nt"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["pool", "sdk", "python"]
 dependencies: ["01kxjn8kw", "01kxjn8m7"]
 created_at: "2026-07-15"
 phase: v0.1.1
+completed_at: 2026-07-15
 ---
 
 # Add pool matchmaking support to Python SDK
@@ -28,12 +29,12 @@ Create `sdks/python/starfish/pool.py` following the single-responsibility patter
 
 ## Tasks
 
-- [ ] Add pool-related dataclasses to `sdks/python/starfish/pool.py`:
+- [x] Add pool-related dataclasses to `sdks/python/starfish/pool.py`:
   - `PoolEnterOptions` — `pool`, `create`, `mode`, `group_size`, `role`, `attributes`, `filter`
   - `PoolMember` — `id`, `attributes`
   - `PoolMatchResult` — `pool`, `session`, `peers` (list of `PoolMember`)
   - `PoolEnteredResult` — `pool`, `mode`, `group_size`, `members` (list of `PoolMember`, populated in claim-based modes)
-- [ ] Implement `Pool` class in `sdks/python/starfish/pool.py`:
+- [x] Implement `Pool` class in `sdks/python/starfish/pool.py`:
   - `async enter(options: PoolEnterOptions) -> PoolEnteredResult` — sends `pool.enter`, waits for `pool.entered`, raises `RuntimeError` on `pool.not_found` error
   - `async leave(pool: str) -> None` — sends `pool.leave` (fire-and-forget)
   - `async claim(pool: str, target: str) -> None` — sends `pool.claim` (claim/mutual/propose modes)
@@ -43,11 +44,11 @@ Create `sdks/python/starfish/pool.py` following the single-responsibility patter
   - `members(pool: str) -> Observable[list[PoolMember]]` — returns a per-pool observable kept up to date via `pool.member.joined` / `pool.member.left` events (useful for claim-based modes)
   - `matched` — `EventStream[PoolMatchResult]` that fires whenever `pool.matched` arrives
   - `handle_frame(frame: StarfishFrame) -> None` — dispatches incoming pool frames to update `members` observables and emit `matched`
-- [ ] Wire `Pool` into `StarfishClient`:
+- [x] Wire `Pool` into `StarfishClient`:
   - Instantiate `self._pool = Pool(self._connection)` in `__init__`
   - Call `self._pool.handle_frame(frame)` inside `_handle_frame`
   - Expose pool methods as top-level `StarfishClient` methods: `pool_enter`, `pool_leave`, `pool_claim`, `pool_accept`, `pool_reject`, `pool_assign`, `pool_members`, and `pool_matched` property
-- [ ] Write unit tests in `sdks/python/tests/` covering:
+- [x] Write unit tests in `sdks/python/tests/` covering:
   - `enter` in auto mode (minimal payload, no members in response)
   - `enter` in claim mode (response includes member list, `members()` observable populated)
   - `leave` sends correct frame
