@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { Session } from "./session.js";
 import type { StarfishFrame } from "./types.js";
 import type { Client, ClientInfo } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { createTestHub, createTestClient, authenticate } from "./test-helpers.js";
 
 // --- Session class unit tests ---
@@ -74,7 +74,7 @@ describe("Session", () => {
 // --- session.join handler tests ---
 
 describe("session.join", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let client: Client & { sent: StarfishFrame[] };
 
   beforeEach(() => {
@@ -195,7 +195,7 @@ describe("session.join", () => {
 // --- session.leave handler tests ---
 
 describe("session.leave", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let client: Client & { sent: StarfishFrame[] };
 
   beforeEach(() => {
@@ -269,7 +269,7 @@ describe("session.leave", () => {
 // --- requireSession guard ---
 
 describe("requireSession guard", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let client: Client & { sent: StarfishFrame[] };
 
   beforeEach(() => {

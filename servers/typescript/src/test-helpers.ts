@@ -5,9 +5,9 @@ import { Session } from "./session.js";
 import { ResumeRegistry } from "./resume.js";
 import type { StarfishFrame } from "./types.js";
 import type { Client, ClientInfo } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 
-export function createTestHub(): Hub {
+export function createTestHub(): StarfishServer {
   const config = defaultConfig();
   const idGen = new IDGenerator();
   const clients = new Map<string, Client>();
@@ -36,7 +36,7 @@ export function createTestHub(): Hub {
     getOrCreateSession(name: string) {
       let s = sessions.get(name);
       if (s) return s;
-      s = new Session(name, hub as unknown as Hub);
+      s = new Session(name, hub as unknown as StarfishServer);
       sessions.set(name, s);
       return s;
     },
@@ -52,9 +52,9 @@ export function createTestHub(): Hub {
     },
   };
 
-  hub.resumes = new ResumeRegistry(hub as unknown as Hub);
-  hub.handler = new Handler(hub as unknown as Hub);
-  return hub as unknown as Hub;
+  hub.resumes = new ResumeRegistry(hub as unknown as StarfishServer);
+  hub.handler = new Handler(hub as unknown as StarfishServer);
+  return hub as unknown as StarfishServer;
 }
 
 type TestClient = {
@@ -74,7 +74,7 @@ type TestClient = {
 };
 
 export function createTestClient(
-  _hub: Hub,
+  _hub: StarfishServer,
 ): Client & { sent: StarfishFrame[] } {
   const sent: StarfishFrame[] = [];
   const client: TestClient = {
@@ -105,7 +105,7 @@ export function createTestClient(
 }
 
 export function authenticate(
-  hub: Hub,
+  hub: StarfishServer,
   client: Client & { sent: StarfishFrame[] },
 ): void {
   hub.handler.dispatch(client, {

@@ -1,6 +1,6 @@
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import type { ResumeEntry } from "./resume.js";
 import { createErrorFrame, ERR_PAYLOAD_TOO_LARGE } from "./errors.js";
 import { MAX_CLIENT_META_SIZE } from "./limits.js";
@@ -24,7 +24,7 @@ type WelcomePayload = {
 };
 
 export function handleClientHello(
-  hub: Hub,
+  hub: StarfishServer,
   client: Client,
   frame: StarfishFrame,
 ): void {
@@ -43,7 +43,7 @@ export function handleClientHello(
 }
 
 function handleResume(
-  hub: Hub,
+  hub: StarfishServer,
   client: Client,
   frame: StarfishFrame,
   token: string,
@@ -71,7 +71,7 @@ function handleResume(
 }
 
 function handleFreshHello(
-  hub: Hub,
+  hub: StarfishServer,
   client: Client,
   frame: StarfishFrame,
   payload: HelloPayload,
@@ -120,7 +120,7 @@ function restoreClient(client: Client, entry: ResumeEntry): void {
   client.lastActivity = Date.now();
 }
 
-function rejoinSessions(hub: Hub, client: Client, entry: ResumeEntry): void {
+function rejoinSessions(hub: StarfishServer, client: Client, entry: ResumeEntry): void {
   for (const sessName of client.sessions) {
     const sess = hub.getSession(sessName);
     if (!sess) continue;
@@ -142,7 +142,7 @@ function rejoinSessions(hub: Hub, client: Client, entry: ResumeEntry): void {
 }
 
 function sendWelcome(
-  hub: Hub,
+  hub: StarfishServer,
   client: Client,
   frame: StarfishFrame,
   extra: Partial<WelcomePayload>,

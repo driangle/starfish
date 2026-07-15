@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { createTestHub, createTestClient, authenticate } from "./test-helpers.js";
 
-function joinSession(hub: Hub, client: Client & { sent: StarfishFrame[] }, session: string): void {
+function joinSession(hub: StarfishServer, client: Client & { sent: StarfishFrame[] }, session: string): void {
   hub.handler.dispatch(client, {
     v: 1, id: "join", type: "session.join",
     session, payload: { create: true },
@@ -13,7 +13,7 @@ function joinSession(hub: Hub, client: Client & { sent: StarfishFrame[] }, sessi
 }
 
 describe("presence.set", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let c1: Client & { sent: StarfishFrame[] };
   let c2: Client & { sent: StarfishFrame[] };
 

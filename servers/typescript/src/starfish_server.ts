@@ -8,7 +8,7 @@ import { Session } from "./session.js";
 import { ResumeRegistry } from "./resume.js";
 import { HeartbeatChecker } from "./heartbeat.js";
 
-export class Hub {
+export class StarfishServer {
   readonly config: StarfishConfig;
   readonly idGen: IDGenerator;
   readonly handler: Handler;

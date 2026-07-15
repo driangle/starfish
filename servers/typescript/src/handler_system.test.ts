@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { createTestHub, createTestClient, authenticate } from "./test-helpers.js";
 
 describe("clock.sync", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let c: Client & { sent: StarfishFrame[] };
 
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe("clock.sync", () => {
 });
 
 describe("ack", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let c1: Client & { sent: StarfishFrame[] };
   let c2: Client & { sent: StarfishFrame[] };
 
@@ -118,7 +118,7 @@ describe("ack", () => {
 });
 
 describe("nack", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let c1: Client & { sent: StarfishFrame[] };
   let c2: Client & { sent: StarfishFrame[] };
 

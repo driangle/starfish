@@ -1,10 +1,10 @@
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 
 export class HeartbeatChecker {
-  private hub: Hub;
+  private hub: StarfishServer;
   private timer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(hub: Hub) {
+  constructor(hub: StarfishServer) {
     this.hub = hub;
   }
 

@@ -25,13 +25,13 @@ npx @driangle/starfish-server --port 3000
 ### Programmatic
 
 ```typescript
-import { Hub, defaultConfig } from "@driangle/starfish-server";
+import { StarfishServer, defaultConfig } from "@driangle/starfish-server";
 
 const config = defaultConfig();
 config.port = 3000;
 
-const hub = new Hub(config);
-hub.start();
+const server = new StarfishServer(config);
+server.start();
 ```
 
 ## Configuration
@@ -51,7 +51,7 @@ hub.start();
 
 The package exports the core building blocks for extending or embedding the server:
 
-- **`Hub`** — top-level server: manages clients, sessions, and the WebSocket listener
+- **`StarfishServer`** — top-level server: manages clients, sessions, and the WebSocket listener
 - **`Handler`** — frame dispatcher that routes incoming messages to the appropriate handler
 - **`Session`** / **`Client`** — session and client models
 - **`defaultConfig`** / **`StarfishConfig`** — configuration factory and type

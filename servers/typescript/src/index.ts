@@ -72,4 +72,4 @@ export { handlePresenceSet } from "./handler_presence.js";
 
 export { PresenceThrottle } from "./presence.js";
 
-export { Hub } from "./hub.js";
+export { StarfishServer } from "./starfish_server.js";

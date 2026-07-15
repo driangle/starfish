@@ -1,10 +1,10 @@
 import type { StarfishFrame } from "./types.js";
 import { parseTo, includeSelf } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { createErrorFrame, ERR_CLIENT_NOT_FOUND } from "./errors.js";
 
-export function handleClientSend(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleClientSend(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   const session = hub.getSession(frame.session!)!;
   const targets = parseTo(frame.to);
 
@@ -28,7 +28,7 @@ export function handleClientSend(hub: Hub, client: Client, frame: StarfishFrame)
   }
 }
 
-export function handleSessionBroadcast(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleSessionBroadcast(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   const session = hub.getSession(frame.session!)!;
   const excludeId = includeSelf(frame) ? undefined : client.id;
 

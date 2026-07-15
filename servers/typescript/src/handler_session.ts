@@ -1,6 +1,6 @@
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import {
   createErrorFrame,
   ERR_PROTOCOL_INVALID_FRAME,
@@ -17,7 +17,7 @@ type JoinPayload = {
 };
 
 export function requireSession(
-  hub: Hub,
+  hub: StarfishServer,
   fn: HandlerFunc,
 ): HandlerFunc {
   return (client: Client, frame: StarfishFrame) => {
@@ -31,7 +31,7 @@ export function requireSession(
   };
 }
 
-export function handleSessionJoin(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleSessionJoin(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   if (!frame.session) {
     client.sendFrame(
       createErrorFrame(hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME),
@@ -80,7 +80,7 @@ export function handleSessionJoin(hub: Hub, client: Client, frame: StarfishFrame
   );
 }
 
-export function handleSessionLeave(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleSessionLeave(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   if (!frame.session) {
     client.sendFrame(
       createErrorFrame(hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME),
@@ -107,7 +107,7 @@ export function handleSessionLeave(hub: Hub, client: Client, frame: StarfishFram
 }
 
 export function removeClientFromSession(
-  hub: Hub,
+  hub: StarfishServer,
   client: Client,
   sessionName: string,
   reason: string,

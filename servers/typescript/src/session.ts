@@ -1,6 +1,6 @@
 import type { Client, ClientInfo } from "./client.js";
 import type { StarfishFrame } from "./types.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { PresenceThrottle } from "./presence.js";
 import { DataStore } from "./data_store.js";
 
@@ -12,7 +12,7 @@ export class Session {
   private presence: PresenceThrottle;
   private presenceData = new Map<string, unknown>();
 
-  constructor(name: string, hub: Hub) {
+  constructor(name: string, hub: StarfishServer) {
     this.name = name;
     this.presence = new PresenceThrottle(this, hub);
   }

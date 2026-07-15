@@ -1,11 +1,11 @@
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { parseTo } from "./types.js";
 import { createErrorFrame, ERR_PROTOCOL_INVALID_FRAME } from "./errors.js";
 
 export function handleClockSync(
-  hub: Hub,
+  hub: StarfishServer,
   client: Client,
   frame: StarfishFrame,
 ): void {
@@ -21,7 +21,7 @@ export function handleClockSync(
 }
 
 export function handleAck(
-  hub: Hub,
+  hub: StarfishServer,
   client: Client,
   frame: StarfishFrame,
 ): void {
@@ -29,14 +29,14 @@ export function handleAck(
 }
 
 export function handleNack(
-  hub: Hub,
+  hub: StarfishServer,
   client: Client,
   frame: StarfishFrame,
 ): void {
   routeReply(hub, client, frame);
 }
 
-function routeReply(hub: Hub, client: Client, frame: StarfishFrame): void {
+function routeReply(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   if (!frame.replyTo) {
     client.sendFrame(
       createErrorFrame(hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME),

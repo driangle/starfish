@@ -1,7 +1,7 @@
 import type { StarfishFrame } from "./types.js";
 import { parseTo } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import {
   createErrorFrame,
   ERR_PROTOCOL_INVALID_FRAME,
@@ -9,23 +9,23 @@ import {
   ERR_CLIENT_NOT_FOUND,
 } from "./errors.js";
 
-export function handleRTCConnect(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleRTCConnect(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   relayRTC(hub, client, frame);
 }
 
-export function handleRTCOffer(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleRTCOffer(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   relayRTC(hub, client, frame);
 }
 
-export function handleRTCAnswer(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleRTCAnswer(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   relayRTC(hub, client, frame);
 }
 
-export function handleRTCIce(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleRTCIce(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   relayRTC(hub, client, frame);
 }
 
-function relayRTC(hub: Hub, client: Client, frame: StarfishFrame): void {
+function relayRTC(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   const targets = parseTo(frame.to);
   if (targets.length !== 1) {
     client.sendFrame(

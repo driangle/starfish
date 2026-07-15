@@ -1,5 +1,5 @@
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 
 export type ResumeEntry = {
   clientId: string;
@@ -17,9 +17,9 @@ export type ResumeEntry = {
 export class ResumeRegistry {
   private byToken = new Map<string, ResumeEntry>();
   private byClient = new Map<string, string>();
-  private hub: Hub;
+  private hub: StarfishServer;
 
-  constructor(hub: Hub) {
+  constructor(hub: StarfishServer) {
     this.hub = hub;
   }
 

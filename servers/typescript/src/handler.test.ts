@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { validateFrame } from "./client.js";
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { createTestHub, createTestClient } from "./test-helpers.js";
 
 // --- validateFrame tests ---
@@ -87,7 +87,7 @@ describe("validateFrame", () => {
 // --- Handler dispatch tests ---
 
 describe("Handler", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let client: Client & { sent: StarfishFrame[] };
 
   beforeEach(() => {
@@ -131,7 +131,7 @@ describe("Handler", () => {
 // --- client.hello tests ---
 
 describe("client.hello handler", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let client: Client & { sent: StarfishFrame[] };
 
   beforeEach(() => {

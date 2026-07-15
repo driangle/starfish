@@ -1,13 +1,13 @@
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import {
   createErrorFrame,
   ERR_TOPIC_INVALID,
 } from "./errors.js";
 import { MAX_TOPIC_NAME_LENGTH } from "./limits.js";
 
-function validateTopic(hub: Hub, client: Client, frame: StarfishFrame): string | null {
+function validateTopic(hub: StarfishServer, client: Client, frame: StarfishFrame): string | null {
   if (!frame.topic || frame.topic.length > MAX_TOPIC_NAME_LENGTH) {
     client.sendFrame(
       createErrorFrame(hub.idGen, frame.id, ERR_TOPIC_INVALID),
@@ -17,7 +17,7 @@ function validateTopic(hub: Hub, client: Client, frame: StarfishFrame): string |
   return frame.topic;
 }
 
-export function handleTopicSubscribe(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleTopicSubscribe(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   const topic = validateTopic(hub, client, frame);
   if (!topic) return;
 
@@ -43,7 +43,7 @@ export function handleTopicSubscribe(hub: Hub, client: Client, frame: StarfishFr
   sendTopicPeers(hub, session, topic);
 }
 
-export function handleTopicUnsubscribe(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleTopicUnsubscribe(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   const topic = validateTopic(hub, client, frame);
   if (!topic) return;
 
@@ -70,7 +70,7 @@ export function handleTopicUnsubscribe(hub: Hub, client: Client, frame: Starfish
   sendTopicPeers(hub, session, topic);
 }
 
-export function handleTopicPublish(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleTopicPublish(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   const topic = validateTopic(hub, client, frame);
   if (!topic) return;
 
@@ -90,7 +90,7 @@ export function handleTopicPublish(hub: Hub, client: Client, frame: StarfishFram
   }
 }
 
-function sendTopicPeers(hub: Hub, session: { getTopicSubscriberIds(topic: string): string[]; getSubscribers(topic: string): Client[] }, topic: string): void {
+function sendTopicPeers(hub: StarfishServer, session: { getTopicSubscriberIds(topic: string): string[]; getSubscribers(topic: string): Client[] }, topic: string): void {
   const subscriberIds = session.getTopicSubscriberIds(topic);
   const subscribers = session.getSubscribers(topic);
 

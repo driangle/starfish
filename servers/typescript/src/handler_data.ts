@@ -1,6 +1,6 @@
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { ConflictError } from "./data_store.js";
 import {
   createErrorFrame,
@@ -24,7 +24,7 @@ type DataGetPayload = {
   scope: string;
 };
 
-export function handleDataSave(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleDataSave(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   const payload = frame.payload as DataSavePayload | undefined;
   if (
     !payload ||
@@ -104,7 +104,7 @@ export function handleDataSave(hub: Hub, client: Client, frame: StarfishFrame): 
   }
 }
 
-export function handleDataGet(hub: Hub, client: Client, frame: StarfishFrame): void {
+export function handleDataGet(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   const payload = frame.payload as DataGetPayload | undefined;
   if (
     !payload ||

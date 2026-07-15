@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { createTestHub, createTestClient, authenticate } from "./test-helpers.js";
 import { HeartbeatChecker } from "./heartbeat.js";
 
 describe("HeartbeatChecker", () => {
-  let hub: Hub;
+  let hub: StarfishServer;
   let checker: HeartbeatChecker;
 
   beforeEach(() => {

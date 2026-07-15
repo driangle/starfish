@@ -1,6 +1,6 @@
 import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import { createErrorFrame, ERR_AUTH_REQUIRED, ERR_PROTOCOL_INVALID_FRAME } from "./errors.js";
 import {
   requireSession,
@@ -30,10 +30,10 @@ import {
 type HandlerFunc = (client: Client, frame: StarfishFrame) => void;
 
 export class Handler {
-  private hub: Hub;
+  private hub: StarfishServer;
   private handlers = new Map<string, HandlerFunc>();
 
-  constructor(hub: Hub) {
+  constructor(hub: StarfishServer) {
     this.hub = hub;
 
     this.handlers.set("client.hello", (c, f) => handleClientHello(this.hub, c, f));

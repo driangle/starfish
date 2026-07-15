@@ -1,6 +1,6 @@
 import type WebSocket from "ws";
 import type { StarfishFrame } from "./types.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 import {
   createErrorFrame,
   ERR_PROTOCOL_INVALID_FRAME,
@@ -61,11 +61,11 @@ export class Client {
   topics = new Map<string, Set<string>>();
 
   private ws: WebSocket;
-  private hub: Hub;
+  private hub: StarfishServer;
   private sendQueue: string[] = [];
   private closed = false;
 
-  constructor(hub: Hub, ws: WebSocket) {
+  constructor(hub: StarfishServer, ws: WebSocket) {
     this.hub = hub;
     this.ws = ws;
   }

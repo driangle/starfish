@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Hub } from "./hub.js";
+import { StarfishServer } from "./starfish_server.js";
 import { defaultConfig } from "./config.js";
 
 const config = defaultConfig();
@@ -9,5 +9,5 @@ if (portIdx !== -1 && process.argv[portIdx + 1]) {
   config.port = parseInt(process.argv[portIdx + 1], 10);
 }
 
-const hub = new Hub(config);
-hub.start();
+const server = new StarfishServer(config);
+server.start();

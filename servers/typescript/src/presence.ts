@@ -1,5 +1,5 @@
 import type { Session } from "./session.js";
-import type { Hub } from "./hub.js";
+import type { StarfishServer } from "./starfish_server.js";
 
 const PRESENCE_THROTTLE_MS = 50;
 
@@ -10,10 +10,10 @@ const PRESENCE_THROTTLE_MS = 50;
 export class PresenceThrottle {
   private pending = new Map<string, unknown>();
   private session: Session;
-  private hub: Hub;
+  private hub: StarfishServer;
   private timer: ReturnType<typeof setInterval>;
 
-  constructor(session: Session, hub: Hub) {
+  constructor(session: Session, hub: StarfishServer) {
     this.session = session;
     this.hub = hub;
     this.timer = setInterval(() => this.flush(), PRESENCE_THROTTLE_MS);
