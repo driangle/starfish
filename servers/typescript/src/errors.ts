@@ -19,6 +19,13 @@ export const ERR_PROTOCOL_INVALID_FRAME = "protocol.invalid_frame";
 export const ERR_PROTOCOL_UNSUPPORTED_VERSION = "protocol.unsupported_version";
 export const ERR_RESUME_INVALID = "resume.invalid";
 export const ERR_RESUME_EXPIRED = "resume.expired";
+export const ERR_POOL_NOT_FOUND = "pool.not_found";
+export const ERR_POOL_NOT_MEMBER = "pool.not_member";
+export const ERR_POOL_TARGET_NOT_FOUND = "pool.target_not_found";
+export const ERR_POOL_ALREADY_MATCHED = "pool.already_matched";
+export const ERR_POOL_MODE_MISMATCH = "pool.mode_mismatch";
+export const ERR_POOL_ROLE_REQUIRED = "pool.role_required";
+export const ERR_POOL_INVALID_GROUP = "pool.invalid_group";
 export const ERR_INTERNAL_ERROR = "internal_error";
 
 const errorMessages: Record<string, string> = {
@@ -40,6 +47,13 @@ const errorMessages: Record<string, string> = {
   [ERR_PROTOCOL_UNSUPPORTED_VERSION]: "Unsupported protocol version.",
   [ERR_RESUME_INVALID]: "Resume token is invalid.",
   [ERR_RESUME_EXPIRED]: "Resume token has expired.",
+  [ERR_POOL_NOT_FOUND]: "Pool does not exist.",
+  [ERR_POOL_NOT_MEMBER]: "Client is not a member of this pool.",
+  [ERR_POOL_TARGET_NOT_FOUND]: "Target client not found in pool.",
+  [ERR_POOL_ALREADY_MATCHED]: "Target was already matched.",
+  [ERR_POOL_MODE_MISMATCH]: "Operation not allowed in this pool mode.",
+  [ERR_POOL_ROLE_REQUIRED]: "Operation requires matchmaker role.",
+  [ERR_POOL_INVALID_GROUP]: "Group size does not match pool groupSize.",
   [ERR_INTERNAL_ERROR]: "Server internal error.",
 };
 

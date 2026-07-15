@@ -58,6 +58,7 @@ export class Client {
   authenticated = false;
   lastActivity = Date.now();
   sessions = new Set<string>();
+  pools = new Set<string>();
   topics = new Map<string, Set<string>>();
 
   private ws: WebSocket;

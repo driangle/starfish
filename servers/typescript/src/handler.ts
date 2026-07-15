@@ -26,6 +26,8 @@ import {
   handleRTCAnswer,
   handleRTCIce,
 } from "./handler_rtc.js";
+import { handlePoolEnter, handlePoolLeave } from "./handler_pool.js";
+import { handlePoolClaim, handlePoolAccept, handlePoolReject, handlePoolAssign } from "./handler_pool_match.js";
 
 type HandlerFunc = (client: Client, frame: StarfishFrame) => void;
 
@@ -94,6 +96,30 @@ export class Handler {
     this.handlers.set(
       "rtc.ice",
       this.requireAuth(this.requireSession((c, f) => handleRTCIce(this.hub, c, f))),
+    );
+    this.handlers.set(
+      "pool.enter",
+      this.requireAuth((c, f) => handlePoolEnter(this.hub, c, f)),
+    );
+    this.handlers.set(
+      "pool.leave",
+      this.requireAuth((c, f) => handlePoolLeave(this.hub, c, f)),
+    );
+    this.handlers.set(
+      "pool.claim",
+      this.requireAuth((c, f) => handlePoolClaim(this.hub, c, f)),
+    );
+    this.handlers.set(
+      "pool.accept",
+      this.requireAuth((c, f) => handlePoolAccept(this.hub, c, f)),
+    );
+    this.handlers.set(
+      "pool.reject",
+      this.requireAuth((c, f) => handlePoolReject(this.hub, c, f)),
+    );
+    this.handlers.set(
+      "pool.assign",
+      this.requireAuth((c, f) => handlePoolAssign(this.hub, c, f)),
     );
     this.handlers.set(
       "clock.sync",

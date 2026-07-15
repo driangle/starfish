@@ -5,6 +5,7 @@ import { IDGenerator } from "./id.js";
 import { Handler } from "./handler.js";
 import { Client } from "./client.js";
 import { Session } from "./session.js";
+import { Pool, type PoolMode } from "./pool.js";
 import { ResumeRegistry } from "./resume.js";
 import { HeartbeatChecker } from "./heartbeat.js";
 
@@ -16,6 +17,7 @@ export class StarfishServer {
 
   private clients = new Map<string, Client>();
   private sessions = new Map<string, Session>();
+  private pools = new Map<string, Pool>();
   private wss: WebSocketServer;
   private server: http.Server;
   private heartbeat: HeartbeatChecker;
@@ -96,6 +98,23 @@ export class StarfishServer {
       session.destroy();
       this.sessions.delete(name);
     }
+  }
+
+  getPool(name: string): Pool | undefined {
+    return this.pools.get(name);
+  }
+
+  getOrCreatePool(name: string, mode: PoolMode, groupSize: number): Pool {
+    let pool = this.pools.get(name);
+    if (pool) return pool;
+
+    pool = new Pool(name, mode, groupSize);
+    this.pools.set(name, pool);
+    return pool;
+  }
+
+  removePool(name: string): void {
+    this.pools.delete(name);
   }
 
   handleClientDisconnect(client: Client): void {

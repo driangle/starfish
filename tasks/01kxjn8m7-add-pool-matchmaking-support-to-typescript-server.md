@@ -1,12 +1,13 @@
 ---
 title: "Add pool matchmaking support to TypeScript server"
 id: "01kxjn8m7"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["pool", "server", "typescript"]
 created_at: "2026-07-15"
 phase: v0.1.1
+completed_at: 2026-07-15
 ---
 
 # Add pool matchmaking support to TypeScript server
@@ -31,16 +32,16 @@ The existing server at `servers/typescript/src/` follows a handler-per-feature p
 
 ### Data Model
 
-- [ ] Create `servers/typescript/src/pool.ts` — `Pool` class encapsulating all pool state:
+- [x] Create `servers/typescript/src/pool.ts` — `Pool` class encapsulating all pool state:
   - Fields: `name`, `mode`, `groupSize`, `members: Map<clientId, PoolMember>` (role, attributes, filter, pending claims)
   - Auto-mode FIFO queue (ordered list of member IDs for matching)
   - Claim state for claim/mutual/propose modes (pending claims, pending proposals)
   - Helper methods: `addMember`, `removeMember`, `getMembers`, `getMember`, `isMatchmaker`, `getMemberList` (for claim-based member list responses), `tryAutoMatch` (FIFO + filter evaluation), `evaluateFilter` (resolve `@self` references and equality matching)
   - Match execution: `executeMatch(group: string[])` — returns a server-generated session name, removes matched members from the pool, returns list of members to notify
 
-- [ ] Add `pools: Map<string, Pool>` to `StarfishServer` in `servers/typescript/src/starfish_server.ts` with `getPool`, `getOrCreatePool`, and `removePool` methods (mirrors the existing `sessions` pattern)
+- [x] Add `pools: Map<string, Pool>` to `StarfishServer` in `servers/typescript/src/starfish_server.ts` with `getPool`, `getOrCreatePool`, and `removePool` methods (mirrors the existing `sessions` pattern)
 
-- [ ] Add pool error constants to `servers/typescript/src/errors.ts`:
+- [x] Add pool error constants to `servers/typescript/src/errors.ts`:
   - `ERR_POOL_NOT_FOUND = "pool.not_found"`
   - `ERR_POOL_NOT_MEMBER = "pool.not_member"`
   - `ERR_POOL_TARGET_NOT_FOUND = "pool.target_not_found"`
@@ -52,22 +53,22 @@ The existing server at `servers/typescript/src/` follows a handler-per-feature p
 
 ### Pool Entry and Exit
 
-- [ ] Create `servers/typescript/src/handler_pool.ts` — implement all pool message handlers:
+- [x] Create `servers/typescript/src/handler_pool.ts` — implement all pool message handlers:
   - `handlePoolEnter(hub, client, frame)` — validate payload (`pool`, `create`, `mode`, `groupSize`, `role`, `attributes`, `filter`); create pool if `create: true` else error `pool.not_found`; add member; send `pool.entered` response (with `members` list in claim-based modes); broadcast `pool.member.joined` to existing members/matchmakers; trigger `tryAutoMatch` after entry in auto mode
   - `handlePoolLeave(hub, client, frame)` — validate membership; remove member; broadcast `pool.member.left` with `reason: "left"` to relevant observers; destroy pool if empty
 
 ### Member Visibility Events
 
-- [ ] In `handlePoolEnter` and `handlePoolLeave`: broadcast `pool.member.joined` / `pool.member.left` events to the right audience per mode:
+- [x] In `handlePoolEnter` and `handlePoolLeave`: broadcast `pool.member.joined` / `pool.member.left` events to the right audience per mode:
   - Auto mode: no member events
   - Claim-based modes (`claim`, `mutual`, `propose`): broadcast to all current members
   - Delegated mode: broadcast to matchmaker-role members only
 
 ### Auto Mode Matching
 
-- [ ] In `pool.ts`, implement `tryAutoMatch(hub)` — after each `pool.enter` in auto mode, scan the FIFO queue for a pair (or group of `groupSize`) whose filters are mutually satisfied; call `executeMatch` and send `pool.matched` to all matched members; no member-left events are sent in auto mode
+- [x] In `pool.ts`, implement `tryAutoMatch(hub)` — after each `pool.enter` in auto mode, scan the FIFO queue for a pair (or group of `groupSize`) whose filters are mutually satisfied; call `executeMatch` and send `pool.matched` to all matched members; no member-left events are sent in auto mode
 
-- [ ] Implement filter evaluation in `pool.ts`:
+- [x] Implement filter evaluation in `pool.ts`:
   - Resolve `@self` references against the evaluating member's own attributes
   - Equality-check resolved value against target's attributes
   - A missing attribute on the target fails the filter
@@ -75,20 +76,20 @@ The existing server at `servers/typescript/src/` follows a handler-per-feature p
 
 ### Claim-Based Matching
 
-- [ ] Implement `handlePoolClaim(hub, client, frame)` in `handler_pool.ts`:
+- [x] Implement `handlePoolClaim(hub, client, frame)` in `handler_pool.ts`:
   - Validate mode is `claim`, `mutual`, or `propose` (else `pool.mode_mismatch`)
   - Validate target exists in pool (else `pool.target_not_found`)
   - **Claim mode:** immediately call `executeMatch([claimer, target])`; send `pool.matched` to both; broadcast `pool.member.left` with `reason: "matched"` for each matched member to remaining pool members
   - **Mutual mode:** record claim; if target has already claimed claimer, execute match; otherwise respond `pool.claim.pending`
   - **Propose mode:** forward `pool.proposal` to target (including claimer's attributes); record pending proposal
 
-- [ ] Implement `handlePoolAccept(hub, client, frame)` — validate pending proposal exists; call `executeMatch`; send `pool.matched`; broadcast `pool.member.left` with `reason: "matched"` to remaining members
+- [x] Implement `handlePoolAccept(hub, client, frame)` — validate pending proposal exists; call `executeMatch`; send `pool.matched`; broadcast `pool.member.left` with `reason: "matched"` to remaining members
 
-- [ ] Implement `handlePoolReject(hub, client, frame)` — validate pending proposal exists; clear proposal; send `pool.claim.rejected` to original proposer; both remain in pool
+- [x] Implement `handlePoolReject(hub, client, frame)` — validate pending proposal exists; clear proposal; send `pool.claim.rejected` to original proposer; both remain in pool
 
 ### Delegated Mode
 
-- [ ] Implement `handlePoolAssign(hub, client, frame)` in `handler_pool.ts`:
+- [x] Implement `handlePoolAssign(hub, client, frame)` in `handler_pool.ts`:
   - Validate client has `role: "matchmaker"` in the pool (else `pool.role_required`)
   - Validate pool mode is `delegated` (else `pool.mode_mismatch`)
   - For each group in `payload.groups`: validate all member IDs exist in pool (else `pool.target_not_found`) and group length equals `groupSize` (else `pool.invalid_group`)
@@ -96,11 +97,11 @@ The existing server at `servers/typescript/src/` follows a handler-per-feature p
 
 ### Reconnection / Resume
 
-- [ ] When a client disconnects, preserve their pool memberships during the resume window (same pattern as session membership in `resume.ts`). On reconnect, restore pool membership. If the resume window expires without reconnection, remove the member from all pools and broadcast `pool.member.left` with `reason: "timeout"` to the appropriate audience.
+- [x] When a client disconnects, preserve their pool memberships during the resume window (same pattern as session membership in `resume.ts`). On reconnect, restore pool membership. If the resume window expires without reconnection, remove the member from all pools and broadcast `pool.member.left` with `reason: "timeout"` to the appropriate audience.
 
 ### Route Registration
 
-- [ ] Register all pool handlers in `servers/typescript/src/handler.ts` under `requireAuth`:
+- [x] Register all pool handlers in `servers/typescript/src/handler.ts` under `requireAuth`:
   - `pool.enter` → `handlePoolEnter`
   - `pool.leave` → `handlePoolLeave`
   - `pool.claim` → `handlePoolClaim`
@@ -110,7 +111,7 @@ The existing server at `servers/typescript/src/` follows a handler-per-feature p
 
 ### Tests
 
-- [ ] Create `servers/typescript/src/handler_pool.test.ts` covering:
+- [x] Create `servers/typescript/src/handler_pool.test.ts` covering:
   - Auto mode: enter, FIFO match fires when `groupSize` reached, filter matching and filter failures
   - Claim mode: immediate match on claim
   - Mutual mode: pending claim, match fires when both sides claim
