@@ -11,13 +11,13 @@ type PresenceThrottle struct {
 	mu      sync.Mutex
 	pending map[string]json.RawMessage // clientId -> latest presence payload
 	session *Session
-	hub     *Hub
+	hub     *Server
 	ticker  *time.Ticker
 	done    chan struct{}
 }
 
 // NewPresenceThrottle creates a throttle that broadcasts at the configured rate.
-func NewPresenceThrottle(s *Session, hub *Hub) *PresenceThrottle {
+func NewPresenceThrottle(s *Session, hub *Server) *PresenceThrottle {
 	interval := time.Duration(hub.config.PresenceThrottleMs) * time.Millisecond
 	pt := &PresenceThrottle{
 		pending: make(map[string]json.RawMessage),

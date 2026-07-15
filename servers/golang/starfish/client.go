@@ -16,7 +16,7 @@ type Client struct {
 	id   string
 	conn *websocket.Conn
 	send chan []byte
-	hub  *Hub
+	hub  *Server
 
 	// Identity from client.hello
 	name       string
@@ -44,7 +44,7 @@ type Client struct {
 }
 
 // NewClient creates a new Client for a WebSocket connection.
-func NewClient(hub *Hub, conn *websocket.Conn) *Client {
+func NewClient(hub *Server, conn *websocket.Conn) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Client{
 		conn:         conn,

@@ -15,7 +15,7 @@ type Session struct {
 }
 
 // NewSession creates a new session with the given name.
-func NewSession(name string, hub *Hub) *Session {
+func NewSession(name string, hub *Server) *Session {
 	s := &Session{
 		name:    name,
 		clients: make(map[string]*Client),

@@ -27,11 +27,11 @@ type ResumeRegistry struct {
 	byToken map[string]*ResumeEntry
 	// Track active tokens by clientID so we can invalidate on new connection
 	byClient map[string]string // clientID -> token
-	hub      *Hub
+	hub      *Server
 }
 
 // NewResumeRegistry creates a new ResumeRegistry.
-func NewResumeRegistry(hub *Hub) *ResumeRegistry {
+func NewResumeRegistry(hub *Server) *ResumeRegistry {
 	return &ResumeRegistry{
 		byToken:  make(map[string]*ResumeEntry),
 		byClient: make(map[string]string),

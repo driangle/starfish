@@ -15,10 +15,10 @@ func main() {
 	config := starfish.DefaultConfig()
 	config.Addr = *addr
 
-	hub := starfish.NewHub(config)
-	hub.StartHeartbeatChecker()
+	server := starfish.NewServer(config)
+	server.StartHeartbeatChecker()
 
-	http.Handle("/starfish", hub)
+	http.Handle("/starfish", server)
 
 	log.Printf("Starfish server listening on %s", config.Addr)
 	if err := http.ListenAndServe(config.Addr, nil); err != nil {

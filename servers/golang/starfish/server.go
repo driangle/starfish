@@ -40,8 +40,8 @@ func DefaultConfig() *Config {
 	}
 }
 
-// Hub is the central coordinator for all clients and sessions.
-type Hub struct {
+// Server is the central coordinator for all clients and sessions.
+type Server struct {
 	mu       sync.RWMutex
 	clients  map[string]*Client  // clientId -> *Client
 	sessions map[string]*Session // sessionName -> *Session
@@ -51,9 +51,9 @@ type Hub struct {
 	handler  *Handler
 }
 
-// NewHub creates a new Hub with the given configuration.
-func NewHub(config *Config) *Hub {
-	h := &Hub{
+// NewServer creates a new Server with the given configuration.
+func NewServer(config *Config) *Server {
+	h := &Server{
 		clients:  make(map[string]*Client),
 		sessions: make(map[string]*Session),
 		config:   config,
@@ -65,7 +65,7 @@ func NewHub(config *Config) *Hub {
 }
 
 // ServeHTTP handles WebSocket upgrade requests at /starfish.
-func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		InsecureSkipVerify: true, // Accept all origins for dev; configure in production
 	})
@@ -80,7 +80,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // RegisterClient registers an authenticated client in the hub.
-func (h *Hub) RegisterClient(c *Client) {
+func (h *Server) RegisterClient(c *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.clients[c.id] = c
@@ -88,7 +88,7 @@ func (h *Hub) RegisterClient(c *Client) {
 
 // RemoveClient handles a client disconnect.
 // Moves state to the resume registry and removes from sessions after timeout.
-func (h *Hub) RemoveClient(c *Client) {
+func (h *Server) RemoveClient(c *Client) {
 	h.mu.Lock()
 	_, registered := h.clients[c.id]
 	if registered {
@@ -105,21 +105,21 @@ func (h *Hub) RemoveClient(c *Client) {
 }
 
 // GetClient returns a registered client by ID, or nil.
-func (h *Hub) GetClient(clientID string) *Client {
+func (h *Server) GetClient(clientID string) *Client {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return h.clients[clientID]
 }
 
 // GetSession returns a session by name, or nil.
-func (h *Hub) GetSession(name string) *Session {
+func (h *Server) GetSession(name string) *Session {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return h.sessions[name]
 }
 
 // GetOrCreateSession returns an existing session or creates one.
-func (h *Hub) GetOrCreateSession(name string) *Session {
+func (h *Server) GetOrCreateSession(name string) *Session {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -133,7 +133,7 @@ func (h *Hub) GetOrCreateSession(name string) *Session {
 }
 
 // RemoveSession removes an empty session.
-func (h *Hub) RemoveSession(name string) {
+func (h *Server) RemoveSession(name string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -144,7 +144,7 @@ func (h *Hub) RemoveSession(name string) {
 }
 
 // StartHeartbeatChecker starts a goroutine that checks for stale clients.
-func (h *Hub) StartHeartbeatChecker() {
+func (h *Server) StartHeartbeatChecker() {
 	go func() {
 		ticker := time.NewTicker(h.config.HeartbeatInterval)
 		defer ticker.Stop()
@@ -155,7 +155,7 @@ func (h *Hub) StartHeartbeatChecker() {
 	}()
 }
 
-func (h *Hub) checkHeartbeats() {
+func (h *Server) checkHeartbeats() {
 	h.mu.RLock()
 	clients := make([]*Client, 0, len(h.clients))
 	for _, c := range h.clients {

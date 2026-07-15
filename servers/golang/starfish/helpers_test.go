@@ -14,7 +14,7 @@ import (
 
 // testEnv wraps a test server and provides helpers.
 type testEnv struct {
-	hub    *starfish.Hub
+	hub    *starfish.Server
 	server *httptest.Server
 }
 
@@ -26,7 +26,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	config.ResumeTimeout = 500 * time.Millisecond
 	config.PresenceThrottleMs = 10 // Fast for tests
 
-	hub := starfish.NewHub(config)
+	hub := starfish.NewServer(config)
 	server := httptest.NewServer(hub)
 	t.Cleanup(func() { server.Close() })
 

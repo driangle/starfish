@@ -7,12 +7,12 @@ type HandlerFunc func(c *Client, f *Frame)
 
 // Handler dispatches incoming frames to the appropriate handler function.
 type Handler struct {
-	hub      *Hub
+	hub      *Server
 	handlers map[string]HandlerFunc
 }
 
 // NewHandler creates a Handler with all message type handlers registered.
-func NewHandler(hub *Hub) *Handler {
+func NewHandler(hub *Server) *Handler {
 	h := &Handler{
 		hub:      hub,
 		handlers: make(map[string]HandlerFunc),
