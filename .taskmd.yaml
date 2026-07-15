@@ -6,6 +6,9 @@ phases:
   - id: v0.1
     name: "v0.1"
     description: "Ship what's built — publish packages, documentation, and polish"
+  - id: v0.1.1
+    name: "v0.1.1"
+    description: "Pool matchmaking — server-managed pairing for peer-to-peer experiences"
   - id: v0.2
     name: "v0.2"
     description: "Complete SDK/server matrix — Go SDK and Python server"
