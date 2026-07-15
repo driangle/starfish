@@ -21,6 +21,7 @@ import { Messaging } from "./messaging.js";
 import { Presence } from "./presence.js";
 import { Data } from "./data.js";
 import { RTC } from "./rtc.js";
+import { Pool } from "./pool.js";
 import { Observable, EventStream, type Unsubscribe } from "./emitter.js";
 
 export class StarfishClient {
@@ -33,6 +34,7 @@ export class StarfishClient {
   private _presence: Presence;
   private _data: Data;
   private _rtc: RTC | null;
+  private _pool: Pool;
 
   readonly clock: Clock;
 
@@ -47,6 +49,7 @@ export class StarfishClient {
     this._messaging = new Messaging(this.connection, this._session, this._rtc);
     this._presence = new Presence(this.connection, this._session);
     this._data = new Data(this.connection, this._session);
+    this._pool = new Pool(this.connection, this._session);
 
     this.connection.frames$.subscribe((frame) => {
       if (frame.type.startsWith("rtc.") && this._rtc) {
@@ -70,6 +73,7 @@ export class StarfishClient {
     this._messaging.handleFrame(frame);
     this._presence.handleFrame(frame);
     this._data.handleFrame(frame);
+    this._pool.handleFrame(frame);
   }
 
   get connection$(): Observable<ConnectionState> {
@@ -87,6 +91,7 @@ export class StarfishClient {
   async disconnect(): Promise<void> {
     this.heartbeat.stop();
     this._presence.clear();
+    this._pool.clear();
     this._rtc?.closeAll();
     await this.connection.disconnect();
   }
@@ -105,6 +110,7 @@ export class StarfishClient {
 
   async leave(): Promise<void> {
     this._presence.clear();
+    this._pool.clear();
     this._rtc?.closeAll();
     return this._session.leave();
   }
@@ -147,23 +153,21 @@ export class StarfishClient {
   get presence(): Presence {
     return this._presence;
   }
-
+  get pool(): Pool {
+    return this._pool;
+  }
   get presence$(): Observable<Map<string, any>> {
     return this._presence.presence$;
   }
-
   async save(options: SaveOptions): Promise<DataResult> {
     return this._data.save(options);
   }
-
   async get(options: { key: string; scope: "self" | "session" }): Promise<DataResult> {
     return this._data.get(options);
   }
-
   get changed$(): EventStream<DataResult> {
     return this._data.changed$;
   }
-
   key$(key: string): EventStream<DataResult> {
     return this._data.key$(key);
   }
@@ -181,19 +185,15 @@ export class StarfishClient {
   get rtcPeers$(): Observable<RTCPeerInfo[]> | null {
     return this._rtc?.rtcPeers$ ?? null;
   }
-
   async connectRTC(peerId: string, channels?: string[]): Promise<void> {
     return this.rtc.connect(peerId, channels);
   }
-
   disconnectRTC(peerId: string): void {
     this.rtc.disconnect(peerId);
   }
-
   events$(filter?: EventFilter): EventStream<StarfishFrame> {
     return this._events.events$(filter);
   }
-
   on(callback: (frame: StarfishFrame) => void): Unsubscribe {
     return this._events.subscribe(callback);
   }

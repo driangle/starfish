@@ -27,6 +27,15 @@ export type {
   RTCPeerInfo,
 } from "./types.js";
 
+export type {
+  PoolMode,
+  PoolRole,
+  PoolMember,
+  PoolEnterOptions,
+  PoolMatchedEvent,
+} from "./pool-types.js";
+
 export { Observable, EventStream, type Unsubscribe } from "./emitter.js";
 export { Clock } from "./clock.js";
 export { Presence } from "./presence.js";
+export { Pool } from "./pool.js";
