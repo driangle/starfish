@@ -33,6 +33,9 @@ type Client struct {
 	// Presence per session: sessionName -> presence payload
 	presence map[string]json.RawMessage
 
+	// Pool memberships: poolName -> true
+	pools map[string]bool
+
 	// Heartbeat tracking
 	lastActivity time.Time
 
@@ -53,6 +56,7 @@ func NewClient(hub *Server, conn *websocket.Conn) *Client {
 		sessions:     make(map[string]bool),
 		topics:       make(map[string]map[string]bool),
 		presence:     make(map[string]json.RawMessage),
+		pools:        make(map[string]bool),
 		lastActivity: time.Now(),
 		ctx:          ctx,
 		cancel:       cancel,

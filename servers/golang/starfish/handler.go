@@ -47,6 +47,14 @@ func NewHandler(hub *Server) *Handler {
 	h.handlers["ack"] = h.requireAuth(h.handleAck)
 	h.handlers["nack"] = h.requireAuth(h.handleNack)
 
+	// Pools
+	h.handlers["pool.enter"] = h.requireAuth(h.handlePoolEnter)
+	h.handlers["pool.leave"] = h.requireAuth(h.handlePoolLeave)
+	h.handlers["pool.claim"] = h.requireAuth(h.handlePoolClaim)
+	h.handlers["pool.accept"] = h.requireAuth(h.handlePoolAccept)
+	h.handlers["pool.reject"] = h.requireAuth(h.handlePoolReject)
+	h.handlers["pool.assign"] = h.requireAuth(h.handlePoolAssign)
+
 	// RTC signaling
 	h.handlers["rtc.connect"] = h.requireAuth(h.handleRTCConnect)
 	h.handlers["rtc.offer"] = h.requireAuth(h.handleRTCOffer)

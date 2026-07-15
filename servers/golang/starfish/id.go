@@ -35,3 +35,10 @@ func (g *IDGenerator) ResumeToken() string {
 func (g *IDGenerator) MessageID() string {
 	return fmt.Sprintf("srv_%d", g.msgCounter.Add(1))
 }
+
+// SessionName generates a unique session name for pool matches.
+func (g *IDGenerator) SessionName() string {
+	b := make([]byte, 4)
+	rand.Read(b)
+	return "match_" + hex.EncodeToString(b)
+}

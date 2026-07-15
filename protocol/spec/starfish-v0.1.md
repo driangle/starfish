@@ -1809,6 +1809,8 @@ starfish.topic$("lights")  // Observable stream
 
 // Direct messaging
 starfish.send("client_b912", { gesture: "freeze" })
+starfish.messages$                    // all incoming direct messages
+starfish.messagesFrom$("client_b912") // messages from a specific peer
 
 // Broadcast
 starfish.broadcast({ cue: "start" }, { includeSelf: false })
@@ -1822,9 +1824,10 @@ starfish.presence.set({ role: "dancer", color: "red", x: 0.4, y: 0.8 })
 starfish.presence$   // Observable of all presence
 
 // Observables
-starfish.clients$    // current client list
-starfish.peers$      // other clients in session
-starfish.events$(filter)  // filtered event stream
+starfish.clients$            // current client list
+starfish.peers$              // other clients in session
+starfish.messages$           // incoming direct messages
+starfish.events$(filter)     // filtered event stream
 
 // Clock
 await starfish.clock.sync()

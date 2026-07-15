@@ -1,13 +1,14 @@
 ---
 title: "Add pool matchmaking support to Go server"
 id: "01kxjn8kw"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["pool", "server", "golang"]
 dependencies: ["01kwyst5m", "01kx4bgce"]
 created_at: "2026-07-15"
 phase: v0.1.1
+completed_at: 2026-07-15
 ---
 
 # Add pool matchmaking support to Go server
@@ -20,23 +21,23 @@ The implementation should follow the same patterns established in the existing h
 
 ## Tasks
 
-- [ ] Add pool error codes to `errors.go`: `pool.not_found`, `pool.not_member`, `pool.target_not_found`, `pool.already_matched`, `pool.mode_mismatch`, `pool.role_required`, `pool.invalid_group`
-- [ ] Create `pool.go` with the `Pool` struct, `PoolMember` struct, and pool-level methods (create, add/remove members, FIFO auto-match, filter evaluation, claim tracking, match execution, broadcast helpers)
-- [ ] Add pool registry to `Server` in `server.go` (`pools map[string]*Pool`) with `GetPool`, `GetOrCreatePool`, `RemovePool` methods
-- [ ] Add pool membership tracking to `Client` in `client.go` (`pools map[string]bool`) so memberships survive resume
-- [ ] Add pool membership to `ResumeEntry` in `resume.go` and restore/expire logic (emit `pool.member.left` with `reason: "timeout"` on expiry)
-- [ ] Create `handler_pool.go` with handlers for all pool message types:
+- [x] Add pool error codes to `errors.go`: `pool.not_found`, `pool.not_member`, `pool.target_not_found`, `pool.already_matched`, `pool.mode_mismatch`, `pool.role_required`, `pool.invalid_group`
+- [x] Create `pool.go` with the `Pool` struct, `PoolMember` struct, and pool-level methods (create, add/remove members, FIFO auto-match, filter evaluation, claim tracking, match execution, broadcast helpers)
+- [x] Add pool registry to `Server` in `server.go` (`pools map[string]*Pool`) with `GetPool`, `GetOrCreatePool`, `RemovePool` methods
+- [x] Add pool membership tracking to `Client` in `client.go` (`pools map[string]bool`) so memberships survive resume
+- [x] Add pool membership to `ResumeEntry` in `resume.go` and restore/expire logic (emit `pool.member.left` with `reason: "timeout"` on expiry)
+- [x] Create `handler_pool.go` with handlers for all pool message types:
   - `pool.enter`: validate payload, create or look up pool, add member, send `pool.entered`, broadcast `pool.member.joined` per mode rules, trigger auto-match if applicable
   - `pool.leave`: remove member, send confirmation, broadcast `pool.member.left` with `reason: "left"`, destroy pool if empty
   - `pool.claim`: enforce claim-based mode only; implement `claim` (immediate match), `mutual` (pending until reciprocal, send `pool.claim.pending`), and `propose` (send `pool.proposal` to target; handle `pool.accept`/`pool.reject` responses)
   - `pool.accept`: resolve pending proposal, execute match
   - `pool.reject`: clear pending proposal, send `pool.claim.rejected` to claimer
   - `pool.assign`: delegated mode only, matchmaker-role only; validate groups against `groupSize`, execute matches, send `pool.assigned` to matchmaker
-- [ ] Register all pool message types in `handler.go`
-- [ ] Implement auto-match FIFO loop in `pool.go`: after each `pool.enter`, scan the waiting queue for the first pair (or group, for `groupSize > 2`) where all bilateral filters are satisfied; execute match atomically
-- [ ] Implement filter evaluation: support literal equality and `@self` references; a match requires both members' filters to be satisfied by the other's attributes
-- [ ] Implement match execution helper: generate a unique session name, send `pool.matched` to each matched member, remove them from the pool, broadcast `pool.member.left` with `reason: "matched"` per mode visibility rules
-- [ ] Write integration tests in `integration_advanced_test.go` covering: auto mode FIFO pair match, auto mode with `@self` filter, claim mode immediate match, mutual mode pending and reciprocal confirm, propose mode accept and reject flows, delegated mode matchmaker assign, resume window preserves pool membership, pool destroyed when last member leaves
+- [x] Register all pool message types in `handler.go`
+- [x] Implement auto-match FIFO loop in `pool.go`: after each `pool.enter`, scan the waiting queue for the first pair (or group, for `groupSize > 2`) where all bilateral filters are satisfied; execute match atomically
+- [x] Implement filter evaluation: support literal equality and `@self` references; a match requires both members' filters to be satisfied by the other's attributes
+- [x] Implement match execution helper: generate a unique session name, send `pool.matched` to each matched member, remove them from the pool, broadcast `pool.member.left` with `reason: "matched"` per mode visibility rules
+- [x] Write integration tests in `integration_advanced_test.go` covering: auto mode FIFO pair match, auto mode with `@self` filter, claim mode immediate match, mutual mode pending and reciprocal confirm, propose mode accept and reject flows, delegated mode matchmaker assign, resume window preserves pool membership, pool destroyed when last member leaves
 
 ## Acceptance Criteria
 

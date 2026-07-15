@@ -23,6 +23,15 @@ const (
 	ErrResumeInvalid          = "resume.invalid"
 	ErrResumeExpired          = "resume.expired"
 	ErrInternalError          = "internal_error"
+
+	// Pool errors
+	ErrPoolNotFound       = "pool.not_found"
+	ErrPoolNotMember      = "pool.not_member"
+	ErrPoolTargetNotFound = "pool.target_not_found"
+	ErrPoolAlreadyMatched = "pool.already_matched"
+	ErrPoolModeMismatch   = "pool.mode_mismatch"
+	ErrPoolRoleRequired   = "pool.role_required"
+	ErrPoolInvalidGroup   = "pool.invalid_group"
 )
 
 // Error messages matching the spec.
@@ -46,6 +55,15 @@ var errorMessages = map[string]string{
 	ErrResumeInvalid:          "Resume token is invalid.",
 	ErrResumeExpired:          "Resume token has expired.",
 	ErrInternalError:          "Server internal error.",
+
+	// Pool errors
+	ErrPoolNotFound:       "Pool does not exist.",
+	ErrPoolNotMember:      "Client is not in this pool.",
+	ErrPoolTargetNotFound: "Claim target is not in the pool.",
+	ErrPoolAlreadyMatched: "Target was already matched.",
+	ErrPoolModeMismatch:   "Operation not allowed in this pool mode.",
+	ErrPoolRoleRequired:   "Operation requires matchmaker role.",
+	ErrPoolInvalidGroup:   "Group does not match pool's group size.",
 }
 
 // NewErrorFrame creates an error response frame.

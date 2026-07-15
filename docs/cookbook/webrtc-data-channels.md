@@ -34,10 +34,12 @@ await client.join("my-session");
 const peerId = "client-abc";
 await client.connectRTC(peerId, ["control", "stream"]);
 
-// Send directly over the RTC data channel
-client.sendRTC(peerId, "stream", { cursor: { x: 100, y: 200 } });
+// Send via RTC using delivery options
+client.send(peerId, { cursor: { x: 100, y: 200 } }, {
+  delivery: { reliability: "unreliable" },
+});
 
-// Use preferTransport to automatically route via RTC
+// Use preferTransport to explicitly route via RTC
 client.publish("cursors", { x: 100, y: 200 }, {
   delivery: {
     preferTransport: "rtc",
@@ -102,9 +104,13 @@ client.peers$.subscribe((peers) => {
 // Connect with custom channels
 await client.connectRTC(peerId, ["audio", "video", "control"]);
 
-// Send on custom channels
-client.sendRTC(peerId, "audio", audioLevelData);
-client.sendRTC(peerId, "video", frameData);
+// Send on custom channels via delivery options
+client.send(peerId, audioLevelData, {
+  delivery: { preferTransport: "rtc", reliability: "unreliable" },
+});
+client.send(peerId, frameData, {
+  delivery: { preferTransport: "rtc", reliability: "unreliable" },
+});
 ```
 
 ### Mixed transport messaging

@@ -45,6 +45,7 @@ type Server struct {
 	mu       sync.RWMutex
 	clients  map[string]*Client  // clientId -> *Client
 	sessions map[string]*Session // sessionName -> *Session
+	pools    map[string]*Pool    // poolName -> *Pool
 	resumes  *ResumeRegistry
 	config   *Config
 	idGen    *IDGenerator
@@ -56,6 +57,7 @@ func NewServer(config *Config) *Server {
 	h := &Server{
 		clients:  make(map[string]*Client),
 		sessions: make(map[string]*Session),
+		pools:    make(map[string]*Pool),
 		config:   config,
 		idGen:    NewIDGenerator(),
 	}

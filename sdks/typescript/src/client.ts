@@ -67,6 +67,7 @@ export class StarfishClient {
     this._events.dispatch(frame);
     this._session.handleFrame(frame);
     this._topics.handleFrame(frame);
+    this._messaging.handleFrame(frame);
     this._presence.handleFrame(frame);
     this._data.handleFrame(frame);
   }
@@ -131,6 +132,14 @@ export class StarfishClient {
     this._messaging.send(to, payload, options);
   }
 
+  get messages$(): EventStream<StarfishFrame> {
+    return this._messaging.messages$;
+  }
+
+  messagesFrom$(peerId: string): EventStream<StarfishFrame> {
+    return this._messaging.messagesFrom$(peerId);
+  }
+
   broadcast(payload: any, options?: FrameOptions): void {
     this._messaging.broadcast(payload, options);
   }
@@ -181,19 +190,11 @@ export class StarfishClient {
     this.rtc.disconnect(peerId);
   }
 
-  sendRTC(peerId: string, channel: string, payload: any): void {
-    this.rtc.send(peerId, channel, payload);
-  }
-
   events$(filter?: EventFilter): EventStream<StarfishFrame> {
     return this._events.events$(filter);
   }
 
   on(callback: (frame: StarfishFrame) => void): Unsubscribe {
     return this._events.subscribe(callback);
-  }
-
-  at(serverTime: number, callback: () => void): ReturnType<typeof setTimeout> {
-    return this.clock.at(serverTime, callback);
   }
 }

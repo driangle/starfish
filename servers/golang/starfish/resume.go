@@ -18,14 +18,14 @@ type ResumeEntry struct {
 	sessions   map[string]bool
 	topics     map[string]map[string]bool
 	presence   map[string]json.RawMessage
+	pools      map[string]*ResumePoolEntry
 	timer      *time.Timer
 }
 
 // ResumeRegistry manages resume tokens and disconnected client state.
 type ResumeRegistry struct {
-	mu      sync.Mutex
-	byToken map[string]*ResumeEntry
-	// Track active tokens by clientID so we can invalidate on new connection
+	mu       sync.Mutex
+	byToken  map[string]*ResumeEntry
 	byClient map[string]string // clientID -> token
 	hub      *Server
 }
@@ -44,7 +44,6 @@ func (r *ResumeRegistry) RegisterToken(c *Client, token string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Invalidate any previous token for this client
 	if oldToken, ok := r.byClient[c.id]; ok {
 		if entry, ok := r.byToken[oldToken]; ok {
 			if entry.timer != nil {
@@ -64,12 +63,12 @@ func (r *ResumeRegistry) Store(c *Client) {
 	token, hasToken := r.byClient[c.id]
 	if !hasToken {
 		r.mu.Unlock()
-		// No token registered -- client never completed handshake, just clean up
 		r.expireClient(c)
 		return
 	}
 
 	c.mu.Lock()
+	poolNames := copyStringBoolMap(c.pools)
 	entry := &ResumeEntry{
 		clientID:   c.id,
 		token:      token,
@@ -83,6 +82,8 @@ func (r *ResumeRegistry) Store(c *Client) {
 	}
 	c.mu.Unlock()
 
+	entry.pools = r.snapshotPoolState(c.id, poolNames)
+
 	entry.timer = time.AfterFunc(r.hub.config.ResumeTimeout, func() {
 		r.expire(token)
 	})
@@ -94,7 +95,6 @@ func (r *ResumeRegistry) Store(c *Client) {
 }
 
 // Restore attempts to restore a client's state using a resume token.
-// Returns nil if the token is invalid or expired.
 func (r *ResumeRegistry) Restore(token string) *ResumeEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -104,7 +104,6 @@ func (r *ResumeRegistry) Restore(token string) *ResumeEntry {
 		return nil
 	}
 
-	// Stop the expiry timer
 	entry.timer.Stop()
 	delete(r.byToken, token)
 	delete(r.byClient, entry.clientID)
@@ -127,57 +126,37 @@ func (r *ResumeRegistry) expire(token string) {
 
 	log.Printf("client %s resume expired, cleaning up", entry.clientID)
 
-	// Broadcast client.disconnected to all sessions
-	for sessName := range entry.sessions {
-		sess := r.hub.GetSession(sessName)
-		if sess == nil {
-			continue
-		}
-
-		empty := sess.RemoveClient(entry.clientID)
-
-		dcPayload, _ := json.Marshal(struct {
-			ClientID string `json:"clientId"`
-			Reason   string `json:"reason"`
-		}{
-			ClientID: entry.clientID,
-			Reason:   "timeout",
-		})
-
-		sess.Broadcast(&Frame{
-			V:       1,
-			ID:      r.hub.idGen.MessageID(),
-			Type:    "client.disconnected",
-			Session: sessName,
-			Payload: dcPayload,
-		}, "")
-
-		if empty {
-			r.hub.RemoveSession(sessName)
-		}
-	}
+	r.expireSessions(entry.clientID, entry.sessions, "timeout")
+	r.expirePoolMemberships(entry.clientID, entry.pools, "timeout")
 }
 
 // expireClient cleans up a client that had no resume token.
 func (r *ResumeRegistry) expireClient(c *Client) {
 	c.mu.Lock()
 	sessions := copyStringBoolMap(c.sessions)
+	pools := copyStringBoolMap(c.pools)
 	c.mu.Unlock()
 
+	r.expireSessions(c.id, sessions, "left")
+	r.expirePoolMembershipsByName(c.id, pools, "disconnected")
+}
+
+// expireSessions broadcasts client.disconnected and removes from all sessions.
+func (r *ResumeRegistry) expireSessions(clientID string, sessions map[string]bool, reason string) {
 	for sessName := range sessions {
 		sess := r.hub.GetSession(sessName)
 		if sess == nil {
 			continue
 		}
 
-		empty := sess.RemoveClient(c.id)
+		empty := sess.RemoveClient(clientID)
 
 		dcPayload, _ := json.Marshal(struct {
 			ClientID string `json:"clientId"`
 			Reason   string `json:"reason"`
 		}{
-			ClientID: c.id,
-			Reason:   "left",
+			ClientID: clientID,
+			Reason:   reason,
 		})
 
 		sess.Broadcast(&Frame{

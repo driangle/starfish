@@ -3,6 +3,7 @@ import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 import type { RTC } from "./rtc.js";
 import { selectTransport, type RTCState } from "./transport.js";
+import { EventStream } from "./emitter.js";
 import { nextId } from "./id.js";
 
 export class Messaging {
@@ -10,10 +11,28 @@ export class Messaging {
   private session: Session;
   private rtc: RTC | null;
 
+  readonly messages$ = new EventStream<StarfishFrame>();
+
   constructor(connection: Connection, session: Session, rtc: RTC | null = null) {
     this.connection = connection;
     this.session = session;
     this.rtc = rtc;
+  }
+
+  handleFrame(frame: StarfishFrame): void {
+    if (frame.type === "client.message") {
+      this.messages$.emit(frame);
+    }
+  }
+
+  messagesFrom$(peerId: string): EventStream<StarfishFrame> {
+    const filtered = new EventStream<StarfishFrame>();
+    this.messages$.subscribe((frame) => {
+      if (frame.from === peerId) {
+        filtered.emit(frame);
+      }
+    });
+    return filtered;
   }
 
   send(to: string | string[], payload: any, options?: FrameOptions): void {

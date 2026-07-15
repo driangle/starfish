@@ -59,11 +59,23 @@ func (h *Handler) handleClientHello(c *Client, f *Frame) {
 			c.sessions = entry.sessions
 			c.topics = entry.topics
 			c.presence = entry.presence
+			c.pools = make(map[string]bool)
+			for poolName := range entry.pools {
+				c.pools[poolName] = true
+			}
 			c.authenticated = true
 			c.lastActivity = now
 			c.mu.Unlock()
 
 			h.hub.RegisterClient(c)
+
+			// Re-add client to pools
+			for poolName, poolEntry := range entry.pools {
+				pool := h.hub.GetPool(poolName)
+				if pool != nil {
+					pool.RestoreMember(c, poolEntry.Attributes, poolEntry.Filter, poolEntry.Role)
+				}
+			}
 
 			// Re-add client to sessions
 			sessionNames := make([]string, 0, len(c.sessions))

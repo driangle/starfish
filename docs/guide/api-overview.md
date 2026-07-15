@@ -35,6 +35,8 @@
 |--------|---------|-------------|
 | `send(to, payload, options?)` | `void` | Send to specific client(s) |
 | `broadcast(payload, options?)` | `void` | Send to all clients in the session |
+| `messages$` | `EventStream<StarfishFrame>` | All incoming direct messages |
+| `messagesFrom$(peerId)` | `EventStream<StarfishFrame>` | Messages from a specific peer |
 
 ### Presence
 
@@ -58,7 +60,6 @@
 |--------|---------|-------------|
 | `connectRTC(peerId, channels?)` | `Promise<void>` | Open RTC connection to a peer |
 | `disconnectRTC(peerId)` | `void` | Close RTC connection |
-| `sendRTC(peerId, channel, payload)` | `void` | Send via RTC data channel |
 | `rtcPeers$` | `Observable<RTCPeerInfo[]> \| null` | RTC peer connection states |
 
 ### Events

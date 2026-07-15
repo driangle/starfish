@@ -1,12 +1,13 @@
 ---
 title: "Review and refine SDK API symmetry for send/receive patterns"
 id: "01kxjjzqb"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["protocol", "sdk", "api-design"]
 created_at: "2026-07-15"
 phase: v0.1.1
+completed_at: 2026-07-15
 ---
 
 # Review and refine SDK API symmetry for send/receive patterns
@@ -48,11 +49,11 @@ The developer should critically review these proposals before accepting or modif
 
 ## Tasks
 
-- [ ] Review the current SDK API surface in `sdks/typescript/src/client.ts` and the protocol spec section 23
-- [ ] Evaluate the `messages$` / `messagesFrom$` proposal — decide if it should be adopted, modified, or rejected
-- [ ] Evaluate the `sendRTC` removal proposal — decide if transport should only be a delivery option or if a convenience method is warranted
-- [ ] If changes are accepted, update the SDK API Reference in `protocol/spec/starfish-v0.1.md` section 23
-- [ ] If changes are accepted, update `sdks/typescript/src/client.ts` and related modules
+- [x] Review the current SDK API surface in `sdks/typescript/src/client.ts` and the protocol spec section 23
+- [x] Evaluate the `messages$` / `messagesFrom$` proposal — ACCEPTED: adds symmetry with topics/presence/data patterns
+- [x] Evaluate the `sendRTC` removal proposal — ACCEPTED: `send()` with delivery options already handles RTC routing
+- [x] If changes are accepted, update the SDK API Reference in `protocol/spec/starfish-v0.1.md` section 23
+- [x] If changes are accepted, update `sdks/typescript/src/client.ts` and related modules
 
 ## Acceptance Criteria
 
