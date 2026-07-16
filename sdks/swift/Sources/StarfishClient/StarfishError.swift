@@ -30,6 +30,8 @@ public struct StarfishError: Error, Sendable, CustomStringConvertible {
         case rtcChannelNotOpen = "RTC_CHANNEL_NOT_OPEN"
         case transportUnavailable = "TRANSPORT_UNAVAILABLE"
         case noWebSocket = "NO_WEBSOCKET"
+        case notInPool = "NOT_IN_POOL"
+        case poolModeNotAllowed = "POOL_MODE_NOT_ALLOWED"
     }
 }
 

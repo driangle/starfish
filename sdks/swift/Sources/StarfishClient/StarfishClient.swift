@@ -14,6 +14,7 @@ public final class StarfishClient: @unchecked Sendable {
     private let _messaging: Messaging
     private let _presence: Presence
     private let _data: DataModule
+    private let _pool: Pool
 
     /// Server time synchronization.
     public let clock: Clock
@@ -28,6 +29,7 @@ public final class StarfishClient: @unchecked Sendable {
         self._messaging = Messaging(connection: connection, session: _session)
         self._presence = Presence(connection: connection, session: _session)
         self._data = DataModule(connection: connection, session: _session)
+        self._pool = Pool(connection: connection, session: _session)
 
         connection.frames$.subscribe { [weak self] frame in
             self?.dispatchFrame(frame)
@@ -48,6 +50,7 @@ public final class StarfishClient: @unchecked Sendable {
         _topics.handleFrame(frame)
         _presence.handleFrame(frame)
         _data.handleFrame(frame)
+        _pool.handleFrame(frame)
     }
 
     // MARK: - Connection
@@ -169,6 +172,32 @@ public final class StarfishClient: @unchecked Sendable {
     /// Stream of changes for a specific key.
     public func keyStream(_ key: String) -> AsyncStream<DataResult> {
         _data.key$(key).stream
+    }
+
+    // MARK: - Pool
+
+    /// Access the pool matchmaking manager.
+    public var pool: Pool { _pool }
+
+    /// Enter a matchmaking pool.
+    @discardableResult
+    public func enterPool(_ options: PoolEnterOptions, pool poolName: String) async throws -> StarfishFrame {
+        try await _pool.enter(options, pool: poolName)
+    }
+
+    /// Leave a matchmaking pool.
+    public func leavePool(_ poolName: String) throws {
+        try _pool.leave(pool: poolName)
+    }
+
+    /// Pool members as an AsyncStream.
+    public var poolMembers: AsyncStream<[PoolMember]> {
+        _pool.members$.stream
+    }
+
+    /// Pool match events as an AsyncStream.
+    public var poolMatched: AsyncStream<PoolMatchResult> {
+        _pool.matched$.stream
     }
 
     // MARK: - Events

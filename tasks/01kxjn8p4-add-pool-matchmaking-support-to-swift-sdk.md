@@ -1,13 +1,14 @@
 ---
 title: "Add pool matchmaking support to Swift SDK"
 id: "01kxjn8p4"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["pool", "sdk", "swift"]
 created_at: "2026-07-15"
 dependencies: ["01kxjn8kw", "01kxjn8m7", "01kxjn8mq"]
 phase: v0.1.1
+completed_at: 2026-07-16
 ---
 
 # Add pool matchmaking support to Swift SDK
@@ -20,7 +21,7 @@ Use the TypeScript SDK pool implementation (task `01kxjn8mq`) as a reference for
 
 ## Tasks
 
-- [ ] Add pool-related types to `Types.swift`:
+- [x] Add pool-related types to `Types.swift`:
   - `PoolMode` enum: `auto`, `claim`, `mutual`, `propose`, `delegated`
   - `PoolRole` enum: `member`, `matchmaker`
   - `PoolMember` struct: `id: String`, `attributes: [String: AnyCodable]?`
@@ -30,7 +31,7 @@ Use the TypeScript SDK pool implementation (task `01kxjn8mq`) as a reference for
   - `PoolAssignedGroup` struct: `group: [String]`, `session: String`
   - Add `notInPool`, `poolModeNotAllowed` cases to `StarfishError.ErrorCode`
 
-- [ ] Create `sdks/swift/Sources/StarfishClient/Pool.swift`:
+- [x] Create `sdks/swift/Sources/StarfishClient/Pool.swift`:
   - `public final class Pool: @unchecked Sendable`
   - Internal state: `_members: [String: PoolMember]` per pool (for claim-based modes), set of entered pool names
   - `public let members$ = Observable<[PoolMember]>([])` — updated on `pool.member.joined` / `pool.member.left`
@@ -53,7 +54,7 @@ Use the TypeScript SDK pool implementation (task `01kxjn8mq`) as a reference for
   - `public let claimPending$ = EventStream<StarfishFrame>()` — pending mutual claims
   - `public let claimRejected$ = EventStream<StarfishFrame>()` — rejected proposals
 
-- [ ] Wire `Pool` into `StarfishClient.swift`:
+- [x] Wire `Pool` into `StarfishClient.swift`:
   - Add `private let _pool: Pool` initialized in `init`
   - Call `_pool.handleFrame(frame)` in `dispatchFrame`
   - Expose `public var pool: Pool { _pool }` for direct access
@@ -63,7 +64,7 @@ Use the TypeScript SDK pool implementation (task `01kxjn8mq`) as a reference for
     - `var poolMembers: AsyncStream<[PoolMember]>`
     - `var poolMatched: AsyncStream<PoolMatchResult>`
 
-- [ ] Write tests in `Tests/StarfishClientTests/PoolTests.swift`:
+- [x] Write tests in `Tests/StarfishClientTests/PoolTests.swift`:
   - Test `pool.enter` in auto mode — verify `pool.entered` response is returned
   - Test `pool.enter` in claim mode — verify `members$` is populated from response
   - Test `pool.matched` event — verify `matched$` emits with correct session name and peers

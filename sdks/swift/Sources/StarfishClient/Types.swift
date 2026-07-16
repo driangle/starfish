@@ -364,6 +364,88 @@ public struct DataResult: Sendable, Codable {
     }
 }
 
+// MARK: - Pool types
+
+public enum PoolMode: String, Sendable, Codable {
+    case auto
+    case claim
+    case mutual
+    case propose
+    case delegated
+}
+
+public enum PoolRole: String, Sendable, Codable {
+    case member
+    case matchmaker
+}
+
+public struct PoolMember: Sendable, Equatable {
+    public var id: String
+    public var attributes: [String: AnyCodable]?
+
+    public init(id: String, attributes: [String: AnyCodable]? = nil) {
+        self.id = id
+        self.attributes = attributes
+    }
+}
+
+public struct PoolEnterOptions: Sendable {
+    public var groupSize: Int
+    public var mode: PoolMode?
+    public var role: PoolRole?
+    public var attributes: [String: AnyCodable]?
+    public var filter: [String: String]?
+    public var create: Bool?
+
+    public init(
+        groupSize: Int,
+        mode: PoolMode? = nil,
+        role: PoolRole? = nil,
+        attributes: [String: AnyCodable]? = nil,
+        filter: [String: String]? = nil,
+        create: Bool? = nil
+    ) {
+        self.groupSize = groupSize
+        self.mode = mode
+        self.role = role
+        self.attributes = attributes
+        self.filter = filter
+        self.create = create
+    }
+}
+
+public struct PoolMatchResult: Sendable {
+    public var pool: String
+    public var session: String
+    public var peers: [PoolMember]
+
+    public init(pool: String, session: String, peers: [PoolMember]) {
+        self.pool = pool
+        self.session = session
+        self.peers = peers
+    }
+}
+
+public struct PoolAssignedGroup: Sendable {
+    public var group: [String]
+    public var session: String
+
+    public init(group: [String], session: String) {
+        self.group = group
+        self.session = session
+    }
+}
+
+public struct PoolAssignedResult: Sendable {
+    public var pool: String
+    public var matched: [PoolAssignedGroup]
+
+    public init(pool: String, matched: [PoolAssignedGroup]) {
+        self.pool = pool
+        self.matched = matched
+    }
+}
+
 // MARK: - Event filtering
 
 public struct EventFilter: Sendable {
