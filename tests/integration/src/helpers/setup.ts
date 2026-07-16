@@ -12,3 +12,7 @@ export function uniqueId(prefix = "msg"): string {
 export function uniqueSession(): string {
   return `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+
+export function uniquePool(): string {
+  return `pool-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}

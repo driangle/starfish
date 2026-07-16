@@ -4,7 +4,7 @@ import {
   type Unsubscribe,
   type DataResult,
 } from "@driangle/starfish-client";
-import type { StarfishP5Options, PeerPresence } from "./types.js";
+import type { StarfishP5Options, PeerPresence, PoolOptions, PoolMatchCallback } from "./types.js";
 import { hookRemove } from "./p5-lifecycle.js";
 
 const DEFAULT_THROTTLE_MS = 50;
@@ -141,6 +141,25 @@ export class StarfishP5 {
       }
     });
     this.subscriptions.push(unsub);
+  }
+
+  async joinPool(pool: string, options: PoolOptions, onMatch: PoolMatchCallback): Promise<void> {
+    const { groupSize = 2, mode = "auto", ...rest } = options;
+    await this.client.pool.enter(pool, { create: true, groupSize, mode, ...rest });
+    const unsub = this.client.pool.matched$.subscribe((event) => {
+      if (event.pool === pool) {
+        onMatch({
+          pool: event.pool,
+          peers: event.peers.map((p) => p.id),
+          session: event.session,
+        });
+      }
+    });
+    this.subscriptions.push(unsub);
+  }
+
+  async leavePool(pool: string): Promise<void> {
+    this.client.pool.leave(pool);
   }
 
   sendTo(peerId: string, payload: any): void {

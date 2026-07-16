@@ -1,13 +1,14 @@
 ---
 title: "Add pool support to p5.js adapter"
 id: "01kxjn8q4"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["pool", "adapter", "p5js"]
 created_at: "2026-07-15"
 dependencies: ["01kxjn8mq"]
 phase: v0.1.1
+completed_at: 2026-07-16
 ---
 
 # Add pool support to p5.js adapter
@@ -27,17 +28,17 @@ highlighted.
 
 ## Tasks
 
-- [ ] Add `PoolOptions` and `PoolMatchCallback` types to `adapters/p5js/src/types.ts`:
+- [x] Add `PoolOptions` and `PoolMatchCallback` types to `adapters/p5js/src/types.ts`:
   - `PoolOptions`: `{ groupSize?: number; mode?: "auto" | "claim" | "mutual" | "propose" | "delegated"; attributes?: Record<string, unknown>; filter?: Record<string, unknown>; }`
   - `PoolMatchCallback`: `(match: { pool: string; peers: string[]; session: string }) => void`
-- [ ] Add `joinPool(pool: string, options: PoolOptions, onMatch: PoolMatchCallback): Promise<void>` to `StarfishP5`:
+- [x] Add `joinPool(pool: string, options: PoolOptions, onMatch: PoolMatchCallback): Promise<void>` to `StarfishP5`:
   - Calls `this.client.pool.enter(pool, { create: true, ...options })` (SDK pool API per spec section 23).
   - Subscribes to the SDK's pool matched event and invokes `onMatch` with the resulting session name and peer IDs.
   - Defaults `mode` to `"auto"` and `groupSize` to `2` so the common case is `sf.joinPool("lobby", {}, onMatch)`.
   - Stores the subscription in `this.subscriptions` so it is cleaned up on `stop()`.
-- [ ] Add `leavePool(pool: string): Promise<void>` to `StarfishP5` that calls `this.client.pool.leave(pool)`.
-- [ ] Export the new types from `adapters/p5js/src/index.ts`.
-- [ ] Add unit tests in `adapters/p5js/src/__tests__/starfish-p5.test.ts` covering:
+- [x] Add `leavePool(pool: string): Promise<void>` to `StarfishP5` that calls `this.client.pool.leave(pool)`.
+- [x] Export the new types from `adapters/p5js/src/index.ts`.
+- [x] Add unit tests in `adapters/p5js/src/__tests__/starfish-p5.test.ts` covering:
   - `joinPool` calls `client.pool.enter` with the correct arguments.
   - `onMatch` callback is invoked when the SDK fires a match event.
   - `leavePool` calls `client.pool.leave`.

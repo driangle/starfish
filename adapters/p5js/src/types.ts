@@ -24,3 +24,12 @@ export interface PeerPresence {
   name?: string;
   presence: Record<string, unknown>;
 }
+
+export interface PoolOptions {
+  groupSize?: number;
+  mode?: "auto" | "claim" | "mutual" | "propose" | "delegated";
+  attributes?: Record<string, unknown>;
+  filter?: Record<string, string>;
+}
+
+export type PoolMatchCallback = (match: { pool: string; peers: string[]; session: string }) => void;
