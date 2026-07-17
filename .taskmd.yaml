@@ -11,7 +11,10 @@ phases:
     description: "Pool matchmaking — server-managed pairing for peer-to-peer experiences"
   - id: v0.2
     name: "v0.2"
-    description: "Complete SDK/server matrix — Go SDK and Python server"
+    description: "Protocol envelope refactor — header/payload split, method/resource/kind, version negotiation, structured errors"
   - id: v0.3
     name: "v0.3"
+    description: "Complete SDK/server matrix — Go SDK and Python server"
+  - id: v0.4
+    name: "v0.4"
     description: "Ecosystem expansion — TouchDesigner, Swift SDK, JVM SDK/server"

@@ -1,0 +1,29 @@
+---
+title: "Refactor Three.js adapter for new protocol envelope"
+id: "01kxrcrvs"
+status: pending
+priority: high
+type: feature
+tags: ["adapter", "threejs", "breaking-change"]
+created_at: "2026-07-17"
+---
+
+# Refactor Three.js adapter for new protocol envelope
+
+## Objective
+
+Update the Three.js adapter (`adapters/threejs/`) to work with the new protocol envelope from the TypeScript SDK.
+
+## Tasks
+
+- [ ] Update any direct frame construction to use `header`/`payload` structure
+- [ ] Update any frame inspection/parsing that references `type` to use `method`/`resource`/`kind`
+- [ ] Update any error handling to use structured error format
+- [ ] Update adapter tests
+- [ ] Verify adapter works end-to-end with updated SDK
+
+## Acceptance Criteria
+
+- Adapter works correctly with the updated TypeScript SDK
+- No references to old flat frame format remain
+- Adapter tests pass
