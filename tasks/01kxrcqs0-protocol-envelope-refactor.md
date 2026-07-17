@@ -1,11 +1,12 @@
 ---
 title: "Refactor protocol spec: header/payload envelope, method/resource/kind, version negotiation, structured errors"
 id: "01kxrcqs0"
-status: pending
+status: completed
 priority: critical
 type: feature
 tags: ["protocol", "breaking-change"]
 created_at: "2026-07-17"
+completed_at: 2026-07-17
 ---
 
 # Refactor protocol spec: header/payload envelope, method/resource/kind, version negotiation, structured errors
@@ -16,17 +17,17 @@ Redesign the Starfish protocol envelope from a flat frame structure to a convent
 
 ## Tasks
 
-- [ ] Define the new `header` object schema: `v`, `id`, `method`, `resource`, `kind`, `ts`, `session`, `from`, `to`, `topic`, `replyTo`, `meta` (open `Record<string, unknown>`)
-- [ ] Define `kind` enum: `request`, `response`, `event`
-- [ ] Define `method` vocabulary per resource (e.g. `session.join` → `method: "join"`, `resource: "session"`)
-- [ ] Move `options` (delivery, priority, ttl) into `header`
-- [ ] Define version negotiation in `client.hello`/`server.welcome`: client sends supported versions array, server selects one
-- [ ] Remove per-frame `v` field after handshake (implicit for connection lifetime)
-- [ ] Define structured error format: `status: "error"`, `error.code`, `error.resource`, `error.message`, `error.retry`
-- [ ] Define response format: `status: "ok"` or `status: "error"` with `replyTo`
-- [ ] Update all message type examples throughout the spec
-- [ ] Document migration guide from v1 envelope to v2 envelope
-- [ ] Update reserved fields list
+- [x] Define the new `header` object schema: `v`, `id`, `method`, `resource`, `kind`, `ts`, `session`, `from`, `to`, `topic`, `replyTo`, `meta` (open `Record<string, unknown>`)
+- [x] Define `kind` enum: `request`, `response`, `event`
+- [x] Define `method` vocabulary per resource (e.g. `session.join` → `method: "join"`, `resource: "session"`)
+- [x] Move `options` (delivery, priority, ttl) into `header`
+- [x] Define version negotiation in `client.hello`/`server.welcome`: client sends supported versions array, server selects one
+- [x] Remove per-frame `v` field after handshake (implicit for connection lifetime)
+- [x] Define structured error format: `status: "error"`, `error.code`, `error.resource`, `error.message`, `error.retry`
+- [x] Define response format: `status: "ok"` or `status: "error"` with `replyTo`
+- [x] Update all message type examples throughout the spec
+- [x] Document migration guide from v1 envelope to v2 envelope
+- [x] Update reserved fields list
 
 ## Acceptance Criteria
 
