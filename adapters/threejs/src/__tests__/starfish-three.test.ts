@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { StarfishThree } from "../starfish-three.js";
 import { Observable, EventStream } from "@driangle/starfish-client";
-import type { StarfishFrame, DataResult } from "@driangle/starfish-client";
+import type { StarfishFrame, DataResult, PoolMatchedEvent } from "@driangle/starfish-client";
 
 function createMockClient() {
   const connection$ = new Observable<string>("disconnected");
@@ -13,6 +13,7 @@ function createMockClient() {
 
   const topicStreams = new Map<string, EventStream<StarfishFrame>>();
   const keyStreams = new Map<string, EventStream<DataResult>>();
+  const poolMatched$ = new EventStream<PoolMatchedEvent>();
 
   return {
     connection$,
@@ -46,8 +47,14 @@ function createMockClient() {
       return keyStreams.get(key)!;
     }),
     on: vi.fn(() => () => {}),
+    pool: {
+      enter: vi.fn(async () => ({})),
+      leave: vi.fn(),
+      matched$: poolMatched$,
+    },
     _topicStreams: topicStreams,
     _keyStreams: keyStreams,
+    _poolMatched$: poolMatched$,
   };
 }
 
@@ -243,6 +250,95 @@ describe("StarfishThree", () => {
   describe("clientId", () => {
     it("returns client id from underlying client", () => {
       expect(sf.clientId).toBe("test-client-id");
+    });
+  });
+
+  describe("joinPool", () => {
+    it("calls client.pool.enter with defaults and provided options", async () => {
+      await sf.start();
+      await sf.joinPool("lobby", {}, vi.fn());
+
+      expect(mockClient.pool.enter).toHaveBeenCalledWith("lobby", {
+        create: true,
+        groupSize: 2,
+        mode: "auto",
+      });
+    });
+
+    it("passes custom groupSize and mode", async () => {
+      await sf.start();
+      await sf.joinPool(
+        "lobby",
+        { groupSize: 4, mode: "claim", attributes: { level: 5 } },
+        vi.fn(),
+      );
+
+      expect(mockClient.pool.enter).toHaveBeenCalledWith("lobby", {
+        create: true,
+        groupSize: 4,
+        mode: "claim",
+        attributes: { level: 5 },
+      });
+    });
+
+    it("invokes onMatch when the SDK fires a matched event", async () => {
+      await sf.start();
+      const onMatch = vi.fn();
+      await sf.joinPool("lobby", {}, onMatch);
+
+      mockClient._poolMatched$.emit({
+        pool: "lobby",
+        session: "session-123",
+        peers: [{ id: "peer-1" }, { id: "peer-2" }],
+      });
+
+      expect(onMatch).toHaveBeenCalledWith({
+        pool: "lobby",
+        peers: ["peer-1", "peer-2"],
+        session: "session-123",
+      });
+    });
+
+    it("ignores matched events for other pools", async () => {
+      await sf.start();
+      const onMatch = vi.fn();
+      await sf.joinPool("lobby", {}, onMatch);
+
+      mockClient._poolMatched$.emit({
+        pool: "other-pool",
+        session: "session-456",
+        peers: [{ id: "peer-3" }],
+      });
+
+      expect(onMatch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("leavePool", () => {
+    it("calls client.pool.leave", async () => {
+      await sf.start();
+      await sf.leavePool("lobby");
+
+      expect(mockClient.pool.leave).toHaveBeenCalledWith("lobby");
+    });
+  });
+
+  describe("pool cleanup on stop", () => {
+    it("removes pool subscriptions when stop is called", async () => {
+      await sf.start();
+      const onMatch = vi.fn();
+      await sf.joinPool("lobby", {}, onMatch);
+
+      await sf.stop();
+
+      // Emit after stop — callback should not fire
+      mockClient._poolMatched$.emit({
+        pool: "lobby",
+        session: "session-789",
+        peers: [{ id: "peer-4" }],
+      });
+
+      expect(onMatch).not.toHaveBeenCalled();
     });
   });
 });

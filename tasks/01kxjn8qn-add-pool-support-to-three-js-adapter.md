@@ -1,13 +1,14 @@
 ---
 title: "Add pool support to Three.js adapter"
 id: "01kxjn8qn"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["pool", "adapter", "threejs"]
 created_at: "2026-07-15"
 dependencies: ["01kxjn8mq"]
 phase: v0.1.1
+completed_at: 2026-07-16
 ---
 
 # Add pool support to Three.js adapter
@@ -30,17 +31,17 @@ set up peer objects via the existing `peers` callbacks.
 
 ## Tasks
 
-- [ ] Add `PoolOptions` and `PoolMatchCallback` types to `adapters/threejs/src/types.ts`:
+- [x] Add `PoolOptions` and `PoolMatchCallback` types to `adapters/threejs/src/types.ts`:
   - `PoolOptions`: `{ groupSize?: number; mode?: "auto" | "claim" | "mutual" | "propose" | "delegated"; attributes?: Record<string, unknown>; filter?: Record<string, unknown>; }`
   - `PoolMatchCallback`: `(match: { pool: string; peers: string[]; session: string }) => void`
-- [ ] Add `joinPool(pool: string, options: PoolOptions, onMatch: PoolMatchCallback): Promise<void>` to `StarfishThree`:
+- [x] Add `joinPool(pool: string, options: PoolOptions, onMatch: PoolMatchCallback): Promise<void>` to `StarfishThree`:
   - Calls `this.client.pool.enter(pool, { create: true, ...options })` (SDK pool API per spec section 23).
   - Subscribes to the SDK's pool matched event and invokes `onMatch` with the resulting session name and peer IDs.
   - Defaults `mode` to `"auto"` and `groupSize` to `2`.
   - Stores the subscription in `this.subscriptions` so it is torn down by `stop()` alongside other subscriptions.
-- [ ] Add `leavePool(pool: string): Promise<void>` to `StarfishThree` that calls `this.client.pool.leave(pool)`.
-- [ ] Export the new types from `adapters/threejs/src/index.ts`.
-- [ ] Add unit tests in `adapters/threejs/src/__tests__/starfish-three.test.ts` covering:
+- [x] Add `leavePool(pool: string): Promise<void>` to `StarfishThree` that calls `this.client.pool.leave(pool)`.
+- [x] Export the new types from `adapters/threejs/src/index.ts`.
+- [x] Add unit tests in `adapters/threejs/src/__tests__/starfish-three.test.ts` covering:
   - `joinPool` calls `client.pool.enter` with the correct arguments including defaults.
   - `onMatch` callback fires with the correct `{ pool, peers, session }` shape when the SDK fires a match event.
   - `leavePool` calls `client.pool.leave`.

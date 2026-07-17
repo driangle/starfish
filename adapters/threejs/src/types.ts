@@ -16,6 +16,15 @@ export interface PresenceOptions {
   throttleMs?: number;
 }
 
+export interface PoolOptions {
+  groupSize?: number;
+  mode?: "auto" | "claim" | "mutual" | "propose" | "delegated";
+  attributes?: Record<string, unknown>;
+  filter?: Record<string, string>;
+}
+
+export type PoolMatchCallback = (match: { pool: string; peers: string[]; session: string }) => void;
+
 export interface StarfishThreeOptions {
   url: string;
   session: string;

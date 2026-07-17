@@ -4,7 +4,7 @@ import {
   type Unsubscribe,
   type DataResult,
 } from "@driangle/starfish-client";
-import type { StarfishThreeOptions, Peer } from "./types.js";
+import type { StarfishThreeOptions, Peer, PoolOptions, PoolMatchCallback } from "./types.js";
 import { PeerManager } from "./peer-manager.js";
 
 const DEFAULT_THROTTLE_MS = 50;
@@ -151,6 +151,25 @@ export class StarfishThree {
       }
     });
     this.subscriptions.push(unsub);
+  }
+
+  async joinPool(pool: string, options: PoolOptions, onMatch: PoolMatchCallback): Promise<void> {
+    const { groupSize = 2, mode = "auto", ...rest } = options;
+    await this.client.pool.enter(pool, { create: true, groupSize, mode, ...rest });
+    const unsub = this.client.pool.matched$.subscribe((event) => {
+      if (event.pool === pool) {
+        onMatch({
+          pool: event.pool,
+          peers: event.peers.map((p) => p.id),
+          session: event.session,
+        });
+      }
+    });
+    this.subscriptions.push(unsub);
+  }
+
+  async leavePool(pool: string): Promise<void> {
+    this.client.pool.leave(pool);
   }
 
   sendTo(peerId: string, payload: any): void {
