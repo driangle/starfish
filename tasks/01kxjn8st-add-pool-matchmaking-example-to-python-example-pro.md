@@ -1,13 +1,14 @@
 ---
 title: "Add pool matchmaking example to Python example project"
 id: "01kxjn8st"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["pool", "example", "python"]
 created_at: "2026-07-15"
 dependencies: ["01kxjn8nt"]
 phase: v0.1.1
+completed_at: 2026-07-17
 ---
 
 # Add pool matchmaking example to Python example project
@@ -18,7 +19,7 @@ Add a `pool_matchmaking.py` example to `examples/python/` that demonstrates the 
 
 ## Tasks
 
-- [ ] Create `examples/python/pool_matchmaking.py`:
+- [x] Create `examples/python/pool_matchmaking.py`:
   - Add the standard file header comment block (describes what is demonstrated, how to run it, what the server requirement is).
   - Use the same `create_client` helper pattern from `pubsub.py` and `shared_data.py` to create two `StarfishClient` instances (`client_a`, `client_b`).
   - Connect both clients and join a staging session (e.g. `"pool-matchmaking-staging"`) so they are eligible to enter a pool (pools require an active session).
