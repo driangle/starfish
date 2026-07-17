@@ -13,7 +13,8 @@
     "pubsub": "node dist/pubsub.js",
     "presence": "node dist/presence.js",
     "shared-data": "node dist/shared-data.js",
-    "clock-sync": "node dist/clock-sync.js"
+    "clock-sync": "node dist/clock-sync.js",
+    "pool-matchmaking": "node dist/pool-matchmaking.js"
   },
   "dependencies": {
     "@starfish/client": "file:../../sdks/typescript",

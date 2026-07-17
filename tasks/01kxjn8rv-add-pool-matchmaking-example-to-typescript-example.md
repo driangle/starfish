@@ -1,13 +1,14 @@
 ---
 title: "Add pool matchmaking example to TypeScript example project"
 id: "01kxjn8rv"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["pool", "example", "typescript"]
 created_at: "2026-07-15"
 dependencies: ["01kxjn8mq"]
 phase: v0.1.1
+completed_at: 2026-07-17
 ---
 
 # Add pool matchmaking example to TypeScript example project
@@ -18,7 +19,7 @@ Add a `pool-matchmaking.ts` example to `examples/typescript/src/` that demonstra
 
 ## Tasks
 
-- [ ] Create `examples/typescript/src/pool-matchmaking.ts`:
+- [x] Create `examples/typescript/src/pool-matchmaking.ts`:
   - Add the standard file header comment block (describes what is demonstrated, how to run it, what the server requirement is).
   - Create two `StarfishClient` instances (`clientA`, `clientB`) following the `createClient` helper pattern used in `pubsub.ts` and `presence.ts`.
   - Connect both clients and join a staging session (e.g. `"pool-matchmaking-staging"`) so they are eligible to enter a pool (pools require an active session).
@@ -27,7 +28,7 @@ Add a `pool-matchmaking.ts` example to `examples/typescript/src/` that demonstra
   - When each client's `pool.matched$` emits, log the matched session name and peer IDs, then call `client.join(event.session)` to move into the matched session.
   - Once both clients are in the matched session, have one client publish a `"ping"` message and have the other log what it receives.
   - Disconnect both clients and exit cleanly.
-- [ ] Add a `"pool-matchmaking"` script to `examples/typescript/package.json` that runs `node dist/pool-matchmaking.js`.
+- [x] Add a `"pool-matchmaking"` script to `examples/typescript/package.json` that runs `node dist/pool-matchmaking.js`.
 
 ## Acceptance Criteria
 
