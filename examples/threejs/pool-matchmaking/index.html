@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Starfish — Pool Matchmaking</title>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  </script>
+  <script src="../starfish-three.global.js"></script>
+  <script type="module" src="scene.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #111; }
+    #overlay {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none; user-select: none;
+      font: 14px/1.4 monospace; color: #ccc;
+      z-index: 10;
+    }
+    #overlay .state { display: none; text-align: center; }
+    #overlay .state.active { display: block; }
+
+    #waiting .pulse {
+      font-size: 24px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    #matched { color: #64ffb4; font-size: 20px; }
+    #matched .detail { color: #999; font-size: 12px; margin-top: 8px; }
+
+    #connected { color: #64ffb4; font-size: 18px; }
+
+    #hud {
+      position: fixed; top: 12px; left: 12px;
+      color: #ccc; font: 14px/1.4 monospace;
+      pointer-events: none; user-select: none;
+      z-index: 20;
+    }
+    #hud .dot {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 50%; margin-right: 6px; vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div id="waiting" class="state active">
+      <div class="pulse">Waiting for a match...</div>
+    </div>
+    <div id="matched" class="state">
+      Matched! Connecting...
+      <div class="detail" id="matched-session"></div>
+    </div>
+    <div id="connected" class="state">
+      Connected!
+    </div>
+  </div>
+  <div id="hud">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-text">connecting...</span>
+  </div>
+</body>
+</html>

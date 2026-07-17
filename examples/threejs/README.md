@@ -49,6 +49,16 @@ All users place and manipulate 3D objects on a shared ground plane. Click to add
 - `sf.setShared(key, data)` / `sf.onShared(key, cb)` — persisting scene state for late joiners
 - `sf.setPresence()` / `sf.eachPeer()` — showing peer cursor positions
 
+### Pool Matchmaking (`pool-matchmaking/`)
+
+The user opens the page and is automatically paired with exactly one other user via pool auto mode. Once matched, both users see each other's cursor as a ring on a shared 3D ground plane. No manual session input required — matchmaking is automatic.
+
+**Adapter features demonstrated:**
+- `sf.joinPool(pool, options, onMatch)` — entering a pool and reacting to matches
+- `sf.client.join(session)` — joining the matched session for presence exchange
+- `sf.setPresence()` / `sf.eachPeer()` — showing peer cursor positions after match
+- `sf.peers` / `sf.connected` — reading the peer list and connection status
+
 ### Collaborative Scene Editor (`scene-editor/`)
 
 A pre-populated 3D scene where any peer can select objects and edit their properties (color, scale, rotation). Each object's state is stored as a separate shared data key, enabling fine-grained collaborative editing. Peer selections are highlighted with colored outlines.

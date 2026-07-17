@@ -1,13 +1,14 @@
 ---
 title: "Add pool matchmaking example to Three.js example project"
 id: "01kxjn8tq"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["pool", "example", "threejs"]
 created_at: "2026-07-15"
 dependencies: ["01kxjn8qn"]
 phase: v0.1.1
+completed_at: 2026-07-17
 ---
 
 # Add pool matchmaking example to Three.js example project
@@ -18,13 +19,13 @@ Add a `pool-matchmaking/` scene to `examples/threejs/` that demonstrates the "di
 
 ## Tasks
 
-- [ ] Create `examples/threejs/pool-matchmaking/index.html`:
+- [x] Create `examples/threejs/pool-matchmaking/index.html`:
   - Copy the structure of `shared-scene/index.html` (Three.js import map, HUD div, canvas fill styles).
   - Add an overlay `<div id="overlay">` with three child divs for the waiting, matched, and connected states; only one is shown at a time.
   - Set an appropriate page title (e.g. "Starfish – Pool Matchmaking").
   - Load `pool-matchmaking/scene.js` as a module.
 
-- [ ] Create `examples/threejs/pool-matchmaking/scene.js`:
+- [x] Create `examples/threejs/pool-matchmaking/scene.js`:
   - Add the standard file header comment block describing what is demonstrated and how to open it.
   - Set up a minimal Three.js scene: a camera, a renderer, ambient + directional light, and a ground plane with a grid helper (same as `shared-scene/scene.js`).
   - Create a `starfishThree` adapter using a temporary staging session name (the real session comes from the match event). Call `sf.joinPool("distant-touch", {}, onMatch)` after `sf.start()`.
@@ -37,7 +38,7 @@ Add a `pool-matchmaking/` scene to `examples/threejs/` that demonstrates the "di
     - Show "connected" overlay state once `sf.peers.length > 0`.
   - Handle window resize.
 
-- [ ] Add a `pool-matchmaking` entry to the examples list in `examples/threejs/README.md`.
+- [x] Add a `pool-matchmaking` entry to the examples list in `examples/threejs/README.md`.
 
 ## Acceptance Criteria
 
