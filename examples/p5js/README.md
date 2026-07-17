@@ -55,6 +55,16 @@ All peers see the same evolving generative pattern. Any peer can tweak the param
 - `sf.setPresence()` / `sf.eachPeer()` — showing peer cursors overlaid on the artwork
 - Shared state driving a render loop
 
+### Pool Matchmaking (`pool-matchmaking/`)
+
+Two users are automatically paired via pool auto mode and then see each other's cursor in real-time. No session name or join button required — matchmaking is fully automatic.
+
+**Adapter features demonstrated:**
+- `sf.joinPool()` — entering a pool and receiving match callbacks
+- `sf.setPresence()` / `sf.eachPeer()` — presence tracking after match
+- `sf.client.join()` — joining the matched session
+- Three visual states: waiting, matched, connected
+
 ### Instance Mode (`instance-mode/`)
 
 Two p5.js sketches on the same page, each with their own Starfish connection to the same session. Demonstrates how to use the adapter in p5.js instance mode.

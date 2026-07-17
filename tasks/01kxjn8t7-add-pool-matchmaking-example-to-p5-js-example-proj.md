@@ -1,13 +1,14 @@
 ---
 title: "Add pool matchmaking example to p5.js example project"
 id: "01kxjn8t7"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["pool", "example", "p5js"]
 created_at: "2026-07-15"
 dependencies: ["01kxjn8q4"]
 phase: v0.1.1
+completed_at: 2026-07-17
 ---
 
 # Add pool matchmaking example to p5.js example project
@@ -18,13 +19,13 @@ Add a `pool-matchmaking/` sketch to `examples/p5js/` that demonstrates the "dist
 
 ## Tasks
 
-- [ ] Create `examples/p5js/pool-matchmaking/index.html`:
+- [x] Create `examples/p5js/pool-matchmaking/index.html`:
   - Copy the structure of an existing example HTML file (e.g. `cursors/index.html`).
   - Load `starfish-p5.global.js` from the parent directory.
   - Load `sketch.js`.
   - Set an appropriate page title (e.g. "Starfish – Pool Matchmaking").
 
-- [ ] Create `examples/p5js/pool-matchmaking/sketch.js`:
+- [x] Create `examples/p5js/pool-matchmaking/sketch.js`:
   - Add the standard file header comment block describing what is demonstrated and how to open it.
   - In `setup()`, create the canvas and call `sf.joinPool("distant-touch", {}, onMatch)` where `sf` is a `starfishP5` adapter (session can be a temporary staging name like `"pool-staging"` since the matched session will be the real destination).
   - Define `onMatch({ session, peers })`:
@@ -36,7 +37,7 @@ Add a `pool-matchmaking/` sketch to `examples/p5js/` that demonstrates the "dist
     - **Connected**: show the peer's cursor as a colored dot using `sf.eachPeer()` and `sf.setPresence({ x: mouseX, y: mouseY })`.
   - Draw a small connection status indicator (green/red dot) as in the other sketches.
 
-- [ ] Add a `pool-matchmaking` entry to the examples list in `examples/p5js/README.md`.
+- [x] Add a `pool-matchmaking` entry to the examples list in `examples/p5js/README.md`.
 
 ## Acceptance Criteria
 
