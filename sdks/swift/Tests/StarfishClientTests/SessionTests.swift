@@ -22,20 +22,21 @@ final class SessionTests: XCTestCase {
         // Auto-respond to join
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            // Find the join frame ID
-            let joinFrame = mock.sentFrames.first { $0.type == "session.join" }
-            if let id = joinFrame?.id {
+            let joinFrame = mock.sentFrames.first { $0.header.resource == "session" && $0.header.method == "join" }
+            if let id = joinFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "resp",
-                    type: "session.joined",
-                    session: "test-room",
-                    replyTo: id,
-                    payload: AnyCodable([
-                        "clients": [
-                            ["id": "test-client-id", "name": "me"],
-                            ["id": "peer-1", "name": "peer"],
-                        ]
-                    ] as [String: Any])
+                    header: StarfishHeader(
+                        id: "resp",
+                        resource: "session",
+                        method: "joined",
+                        kind: .response,
+                        session: "test-room",
+                        replyTo: id
+                    ),
+                    payload: ["clients": AnyCodable([
+                        ["id": "test-client-id", "name": "me"],
+                        ["id": "peer-1", "name": "peer"],
+                    ] as [[String: Any]])]
                 ))
             }
         }
@@ -67,25 +68,33 @@ final class SessionTests: XCTestCase {
         // Join first
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let joinFrame = mock.sentFrames.first { $0.type == "session.join" }
-            if let id = joinFrame?.id {
+            let joinFrame = mock.sentFrames.first { $0.header.resource == "session" && $0.header.method == "join" }
+            if let id = joinFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "resp",
-                    type: "session.joined",
-                    session: "room",
-                    replyTo: id,
-                    payload: AnyCodable(["clients": [["id": "test-client-id", "name": "me"]]] as [String: Any])
+                    header: StarfishHeader(
+                        id: "resp",
+                        resource: "session",
+                        method: "joined",
+                        kind: .response,
+                        session: "room",
+                        replyTo: id
+                    ),
+                    payload: ["clients": AnyCodable([["id": "test-client-id", "name": "me"]] as [[String: Any]])]
                 ))
             }
         }
         _ = try await session.join(session: "room")
 
-        // Simulate client.connected
+        // Simulate client connected event
         session.handleFrame(StarfishFrame(
-            id: "notify_1",
-            type: "client.connected",
-            session: "room",
-            payload: AnyCodable(["client": ["id": "new-peer", "name": "newcomer"]] as [String: Any])
+            header: StarfishHeader(
+                id: "notify_1",
+                resource: "session",
+                method: "connected",
+                kind: .event,
+                session: "room"
+            ),
+            payload: ["client": AnyCodable(["id": "new-peer", "name": "newcomer"] as [String: Any])]
         ))
 
         XCTAssertEqual(session.clients$.value.count, 2)
@@ -96,17 +105,21 @@ final class SessionTests: XCTestCase {
 
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let joinFrame = mock.sentFrames.first { $0.type == "session.join" }
-            if let id = joinFrame?.id {
+            let joinFrame = mock.sentFrames.first { $0.header.resource == "session" && $0.header.method == "join" }
+            if let id = joinFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "resp",
-                    type: "session.joined",
-                    session: "room",
-                    replyTo: id,
-                    payload: AnyCodable(["clients": [
+                    header: StarfishHeader(
+                        id: "resp",
+                        resource: "session",
+                        method: "joined",
+                        kind: .response,
+                        session: "room",
+                        replyTo: id
+                    ),
+                    payload: ["clients": AnyCodable([
                         ["id": "test-client-id", "name": "me"],
                         ["id": "peer-1", "name": "peer"],
-                    ]] as [String: Any])
+                    ] as [[String: Any]])]
                 ))
             }
         }
@@ -114,10 +127,14 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(session.clients$.value.count, 2)
 
         session.handleFrame(StarfishFrame(
-            id: "notify_2",
-            type: "client.disconnected",
-            session: "room",
-            payload: AnyCodable(["clientId": "peer-1"] as [String: Any])
+            header: StarfishHeader(
+                id: "notify_2",
+                resource: "session",
+                method: "disconnected",
+                kind: .event,
+                session: "room"
+            ),
+            payload: ["clientId": AnyCodable("peer-1")]
         ))
 
         XCTAssertEqual(session.clients$.value.count, 1)

@@ -17,12 +17,14 @@ final class PoolTests: XCTestCase {
         // Auto-respond to join
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let joinFrame = mock.sentFrames.first { $0.type == "session.join" }
-            if let id = joinFrame?.id {
+            let joinFrame = mock.sentFrames.first { $0.header.resource == "session" && $0.header.method == "join" }
+            if let id = joinFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "join_resp", type: "session.joined", session: "room-1",
-                    replyTo: id,
-                    payload: AnyCodable(["clients": [["id": "test-client-id", "name": "me"]]] as [String: Any])
+                    header: StarfishHeader(
+                        id: "join_resp", resource: "session", method: "joined", kind: .response,
+                        session: "room-1", replyTo: id
+                    ),
+                    payload: ["clients": AnyCodable([["id": "test-client-id", "name": "me"]] as [[String: Any]])]
                 ))
             }
         }
@@ -37,17 +39,19 @@ final class PoolTests: XCTestCase {
         mock: MockWebSocketTransport,
         pool poolName: String = "lobby",
         options: PoolEnterOptions = PoolEnterOptions(groupSize: 2),
-        responsePayload: [String: Any]? = nil
+        responsePayload: [String: AnyCodable]? = nil
     ) async throws {
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let enterFrame = mock.sentFrames.first { $0.type == "pool.enter" }
-            if let id = enterFrame?.id {
-                let payload = responsePayload ?? ["pool": poolName]
+            let enterFrame = mock.sentFrames.first { $0.header.resource == "pool" && $0.header.method == "enter" }
+            if let id = enterFrame?.header.id {
+                let payload = responsePayload ?? ["pool": AnyCodable(poolName)]
                 mock.injectFrame(StarfishFrame(
-                    id: "pool_resp", type: "pool.entered",
-                    replyTo: id,
-                    payload: AnyCodable(payload)
+                    header: StarfishHeader(
+                        id: "pool_resp", resource: "pool", method: "entered", kind: .response,
+                        replyTo: id
+                    ),
+                    payload: payload
                 ))
             }
         }
@@ -62,12 +66,18 @@ final class PoolTests: XCTestCase {
 
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let enterFrame = mock.sentFrames.first { $0.type == "pool.enter" }
-            if let id = enterFrame?.id {
+            let enterFrame = mock.sentFrames.first { $0.header.resource == "pool" && $0.header.method == "enter" }
+            if let id = enterFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "pool_resp", type: "pool.entered",
-                    replyTo: id,
-                    payload: AnyCodable(["pool": "lobby", "mode": "auto", "groupSize": 2] as [String: Any])
+                    header: StarfishHeader(
+                        id: "pool_resp", resource: "pool", method: "entered", kind: .response,
+                        replyTo: id
+                    ),
+                    payload: [
+                        "pool": AnyCodable("lobby"),
+                        "mode": AnyCodable("auto"),
+                        "groupSize": AnyCodable(2),
+                    ]
                 ))
             }
         }
@@ -77,9 +87,9 @@ final class PoolTests: XCTestCase {
             pool: "lobby"
         )
 
-        XCTAssertEqual(response.type, "pool.entered")
+        XCTAssertEqual(response.header.method, "entered")
 
-        let poolFrames = mock.sentFrames.filter { $0.type == "pool.enter" }
+        let poolFrames = mock.sentFrames.filter { $0.header.resource == "pool" && $0.header.method == "enter" }
         XCTAssertEqual(poolFrames.count, 1)
         XCTAssertEqual(poolFrames[0].payloadString("pool"), "lobby")
         XCTAssertEqual(poolFrames[0].payloadInt("groupSize"), 2)
@@ -91,20 +101,22 @@ final class PoolTests: XCTestCase {
 
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let enterFrame = mock.sentFrames.first { $0.type == "pool.enter" }
-            if let id = enterFrame?.id {
+            let enterFrame = mock.sentFrames.first { $0.header.resource == "pool" && $0.header.method == "enter" }
+            if let id = enterFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "pool_resp", type: "pool.entered",
-                    replyTo: id,
-                    payload: AnyCodable([
-                        "pool": "lobby",
-                        "mode": "claim",
-                        "groupSize": 2,
-                        "members": [
+                    header: StarfishHeader(
+                        id: "pool_resp", resource: "pool", method: "entered", kind: .response,
+                        replyTo: id
+                    ),
+                    payload: [
+                        "pool": AnyCodable("lobby"),
+                        "mode": AnyCodable("claim"),
+                        "groupSize": AnyCodable(2),
+                        "members": AnyCodable([
                             ["id": "alice", "attributes": ["mood": "calm"]],
                             ["id": "bob", "attributes": ["mood": "wild"]],
-                        ],
-                    ] as [String: Any])
+                        ] as [[String: Any]]),
+                    ]
                 ))
             }
         }
@@ -127,21 +139,23 @@ final class PoolTests: XCTestCase {
         let (client, mock) = try await makeClient()
         mock.reset()
 
-        try await enterPool(client, mock: mock, responsePayload: ["pool": "lobby"] as [String: Any])
+        try await enterPool(client, mock: mock, responsePayload: ["pool": AnyCodable("lobby")])
 
         let events = Collected<PoolMatchResult>()
         client.pool.matched$.subscribe { events.append($0) }
 
         mock.injectFrame(StarfishFrame(
-            id: "evt_1", type: "pool.matched",
-            payload: AnyCodable([
-                "pool": "lobby",
-                "session": "dt-abc",
-                "peers": [
+            header: StarfishHeader(
+                id: "evt_1", resource: "pool", method: "matched", kind: .event
+            ),
+            payload: [
+                "pool": AnyCodable("lobby"),
+                "session": AnyCodable("dt-abc"),
+                "peers": AnyCodable([
                     ["id": "me", "attributes": [:] as [String: Any]],
                     ["id": "alice", "attributes": [:] as [String: Any]],
-                ],
-            ] as [String: Any])
+                ] as [[String: Any]]),
+            ]
         ))
 
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -158,15 +172,19 @@ final class PoolTests: XCTestCase {
         mock.reset()
 
         try await enterPool(client, mock: mock, responsePayload: [
-            "pool": "lobby", "mode": "claim", "groupSize": 2,
-        ] as [String: Any])
+            "pool": AnyCodable("lobby"),
+            "mode": AnyCodable("claim"),
+            "groupSize": AnyCodable(2),
+        ])
 
         mock.injectFrame(StarfishFrame(
-            id: "evt_1", type: "pool.member.joined",
-            payload: AnyCodable([
-                "pool": "lobby",
-                "member": ["id": "alice", "attributes": ["mood": "calm"]],
-            ] as [String: Any])
+            header: StarfishHeader(
+                id: "evt_1", resource: "pool", method: "member-joined", kind: .event
+            ),
+            payload: [
+                "pool": AnyCodable("lobby"),
+                "member": AnyCodable(["id": "alice", "attributes": ["mood": "calm"]] as [String: Any]),
+            ]
         ))
 
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -181,17 +199,23 @@ final class PoolTests: XCTestCase {
         mock.reset()
 
         try await enterPool(client, mock: mock, responsePayload: [
-            "pool": "lobby",
-            "mode": "claim",
-            "groupSize": 2,
-            "members": [["id": "alice"], ["id": "bob"]],
-        ] as [String: Any])
+            "pool": AnyCodable("lobby"),
+            "mode": AnyCodable("claim"),
+            "groupSize": AnyCodable(2),
+            "members": AnyCodable([["id": "alice"], ["id": "bob"]] as [[String: Any]]),
+        ])
 
         XCTAssertEqual(client.pool.members$.value.count, 2)
 
         mock.injectFrame(StarfishFrame(
-            id: "evt_1", type: "pool.member.left",
-            payload: AnyCodable(["pool": "lobby", "memberId": "alice", "reason": "left"] as [String: Any])
+            header: StarfishHeader(
+                id: "evt_1", resource: "pool", method: "member-left", kind: .event
+            ),
+            payload: [
+                "pool": AnyCodable("lobby"),
+                "memberId": AnyCodable("alice"),
+                "reason": AnyCodable("left"),
+            ]
         ))
 
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -210,7 +234,7 @@ final class PoolTests: XCTestCase {
         try client.pool.claim(pool: "lobby", target: "alice")
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        let claimFrames = mock.sentFrames.filter { $0.type == "pool.claim" }
+        let claimFrames = mock.sentFrames.filter { $0.header.resource == "pool" && $0.header.method == "claim" }
         XCTAssertEqual(claimFrames.count, 1)
         XCTAssertEqual(claimFrames[0].payloadString("pool"), "lobby")
         XCTAssertEqual(claimFrames[0].payloadString("target"), "alice")
@@ -225,7 +249,7 @@ final class PoolTests: XCTestCase {
         try client.pool.accept(pool: "lobby", from: "alice")
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        let frames = mock.sentFrames.filter { $0.type == "pool.accept" }
+        let frames = mock.sentFrames.filter { $0.header.resource == "pool" && $0.header.method == "accept" }
         XCTAssertEqual(frames.count, 1)
         XCTAssertEqual(frames[0].payloadString("pool"), "lobby")
         XCTAssertEqual(frames[0].payloadString("from"), "alice")
@@ -238,7 +262,7 @@ final class PoolTests: XCTestCase {
         try client.pool.reject(pool: "lobby", from: "alice")
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        let frames = mock.sentFrames.filter { $0.type == "pool.reject" }
+        let frames = mock.sentFrames.filter { $0.header.resource == "pool" && $0.header.method == "reject" }
         XCTAssertEqual(frames.count, 1)
         XCTAssertEqual(frames[0].payloadString("pool"), "lobby")
         XCTAssertEqual(frames[0].payloadString("from"), "alice")
@@ -252,23 +276,25 @@ final class PoolTests: XCTestCase {
 
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let assignFrame = mock.sentFrames.first { $0.type == "pool.assign" }
-            if let id = assignFrame?.id {
+            let assignFrame = mock.sentFrames.first { $0.header.resource == "pool" && $0.header.method == "assign" }
+            if let id = assignFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "assign_resp", type: "pool.assigned",
-                    replyTo: id,
-                    payload: AnyCodable([
-                        "pool": "lobby",
-                        "matched": [["group": ["alice", "bob"], "session": "dt-abc"]],
-                    ] as [String: Any])
+                    header: StarfishHeader(
+                        id: "assign_resp", resource: "pool", method: "assigned", kind: .response,
+                        replyTo: id
+                    ),
+                    payload: [
+                        "pool": AnyCodable("lobby"),
+                        "matched": AnyCodable([["group": ["alice", "bob"], "session": "dt-abc"]] as [[String: Any]]),
+                    ]
                 ))
             }
         }
 
         let response = try await client.pool.assign(pool: "lobby", groups: [["alice", "bob"]])
-        XCTAssertEqual(response.type, "pool.assigned")
+        XCTAssertEqual(response.header.method, "assigned")
 
-        let assignFrames = mock.sentFrames.filter { $0.type == "pool.assign" }
+        let assignFrames = mock.sentFrames.filter { $0.header.resource == "pool" && $0.header.method == "assign" }
         XCTAssertEqual(assignFrames.count, 1)
         XCTAssertEqual(assignFrames[0].payloadString("pool"), "lobby")
     }
@@ -282,7 +308,7 @@ final class PoolTests: XCTestCase {
         try client.leavePool("lobby")
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        let frames = mock.sentFrames.filter { $0.type == "pool.leave" }
+        let frames = mock.sentFrames.filter { $0.header.resource == "pool" && $0.header.method == "leave" }
         XCTAssertEqual(frames.count, 1)
         XCTAssertEqual(frames[0].payloadString("pool"), "lobby")
     }
@@ -293,18 +319,20 @@ final class PoolTests: XCTestCase {
         let (client, mock) = try await makeClient()
         mock.reset()
 
-        try await enterPool(client, mock: mock, responsePayload: ["pool": "lobby"] as [String: Any])
+        try await enterPool(client, mock: mock, responsePayload: ["pool": AnyCodable("lobby")])
 
         let proposals = Collected<StarfishFrame>()
         client.pool.proposals$.subscribe { proposals.append($0) }
 
         mock.injectFrame(StarfishFrame(
-            id: "evt_1", type: "pool.proposal",
-            payload: AnyCodable([
-                "pool": "lobby",
-                "from": "alice",
-                "attributes": ["mood": "calm"],
-            ] as [String: Any])
+            header: StarfishHeader(
+                id: "evt_1", resource: "pool", method: "proposal", kind: .event
+            ),
+            payload: [
+                "pool": AnyCodable("lobby"),
+                "from": AnyCodable("alice"),
+                "attributes": AnyCodable(["mood": "calm"] as [String: Any]),
+            ]
         ))
 
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -317,14 +345,19 @@ final class PoolTests: XCTestCase {
         let (client, mock) = try await makeClient()
         mock.reset()
 
-        try await enterPool(client, mock: mock, responsePayload: ["pool": "lobby"] as [String: Any])
+        try await enterPool(client, mock: mock, responsePayload: ["pool": AnyCodable("lobby")])
 
         let rejections = Collected<StarfishFrame>()
         client.pool.claimRejected$.subscribe { rejections.append($0) }
 
         mock.injectFrame(StarfishFrame(
-            id: "evt_1", type: "pool.claim.rejected",
-            payload: AnyCodable(["pool": "lobby", "target": "bob"] as [String: Any])
+            header: StarfishHeader(
+                id: "evt_1", resource: "pool", method: "claim-rejected", kind: .event
+            ),
+            payload: [
+                "pool": AnyCodable("lobby"),
+                "target": AnyCodable("bob"),
+            ]
         ))
 
         try await Task.sleep(nanoseconds: 100_000_000)

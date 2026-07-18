@@ -18,11 +18,14 @@ final class MessagingTests: XCTestCase {
         // Join session
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let joinFrame = mock.sentFrames.first { $0.type == "session.join" }
-            if let id = joinFrame?.id {
+            let joinFrame = mock.sentFrames.first { $0.header.resource == "session" && $0.header.method == "join" }
+            if let id = joinFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "resp", type: "session.joined", session: "room", replyTo: id,
-                    payload: AnyCodable(["clients": []] as [String: Any])
+                    header: StarfishHeader(
+                        id: "resp", resource: "session", method: "joined", kind: .response,
+                        session: "room", replyTo: id
+                    ),
+                    payload: ["clients": AnyCodable([] as [Any])]
                 ))
             }
         }
@@ -33,9 +36,9 @@ final class MessagingTests: XCTestCase {
 
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        let sendFrame = mock.sentFrames.first { $0.type == "client.send" }
+        let sendFrame = mock.sentFrames.first { $0.header.resource == "message" && $0.header.method == "send" }
         XCTAssertNotNil(sendFrame)
-        XCTAssertEqual(sendFrame?.to, .single("peer-1"))
+        XCTAssertEqual(sendFrame?.header.to, .single("peer-1"))
     }
 
     func testBroadcastCreatesCorrectFrame() async throws {
@@ -52,11 +55,14 @@ final class MessagingTests: XCTestCase {
 
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let joinFrame = mock.sentFrames.first { $0.type == "session.join" }
-            if let id = joinFrame?.id {
+            let joinFrame = mock.sentFrames.first { $0.header.resource == "session" && $0.header.method == "join" }
+            if let id = joinFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "resp", type: "session.joined", session: "room", replyTo: id,
-                    payload: AnyCodable(["clients": []] as [String: Any])
+                    header: StarfishHeader(
+                        id: "resp", resource: "session", method: "joined", kind: .response,
+                        session: "room", replyTo: id
+                    ),
+                    payload: ["clients": AnyCodable([] as [Any])]
                 ))
             }
         }
@@ -67,7 +73,7 @@ final class MessagingTests: XCTestCase {
 
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        let bcastFrame = mock.sentFrames.first { $0.type == "session.broadcast" }
+        let bcastFrame = mock.sentFrames.first { $0.header.resource == "session" && $0.header.method == "broadcast" }
         XCTAssertNotNil(bcastFrame)
     }
 

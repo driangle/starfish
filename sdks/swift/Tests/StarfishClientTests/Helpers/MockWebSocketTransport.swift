@@ -34,17 +34,22 @@ final class MockWebSocketTransport: WebSocketTransport, @unchecked Sendable {
         lock.unlock()
 
         // Auto-respond to handshake
-        if let frame = try? decodeFrame(string), frame.type == "client.hello" {
+        if let frame = try? decodeFrame(string),
+           frame.header.resource == "client" && frame.header.method == "hello" {
             let response = StarfishFrame(
-                id: "welcome_1",
-                type: "server.welcome",
-                replyTo: frame.id,
-                payload: AnyCodable([
-                    "clientId": "test-client-id",
-                    "resumeToken": "test-resume-token",
-                    "heartbeatInterval": 15000,
-                    "serverTime": Int(Date().timeIntervalSince1970 * 1000),
-                ] as [String: Any])
+                header: StarfishHeader(
+                    id: "welcome_1",
+                    resource: "client",
+                    method: "welcome",
+                    kind: .response,
+                    replyTo: frame.header.id
+                ),
+                payload: [
+                    "clientId": AnyCodable("test-client-id"),
+                    "resumeToken": AnyCodable("test-resume-token"),
+                    "heartbeatInterval": AnyCodable(15000),
+                    "serverTime": AnyCodable(Int(Date().timeIntervalSince1970 * 1000)),
+                ]
             )
             let json = try! encodeFrame(response)
             inject(json)

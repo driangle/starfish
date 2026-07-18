@@ -116,7 +116,7 @@ public final class StarfishClient: @unchecked Sendable {
     }
 
     /// Publish a message to a topic.
-    public func publish(topic: String, payload: AnyCodable, options: FrameOptions? = nil) throws {
+    public func publish(topic: String, payload: AnyCodable, options: HeaderOptions? = nil) throws {
         try _topics.publish(topic: topic, payload: payload, options: options)
     }
 
@@ -128,17 +128,17 @@ public final class StarfishClient: @unchecked Sendable {
     // MARK: - Messaging
 
     /// Send a direct message to one or more clients.
-    public func send(to: FrameTarget, payload: AnyCodable, options: FrameOptions? = nil) throws {
+    public func send(to: FrameTarget, payload: AnyCodable, options: HeaderOptions? = nil) throws {
         try _messaging.send(to: to, payload: payload, options: options)
     }
 
     /// Send a direct message to a single client.
-    public func send(to clientId: String, payload: AnyCodable, options: FrameOptions? = nil) throws {
+    public func send(to clientId: String, payload: AnyCodable, options: HeaderOptions? = nil) throws {
         try _messaging.send(to: .single(clientId), payload: payload, options: options)
     }
 
     /// Broadcast a message to all clients in the session.
-    public func broadcast(payload: AnyCodable, options: FrameOptions? = nil) throws {
+    public func broadcast(payload: AnyCodable, options: HeaderOptions? = nil) throws {
         try _messaging.broadcast(payload: payload, options: options)
     }
 

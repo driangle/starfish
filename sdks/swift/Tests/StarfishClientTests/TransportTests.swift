@@ -24,7 +24,9 @@ final class TransportTests: XCTestCase {
     // MARK: - Prefer WS
 
     func testPreferWSAlwaysReturnsWS() throws {
-        let frame = StarfishFrame(id: "1", type: "client.send", to: .single("peer"))
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "message", method: "send", kind: .request, to: .single("peer"))
+        )
         let delivery = DeliveryOptions(preferTransport: .ws)
         let result = try selectTransport(frame: frame, delivery: delivery, rtcState: nil)
         XCTAssertEqual(result, .ws)
@@ -33,32 +35,42 @@ final class TransportTests: XCTestCase {
     // MARK: - Auto mode
 
     func testAutoDataFrameAlwaysWS() throws {
-        let frame = StarfishFrame(id: "1", type: "data.save")
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "data", method: "save", kind: .request)
+        )
         let result = try selectTransport(frame: frame, delivery: nil, rtcState: nil)
         XCTAssertEqual(result, .ws)
     }
 
     func testAutoSessionFrameAlwaysWS() throws {
-        let frame = StarfishFrame(id: "1", type: "session.broadcast")
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "session", method: "broadcast", kind: .request)
+        )
         let result = try selectTransport(frame: frame, delivery: nil, rtcState: nil)
         XCTAssertEqual(result, .ws)
     }
 
     func testAutoPresenceFrameAlwaysWS() throws {
-        let frame = StarfishFrame(id: "1", type: "presence.set")
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "presence", method: "set", kind: .request)
+        )
         let result = try selectTransport(frame: frame, delivery: nil, rtcState: nil)
         XCTAssertEqual(result, .ws)
     }
 
     func testAutoTopicPublishReliableUsesWS() throws {
-        let frame = StarfishFrame(id: "1", type: "topic.publish", topic: "chat")
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "topic", method: "publish", kind: .request, topic: "chat")
+        )
         let delivery = DeliveryOptions(reliability: .reliable)
         let result = try selectTransport(frame: frame, delivery: delivery, rtcState: nil)
         XCTAssertEqual(result, .ws)
     }
 
     func testAutoTopicPublishUnreliableWithRTCPeers() throws {
-        let frame = StarfishFrame(id: "1", type: "topic.publish", topic: "chat")
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "topic", method: "publish", kind: .request, topic: "chat")
+        )
         let delivery = DeliveryOptions(reliability: .unreliable)
         var rtc = MockRTCState()
         rtc.connectedPeers = ["peer-1"]
@@ -69,14 +81,18 @@ final class TransportTests: XCTestCase {
     }
 
     func testAutoTopicPublishUnreliableWithoutRTCFallsBackToWS() throws {
-        let frame = StarfishFrame(id: "1", type: "topic.publish", topic: "chat")
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "topic", method: "publish", kind: .request, topic: "chat")
+        )
         let delivery = DeliveryOptions(reliability: .unreliable)
         let result = try selectTransport(frame: frame, delivery: delivery, rtcState: nil)
         XCTAssertEqual(result, .ws)
     }
 
     func testAutoDirectSendWithRTCPeer() throws {
-        let frame = StarfishFrame(id: "1", type: "client.send", to: .single("peer-1"))
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "message", method: "send", kind: .request, to: .single("peer-1"))
+        )
         var rtc = MockRTCState()
         rtc.connectedPeers = ["peer-1"]
 
@@ -85,7 +101,9 @@ final class TransportTests: XCTestCase {
     }
 
     func testAutoDirectSendWithoutRTCUsesWS() throws {
-        let frame = StarfishFrame(id: "1", type: "client.send", to: .single("peer-1"))
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "message", method: "send", kind: .request, to: .single("peer-1"))
+        )
         let result = try selectTransport(frame: frame, delivery: nil, rtcState: nil)
         XCTAssertEqual(result, .ws)
     }
@@ -93,7 +111,9 @@ final class TransportTests: XCTestCase {
     // MARK: - Prefer RTC
 
     func testPreferRTCWithAvailablePeers() throws {
-        let frame = StarfishFrame(id: "1", type: "client.send", to: .single("peer-1"))
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "message", method: "send", kind: .request, to: .single("peer-1"))
+        )
         let delivery = DeliveryOptions(preferTransport: .rtc)
         var rtc = MockRTCState()
         rtc.connectedPeers = ["peer-1"]
@@ -103,7 +123,9 @@ final class TransportTests: XCTestCase {
     }
 
     func testPreferRTCFallsBackToWS() throws {
-        let frame = StarfishFrame(id: "1", type: "client.send", to: .single("peer-1"))
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "message", method: "send", kind: .request, to: .single("peer-1"))
+        )
         let delivery = DeliveryOptions(preferTransport: .rtc, fallback: true)
 
         let result = try selectTransport(frame: frame, delivery: delivery, rtcState: nil)
@@ -111,7 +133,9 @@ final class TransportTests: XCTestCase {
     }
 
     func testPreferRTCNoFallbackThrows() {
-        let frame = StarfishFrame(id: "1", type: "client.send", to: .single("peer-1"))
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "1", resource: "message", method: "send", kind: .request, to: .single("peer-1"))
+        )
         let delivery = DeliveryOptions(preferTransport: .rtc, fallback: false)
 
         XCTAssertThrowsError(try selectTransport(frame: frame, delivery: delivery, rtcState: nil)) { error in

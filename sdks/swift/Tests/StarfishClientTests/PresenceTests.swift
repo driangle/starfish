@@ -15,8 +15,11 @@ final class PresenceTests: XCTestCase {
         let presence = Presence(connection: conn, session: session)
 
         presence.handleFrame(StarfishFrame(
-            id: "pres_1", type: "presence.updated", from: "peer-1",
-            payload: AnyCodable(["status": "online"] as [String: Any])
+            header: StarfishHeader(
+                id: "pres_1", resource: "presence", method: "updated", kind: .event,
+                from: "peer-1"
+            ),
+            payload: ["data": AnyCodable(["status": "online"] as [String: Any])]
         ))
 
         let presenceMap = presence.presence$.value
@@ -34,8 +37,11 @@ final class PresenceTests: XCTestCase {
         let presence = Presence(connection: conn, session: session)
 
         presence.handleFrame(StarfishFrame(
-            id: "pres_1", type: "presence.updated", from: "peer-1",
-            payload: AnyCodable(["status": "online"] as [String: Any])
+            header: StarfishHeader(
+                id: "pres_1", resource: "presence", method: "updated", kind: .event,
+                from: "peer-1"
+            ),
+            payload: ["data": AnyCodable(["status": "online"] as [String: Any])]
         ))
         XCTAssertFalse(presence.presence$.value.isEmpty)
 

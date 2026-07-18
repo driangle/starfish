@@ -20,11 +20,13 @@ final class ConnectionTests: XCTestCase {
 
         XCTAssertEqual(conn.state$.value, .connected)
         XCTAssertEqual(conn.clientId, "test-client-id")
-        XCTAssertEqual(welcome.type, "server.welcome")
+        XCTAssertEqual(welcome.header.resource, "client")
+        XCTAssertEqual(welcome.header.method, "welcome")
 
         // Verify hello was sent
-        let helloFrame = mock.sentFrames.first { $0.type == "client.hello" }
+        let helloFrame = mock.sentFrames.first { $0.header.resource == "client" && $0.header.method == "hello" }
         XCTAssertNotNil(helloFrame)
+        XCTAssertEqual(helloFrame?.header.kind, .request)
     }
 
     func testDisconnectSetsState() async throws {
@@ -38,7 +40,9 @@ final class ConnectionTests: XCTestCase {
 
     func testSendThrowsWhenNotConnected() {
         let (conn, _) = makeMockConnection()
-        let frame = StarfishFrame(id: "test_1", type: "test")
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "test_1", resource: "test", method: "test", kind: .request)
+        )
         XCTAssertThrowsError(try conn.send(frame)) { error in
             let starfishError = error as! StarfishError
             XCTAssertEqual(starfishError.code, .notConnected)
@@ -53,19 +57,22 @@ final class ConnectionTests: XCTestCase {
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
             mock.injectFrame(StarfishFrame(
-                id: "resp_1",
-                type: "session.joined",
-                replyTo: "join_2",
-                payload: AnyCodable(["clients": []] as [String: Any])
+                header: StarfishHeader(
+                    id: "resp_1",
+                    resource: "session",
+                    method: "joined",
+                    kind: .response,
+                    replyTo: "join_2"
+                ),
+                payload: ["clients": AnyCodable([] as [Any])]
             ))
         }
 
         let response = try await conn.sendAndWait(StarfishFrame(
-            id: "join_2",
-            type: "session.join"
+            header: StarfishHeader(id: "join_2", resource: "session", method: "join", kind: .request)
         ))
 
-        XCTAssertEqual(response.type, "session.joined")
+        XCTAssertEqual(response.header.method, "joined")
     }
 
     func testFrameDispatch() async throws {
@@ -76,16 +83,21 @@ final class ConnectionTests: XCTestCase {
         let unsub = conn.frames$.subscribe { received.append($0) }
 
         mock.injectFrame(StarfishFrame(
-            id: "msg_1",
-            type: "topic.message",
-            topic: "chat",
-            payload: "hello"
+            header: StarfishHeader(
+                id: "msg_1",
+                resource: "topic",
+                method: "message",
+                kind: .event,
+                topic: "chat"
+            ),
+            payload: ["data": AnyCodable("hello")]
         ))
 
         try await Task.sleep(nanoseconds: 100_000_000)
 
         XCTAssertEqual(received.count, 1)
-        XCTAssertEqual(received.first?.type, "topic.message")
+        XCTAssertEqual(received.first?.header.resource, "topic")
+        XCTAssertEqual(received.first?.header.method, "message")
         unsub()
     }
 }

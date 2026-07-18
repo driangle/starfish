@@ -18,11 +18,14 @@ final class TopicsTests: XCTestCase {
         // Join session
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let joinFrame = mock.sentFrames.first { $0.type == "session.join" }
-            if let id = joinFrame?.id {
+            let joinFrame = mock.sentFrames.first { $0.header.resource == "session" && $0.header.method == "join" }
+            if let id = joinFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "resp", type: "session.joined", session: "room", replyTo: id,
-                    payload: AnyCodable(["clients": []] as [String: Any])
+                    header: StarfishHeader(
+                        id: "resp", resource: "session", method: "joined", kind: .response,
+                        session: "room", replyTo: id
+                    ),
+                    payload: ["clients": AnyCodable([] as [Any])]
                 ))
             }
         }
@@ -31,10 +34,13 @@ final class TopicsTests: XCTestCase {
         // Subscribe
         Task {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            let subFrame = mock.sentFrames.first { $0.type == "topic.subscribe" }
-            if let id = subFrame?.id {
+            let subFrame = mock.sentFrames.first { $0.header.resource == "topic" && $0.header.method == "subscribe" }
+            if let id = subFrame?.header.id {
                 mock.injectFrame(StarfishFrame(
-                    id: "resp2", type: "topic.subscribed", topic: "chat", replyTo: id
+                    header: StarfishHeader(
+                        id: "resp2", resource: "topic", method: "subscribed", kind: .response,
+                        topic: "chat", replyTo: id
+                    )
                 ))
             }
         }
@@ -46,8 +52,11 @@ final class TopicsTests: XCTestCase {
 
         // Simulate incoming message
         topics.handleFrame(StarfishFrame(
-            id: "msg_1", type: "topic.message", topic: "chat",
-            payload: AnyCodable("hello")
+            header: StarfishHeader(
+                id: "msg_1", resource: "topic", method: "message", kind: .event,
+                topic: "chat"
+            ),
+            payload: ["data": AnyCodable("hello")]
         ))
 
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -68,8 +77,11 @@ final class TopicsTests: XCTestCase {
         let topics = Topics(connection: conn, session: session)
 
         topics.handleFrame(StarfishFrame(
-            id: "tp_1", type: "topic.peers", topic: "chat",
-            payload: AnyCodable(["subscribers": ["a", "b", "c"]] as [String: Any])
+            header: StarfishHeader(
+                id: "tp_1", resource: "topic", method: "peers", kind: .event,
+                topic: "chat"
+            ),
+            payload: ["subscribers": AnyCodable(["a", "b", "c"])]
         ))
 
         XCTAssertEqual(topics.getTopicPeers("chat").sorted(), ["a", "b", "c"])

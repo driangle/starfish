@@ -5,17 +5,22 @@ final class ValidateTests: XCTestCase {
 
     func testEncodeDecodeFrame() throws {
         let frame = StarfishFrame(
-            id: "test_1",
-            type: "test",
-            payload: AnyCodable(["key": "value"] as [String: Any])
+            header: StarfishHeader(
+                id: "test_1",
+                resource: "test",
+                method: "test",
+                kind: .request
+            ),
+            payload: ["key": AnyCodable("value")]
         )
 
         let json = try encodeFrame(frame)
         XCTAssertTrue(json.contains("test_1"))
 
         let decoded = try decodeFrame(json)
-        XCTAssertEqual(decoded.id, "test_1")
-        XCTAssertEqual(decoded.type, "test")
+        XCTAssertEqual(decoded.header.id, "test_1")
+        XCTAssertEqual(decoded.header.resource, "test")
+        XCTAssertEqual(decoded.header.method, "test")
     }
 
     func testEncodePayload() throws {
@@ -27,39 +32,39 @@ final class ValidateTests: XCTestCase {
 
     func testFrameWithAllFields() throws {
         let frame = StarfishFrame(
-            v: 1,
-            id: "full_1",
-            type: "client.send",
-            ts: 1234567890,
-            session: "my-session",
-            from: "sender",
-            to: .single("receiver"),
-            topic: "chat",
-            ack: true,
-            replyTo: "orig_1",
-            transport: .ws,
-            options: FrameOptions(
+            header: StarfishHeader(
+                v: 2,
+                id: "full_1",
+                resource: "message",
+                method: "send",
+                kind: .request,
+                ts: 1234567890,
+                session: "my-session",
+                from: "sender",
+                to: .single("receiver"),
+                topic: "chat",
+                replyTo: "orig_1",
                 delivery: DeliveryOptions(reliability: .reliable, ordering: .ordered),
                 priority: .high
             ),
-            payload: AnyCodable("hello")
+            payload: ["data": AnyCodable("hello")]
         )
 
         let json = try encodeFrame(frame)
         let decoded = try decodeFrame(json)
 
-        XCTAssertEqual(decoded.v, 1)
-        XCTAssertEqual(decoded.id, "full_1")
-        XCTAssertEqual(decoded.type, "client.send")
-        XCTAssertEqual(decoded.ts, 1234567890)
-        XCTAssertEqual(decoded.session, "my-session")
-        XCTAssertEqual(decoded.from, "sender")
-        XCTAssertEqual(decoded.to, .single("receiver"))
-        XCTAssertEqual(decoded.topic, "chat")
-        XCTAssertEqual(decoded.ack, true)
-        XCTAssertEqual(decoded.replyTo, "orig_1")
-        XCTAssertEqual(decoded.transport, .ws)
-        XCTAssertEqual(decoded.options?.delivery?.reliability, .reliable)
-        XCTAssertEqual(decoded.options?.priority, .high)
+        XCTAssertEqual(decoded.header.v, 2)
+        XCTAssertEqual(decoded.header.id, "full_1")
+        XCTAssertEqual(decoded.header.resource, "message")
+        XCTAssertEqual(decoded.header.method, "send")
+        XCTAssertEqual(decoded.header.kind, .request)
+        XCTAssertEqual(decoded.header.ts, 1234567890)
+        XCTAssertEqual(decoded.header.session, "my-session")
+        XCTAssertEqual(decoded.header.from, "sender")
+        XCTAssertEqual(decoded.header.to, .single("receiver"))
+        XCTAssertEqual(decoded.header.topic, "chat")
+        XCTAssertEqual(decoded.header.replyTo, "orig_1")
+        XCTAssertEqual(decoded.header.delivery?.reliability, .reliable)
+        XCTAssertEqual(decoded.header.priority, .high)
     }
 }

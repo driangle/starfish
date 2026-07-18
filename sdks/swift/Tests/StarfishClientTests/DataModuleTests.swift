@@ -17,13 +17,15 @@ final class DataModuleTests: XCTestCase {
         let unsub = data.changed$.subscribe { received.append($0) }
 
         data.handleFrame(StarfishFrame(
-            id: "dc_1", type: "data.changed",
-            payload: AnyCodable([
-                "key": "score",
-                "scope": "session",
-                "data": 100,
-                "version": 1,
-            ] as [String: Any])
+            header: StarfishHeader(
+                id: "dc_1", resource: "data", method: "changed", kind: .event
+            ),
+            payload: [
+                "key": AnyCodable("score"),
+                "scope": AnyCodable("session"),
+                "data": AnyCodable(100),
+                "version": AnyCodable(1),
+            ]
         ))
 
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -49,14 +51,24 @@ final class DataModuleTests: XCTestCase {
 
         // This should NOT be received (different key)
         data.handleFrame(StarfishFrame(
-            id: "dc_1", type: "data.changed",
-            payload: AnyCodable(["key": "other", "scope": "session", "data": 0, "version": 1] as [String: Any])
+            header: StarfishHeader(id: "dc_1", resource: "data", method: "changed", kind: .event),
+            payload: [
+                "key": AnyCodable("other"),
+                "scope": AnyCodable("session"),
+                "data": AnyCodable(0),
+                "version": AnyCodable(1),
+            ]
         ))
 
         // This should be received
         data.handleFrame(StarfishFrame(
-            id: "dc_2", type: "data.changed",
-            payload: AnyCodable(["key": "score", "scope": "session", "data": 42, "version": 2] as [String: Any])
+            header: StarfishHeader(id: "dc_2", resource: "data", method: "changed", kind: .event),
+            payload: [
+                "key": AnyCodable("score"),
+                "scope": AnyCodable("session"),
+                "data": AnyCodable(42),
+                "version": AnyCodable(2),
+            ]
         ))
 
         try await Task.sleep(nanoseconds: 100_000_000)

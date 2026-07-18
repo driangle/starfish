@@ -142,6 +142,12 @@ extension FrameTarget: Codable {
 
 // MARK: - Enums
 
+public enum FrameKind: String, Sendable, Codable {
+    case request
+    case response
+    case event
+}
+
 public enum TransportKind: String, Sendable, Codable {
     case ws
     case rtc
@@ -202,38 +208,41 @@ public struct DeliveryOptions: Sendable, Codable {
     public var preferTransport: PreferredTransport?
     public var fallback: Bool?
     public var includeSelf: Bool?
+    public var requireAck: Bool?
 
     public init(
         reliability: Reliability? = nil,
         ordering: Ordering? = nil,
         preferTransport: PreferredTransport? = nil,
         fallback: Bool? = nil,
-        includeSelf: Bool? = nil
+        includeSelf: Bool? = nil,
+        requireAck: Bool? = nil
     ) {
         self.reliability = reliability
         self.ordering = ordering
         self.preferTransport = preferTransport
         self.fallback = fallback
         self.includeSelf = includeSelf
+        self.requireAck = requireAck
     }
 }
 
-public struct FrameOptions: Sendable, Codable {
+public struct HeaderOptions: Sendable {
     public var delivery: DeliveryOptions?
     public var priority: Priority?
     public var ttl: Int?
-    public var requireAck: Bool?
+    public var meta: [String: AnyCodable]?
 
     public init(
         delivery: DeliveryOptions? = nil,
         priority: Priority? = nil,
         ttl: Int? = nil,
-        requireAck: Bool? = nil
+        meta: [String: AnyCodable]? = nil
     ) {
         self.delivery = delivery
         self.priority = priority
         self.ttl = ttl
-        self.requireAck = requireAck
+        self.meta = meta
     }
 }
 
@@ -449,65 +458,85 @@ public struct PoolAssignedResult: Sendable {
 // MARK: - Event filtering
 
 public struct EventFilter: Sendable {
-    public var type: String?
+    public var resource: String?
+    public var method: String?
     public var topic: String?
     public var from: String?
 
-    public init(type: String? = nil, topic: String? = nil, from: String? = nil) {
-        self.type = type
+    public init(resource: String? = nil, method: String? = nil, topic: String? = nil, from: String? = nil) {
+        self.resource = resource
+        self.method = method
         self.topic = topic
         self.from = from
+    }
+}
+
+// MARK: - StarfishHeader
+
+public struct StarfishHeader: Sendable, Codable {
+    public var v: Int?
+    public var id: String
+    public var resource: String
+    public var method: String
+    public var kind: FrameKind
+    public var ts: Int?
+    public var session: String?
+    public var from: String?
+    public var to: FrameTarget?
+    public var topic: String?
+    public var replyTo: String?
+    public var delivery: DeliveryOptions?
+    public var priority: Priority?
+    public var ttl: Int?
+    public var meta: [String: AnyCodable]?
+
+    public init(
+        v: Int? = nil,
+        id: String,
+        resource: String,
+        method: String,
+        kind: FrameKind,
+        ts: Int? = nil,
+        session: String? = nil,
+        from: String? = nil,
+        to: FrameTarget? = nil,
+        topic: String? = nil,
+        replyTo: String? = nil,
+        delivery: DeliveryOptions? = nil,
+        priority: Priority? = nil,
+        ttl: Int? = nil,
+        meta: [String: AnyCodable]? = nil
+    ) {
+        self.v = v
+        self.id = id
+        self.resource = resource
+        self.method = method
+        self.kind = kind
+        self.ts = ts
+        self.session = session
+        self.from = from
+        self.to = to
+        self.topic = topic
+        self.replyTo = replyTo
+        self.delivery = delivery
+        self.priority = priority
+        self.ttl = ttl
+        self.meta = meta
     }
 }
 
 // MARK: - StarfishFrame
 
 public struct StarfishFrame: Sendable, Codable {
-    public var v: Int
-    public var id: String
-    public var type: String
-    public var ts: Int?
-    public var session: String?
-    public var from: String?
-    public var to: FrameTarget?
-    public var topic: String?
-    public var ack: Bool?
-    public var replyTo: String?
-    public var transport: TransportKind?
-    public var options: FrameOptions?
-    public var payload: AnyCodable?
-    public var error: StarfishFrameError?
+    public var header: StarfishHeader
+    public var payload: [String: AnyCodable]?
 
     public init(
-        v: Int = 1,
-        id: String,
-        type: String,
-        ts: Int? = nil,
-        session: String? = nil,
-        from: String? = nil,
-        to: FrameTarget? = nil,
-        topic: String? = nil,
-        ack: Bool? = nil,
-        replyTo: String? = nil,
-        transport: TransportKind? = nil,
-        options: FrameOptions? = nil,
-        payload: AnyCodable? = nil,
-        error: StarfishFrameError? = nil
+        header: StarfishHeader,
+        payload: [String: AnyCodable]? = nil
     ) {
-        self.v = v
-        self.id = id
-        self.type = type
-        self.ts = ts
-        self.session = session
-        self.from = from
-        self.to = to
-        self.topic = topic
-        self.ack = ack
-        self.replyTo = replyTo
-        self.transport = transport
-        self.options = options
+        self.header = header
         self.payload = payload
-        self.error = error
     }
 }
 
@@ -516,19 +545,19 @@ public struct StarfishFrame: Sendable, Codable {
 extension StarfishFrame {
     /// Access a string value from the payload dictionary.
     public func payloadString(_ key: String) -> String? {
-        guard let dict = payload?.value as? [String: Any] else { return nil }
-        return dict[key] as? String
+        guard let dict = payload else { return nil }
+        return dict[key]?.value as? String
     }
 
     /// Access an int value from the payload dictionary.
     public func payloadInt(_ key: String) -> Int? {
-        guard let dict = payload?.value as? [String: Any] else { return nil }
-        return dict[key] as? Int
+        guard let dict = payload else { return nil }
+        return dict[key]?.value as? Int
     }
 
     /// Access a nested value from the payload dictionary.
     public func payloadValue(_ key: String) -> Any? {
-        guard let dict = payload?.value as? [String: Any] else { return nil }
-        return dict[key]
+        guard let dict = payload else { return nil }
+        return dict[key]?.value
     }
 }

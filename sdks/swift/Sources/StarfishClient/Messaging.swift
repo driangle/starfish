@@ -10,30 +10,44 @@ final class Messaging: @unchecked Sendable {
         self.session = session
     }
 
-    func send(to: FrameTarget, payload: AnyCodable, options: FrameOptions? = nil) throws {
+    func send(to: FrameTarget, payload: AnyCodable, options: HeaderOptions? = nil) throws {
         let sessionName = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "send"),
-            type: "client.send",
-            session: sessionName,
-            to: to,
-            options: options,
-            payload: payload
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "send"),
+                resource: "message",
+                method: "send",
+                kind: .request,
+                session: sessionName,
+                to: to,
+                delivery: options?.delivery,
+                priority: options?.priority,
+                ttl: options?.ttl,
+                meta: options?.meta
+            ),
+            payload: ["data": payload]
         )
 
         try connection.send(frame)
     }
 
-    func broadcast(payload: AnyCodable, options: FrameOptions? = nil) throws {
+    func broadcast(payload: AnyCodable, options: HeaderOptions? = nil) throws {
         let sessionName = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "bcast"),
-            type: "session.broadcast",
-            session: sessionName,
-            options: options,
-            payload: payload
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "bcast"),
+                resource: "session",
+                method: "broadcast",
+                kind: .request,
+                session: sessionName,
+                delivery: options?.delivery,
+                priority: options?.priority,
+                ttl: options?.ttl,
+                meta: options?.meta
+            ),
+            payload: ["data": payload]
         )
 
         try connection.send(frame)

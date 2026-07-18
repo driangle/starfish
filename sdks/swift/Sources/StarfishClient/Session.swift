@@ -26,15 +26,19 @@ final class Session: @unchecked Sendable {
 
     func join(session: String, options: JoinOptions? = nil) async throws -> StarfishFrame {
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "join"),
-            type: "session.join",
-            session: session,
-            payload: AnyCodable([
-                "create": options?.create ?? true,
-                "name": options?.name ?? connection.clientId ?? "client",
-                "role": options?.role ?? "default",
-                "meta": options?.meta?.mapValues { $0.value } ?? [:],
-            ] as [String: Any])
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "join"),
+                resource: "session",
+                method: "join",
+                kind: .request,
+                session: session
+            ),
+            payload: [
+                "create": AnyCodable(options?.create ?? true),
+                "name": AnyCodable(options?.name ?? connection.clientId ?? "client"),
+                "role": AnyCodable(options?.role ?? "default"),
+                "meta": AnyCodable(options?.meta?.mapValues { $0.value } ?? [:] as [String: Any]),
+            ]
         )
 
         let response = try await connection.sendAndWait(frame)
@@ -62,9 +66,13 @@ final class Session: @unchecked Sendable {
         guard let session = _session else { return }
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "leave"),
-            type: "session.leave",
-            session: session
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "leave"),
+                resource: "session",
+                method: "leave",
+                kind: .request,
+                session: session
+            )
         )
 
         try connection.send(frame)
@@ -74,10 +82,11 @@ final class Session: @unchecked Sendable {
     }
 
     func handleFrame(_ frame: StarfishFrame) {
-        guard let session = _session, frame.session == session else { return }
+        guard let session = _session, frame.header.session == session else { return }
+        guard frame.header.resource == "session" else { return }
 
-        switch frame.type {
-        case "client.connected":
+        switch frame.header.method {
+        case "connected":
             if let clientDict = frame.payloadValue("client") as? [String: Any],
                let id = clientDict["id"] as? String {
                 let info = ClientInfo(
@@ -88,7 +97,7 @@ final class Session: @unchecked Sendable {
                 _clients[id] = info
                 updateObservables()
             }
-        case "client.disconnected":
+        case "disconnected":
             if let clientId = frame.payloadString("clientId") {
                 _clients.removeValue(forKey: clientId)
                 updateObservables()

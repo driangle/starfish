@@ -3,11 +3,15 @@ import Foundation
 public struct StarfishError: Error, Sendable, CustomStringConvertible {
     public let code: ErrorCode
     public let message: String
+    public let resource: String?
+    public let retry: Bool?
     public let details: AnyCodable?
 
-    public init(code: ErrorCode, message: String, details: AnyCodable? = nil) {
+    public init(code: ErrorCode, message: String, resource: String? = nil, retry: Bool? = nil, details: AnyCodable? = nil) {
         self.code = code
         self.message = message
+        self.resource = resource
+        self.retry = retry
         self.details = details
     }
 
@@ -39,11 +43,15 @@ public struct StarfishError: Error, Sendable, CustomStringConvertible {
 public struct StarfishFrameError: Sendable, Codable {
     public let code: String
     public let message: String
+    public let resource: String?
+    public let retry: Bool?
     public let details: AnyCodable?
 
-    public init(code: String, message: String, details: AnyCodable? = nil) {
+    public init(code: String, message: String, resource: String? = nil, retry: Bool? = nil, details: AnyCodable? = nil) {
         self.code = code
         self.message = message
+        self.resource = resource
+        self.retry = retry
         self.details = details
     }
 }

@@ -33,7 +33,7 @@ final class PendingRequests: @unchecked Sendable {
     /// Try to resolve a pending request with a received frame.
     /// Returns true if the frame was consumed as a response.
     func resolve(frame: StarfishFrame) -> Bool {
-        guard let replyTo = frame.replyTo else { return false }
+        guard let replyTo = frame.header.replyTo else { return false }
 
         lock.lock()
         guard let cont = pending.removeValue(forKey: replyTo) else {
@@ -45,11 +45,16 @@ final class PendingRequests: @unchecked Sendable {
 
         timer?.cancel()
 
-        if frame.type == "error", let error = frame.error {
+        if frame.header.resource == "error" {
+            let message = frame.payloadString("message") ?? "Server error"
+            let code = frame.payloadString("code") ?? "SERVER_ERROR"
+            let retry = frame.payload?["retry"]?.value as? Bool
             cont.resume(throwing: StarfishError(
                 code: .serverError,
-                message: error.message,
-                details: AnyCodable(["code": error.code, "details": error.details?.value ?? NSNull()] as [String: Any])
+                message: message,
+                resource: frame.header.resource,
+                retry: retry,
+                details: AnyCodable(["code": code] as [String: Any])
             ))
         } else {
             cont.resume(returning: frame)

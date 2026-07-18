@@ -22,22 +22,26 @@ public final class Pool: @unchecked Sendable {
     public func enter(_ options: PoolEnterOptions, pool poolName: String) async throws -> StarfishFrame {
         let _ = try session.require()
 
-        var payloadDict: [String: Any] = [
-            "pool": poolName,
-            "groupSize": options.groupSize,
+        var payloadDict: [String: AnyCodable] = [
+            "pool": AnyCodable(poolName),
+            "groupSize": AnyCodable(options.groupSize),
         ]
-        if let mode = options.mode { payloadDict["mode"] = mode.rawValue }
-        if let role = options.role { payloadDict["role"] = role.rawValue }
+        if let mode = options.mode { payloadDict["mode"] = AnyCodable(mode.rawValue) }
+        if let role = options.role { payloadDict["role"] = AnyCodable(role.rawValue) }
         if let attributes = options.attributes {
-            payloadDict["attributes"] = attributes.mapValues { $0.value }
+            payloadDict["attributes"] = AnyCodable(attributes.mapValues { $0.value })
         }
-        if let filter = options.filter { payloadDict["filter"] = filter }
-        if let create = options.create { payloadDict["create"] = create }
+        if let filter = options.filter { payloadDict["filter"] = AnyCodable(filter) }
+        if let create = options.create { payloadDict["create"] = AnyCodable(create) }
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "pool"),
-            type: "pool.enter",
-            payload: AnyCodable(payloadDict)
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "pool"),
+                resource: "pool",
+                method: "enter",
+                kind: .request
+            ),
+            payload: payloadDict
         )
 
         let response = try await connection.sendAndWait(frame)
@@ -62,9 +66,13 @@ public final class Pool: @unchecked Sendable {
         let _ = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "pool"),
-            type: "pool.leave",
-            payload: AnyCodable(["pool": poolName] as [String: Any])
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "pool"),
+                resource: "pool",
+                method: "leave",
+                kind: .request
+            ),
+            payload: ["pool": AnyCodable(poolName)]
         )
 
         try connection.send(frame)
@@ -79,9 +87,13 @@ public final class Pool: @unchecked Sendable {
         let _ = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "pool"),
-            type: "pool.claim",
-            payload: AnyCodable(["pool": poolName, "target": target] as [String: Any])
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "pool"),
+                resource: "pool",
+                method: "claim",
+                kind: .request
+            ),
+            payload: ["pool": AnyCodable(poolName), "target": AnyCodable(target)]
         )
 
         try connection.send(frame)
@@ -92,9 +104,13 @@ public final class Pool: @unchecked Sendable {
         let _ = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "pool"),
-            type: "pool.accept",
-            payload: AnyCodable(["pool": poolName, "from": from] as [String: Any])
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "pool"),
+                resource: "pool",
+                method: "accept",
+                kind: .request
+            ),
+            payload: ["pool": AnyCodable(poolName), "from": AnyCodable(from)]
         )
 
         try connection.send(frame)
@@ -105,9 +121,13 @@ public final class Pool: @unchecked Sendable {
         let _ = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "pool"),
-            type: "pool.reject",
-            payload: AnyCodable(["pool": poolName, "from": from] as [String: Any])
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "pool"),
+                resource: "pool",
+                method: "reject",
+                kind: .request
+            ),
+            payload: ["pool": AnyCodable(poolName), "from": AnyCodable(from)]
         )
 
         try connection.send(frame)
@@ -119,9 +139,13 @@ public final class Pool: @unchecked Sendable {
         let _ = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "pool"),
-            type: "pool.assign",
-            payload: AnyCodable(["pool": poolName, "groups": groups] as [String: Any])
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "pool"),
+                resource: "pool",
+                method: "assign",
+                kind: .request
+            ),
+            payload: ["pool": AnyCodable(poolName), "groups": AnyCodable(groups)]
         )
 
         return try await connection.sendAndWait(frame)
@@ -129,35 +153,37 @@ public final class Pool: @unchecked Sendable {
 
     /// Process an incoming pool-related frame.
     func handleFrame(_ frame: StarfishFrame) {
-        guard let payloadDict = frame.payload?.value as? [String: Any],
-              let pool = payloadDict["pool"] as? String,
+        guard frame.header.resource == "pool" else { return }
+
+        guard let payload = frame.payload,
+              let pool = payload["pool"]?.value as? String,
               pool == currentPool else { return }
 
-        switch frame.type {
-        case "pool.member.joined":
-            if let memberDict = payloadDict["member"] as? [String: Any],
+        switch frame.header.method {
+        case "member-joined":
+            if let memberDict = payload["member"]?.value as? [String: Any],
                let id = memberDict["id"] as? String {
                 let attrs = (memberDict["attributes"] as? [String: Any])?.mapValues { AnyCodable($0) }
                 membersMap[id] = PoolMember(id: id, attributes: attrs)
                 members$.set(Array(membersMap.values))
             }
 
-        case "pool.member.left":
-            if let memberId = payloadDict["memberId"] as? String {
+        case "member-left":
+            if let memberId = payload["memberId"]?.value as? String {
                 membersMap.removeValue(forKey: memberId)
                 members$.set(Array(membersMap.values))
             }
 
-        case "pool.matched":
-            let session = payloadDict["session"] as? String ?? ""
-            let peers = parsePeers(payloadDict["peers"])
+        case "matched":
+            let session = payload["session"]?.value as? String ?? ""
+            let peers = parsePeers(payload["peers"]?.value)
             matched$.emit(PoolMatchResult(pool: pool, session: session, peers: peers))
             clearState()
 
-        case "pool.proposal":
+        case "proposal":
             proposals$.emit(frame)
 
-        case "pool.claim.rejected":
+        case "claim-rejected":
             claimRejected$.emit(frame)
 
         default:

@@ -20,20 +20,28 @@ public final class Presence: @unchecked Sendable {
         try validatePayloadSize(json, limit: Limits.maxPresenceSize, label: "Presence payload")
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "pres"),
-            type: "presence.set",
-            session: sessionName,
-            payload: payload
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "pres"),
+                resource: "presence",
+                method: "set",
+                kind: .request,
+                session: sessionName
+            ),
+            payload: ["data": payload]
         )
 
         try connection.send(frame)
     }
 
     func handleFrame(_ frame: StarfishFrame) {
-        if frame.type == "presence.updated", let from = frame.from {
-            presenceMap[from] = frame.payload
-            presence$.set(presenceMap)
+        guard frame.header.resource == "presence" && frame.header.method == "updated" else { return }
+        guard let from = frame.header.from else { return }
+        if let data = frame.payload?["data"] {
+            presenceMap[from] = data
+        } else {
+            presenceMap[from] = AnyCodable(frame.payload as Any)
         }
+        presence$.set(presenceMap)
     }
 
     func clear() {

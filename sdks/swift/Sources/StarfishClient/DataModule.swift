@@ -14,21 +14,22 @@ final class DataModule: @unchecked Sendable {
     }
 
     func handleFrame(_ frame: StarfishFrame) {
-        if frame.type == "data.changed", let payloadDict = frame.payload?.value as? [String: Any] {
-            guard let key = payloadDict["key"] as? String,
-                  let scopeStr = payloadDict["scope"] as? String,
-                  let scope = DataScope(rawValue: scopeStr),
-                  let version = payloadDict["version"] as? Int else { return }
+        guard frame.header.resource == "data" && frame.header.method == "changed" else { return }
+        guard let payload = frame.payload else { return }
 
-            let result = DataResult(
-                key: key,
-                scope: scope,
-                data: payloadDict["data"].map { AnyCodable($0) },
-                version: version
-            )
-            changed$.emit(result)
-            dataStreams[key]?.emit(result)
-        }
+        guard let key = payload["key"]?.value as? String,
+              let scopeStr = payload["scope"]?.value as? String,
+              let scope = DataScope(rawValue: scopeStr),
+              let version = payload["version"]?.value as? Int else { return }
+
+        let result = DataResult(
+            key: key,
+            scope: scope,
+            data: payload["data"],
+            version: version
+        )
+        changed$.emit(result)
+        dataStreams[key]?.emit(result)
     }
 
     func key$(_ key: String) -> EventStream<DataResult> {
@@ -48,30 +49,34 @@ final class DataModule: @unchecked Sendable {
             try validatePayloadSize(json, limit: Limits.maxDataValueSize, label: "Data value")
         }
 
-        var payloadDict: [String: Any] = [
-            "key": options.key,
-            "scope": options.scope.rawValue,
-            "op": options.op.rawValue,
+        var payload: [String: AnyCodable] = [
+            "key": AnyCodable(options.key),
+            "scope": AnyCodable(options.scope.rawValue),
+            "op": AnyCodable(options.op.rawValue),
         ]
         if let data = options.data {
-            payloadDict["data"] = data.value
+            payload["data"] = data
         }
         if let expectedVersion = options.expectedVersion {
-            payloadDict["expectedVersion"] = expectedVersion
+            payload["expectedVersion"] = AnyCodable(expectedVersion)
         }
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "dsave"),
-            type: "data.save",
-            session: sessionName,
-            payload: AnyCodable(payloadDict)
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "dsave"),
+                resource: "data",
+                method: "save",
+                kind: .request,
+                session: sessionName
+            ),
+            payload: payload
         )
 
         let response = try await connection.sendAndWait(frame)
         return DataResult(
             key: response.payloadString("key") ?? options.key,
             scope: DataScope(rawValue: response.payloadString("scope") ?? options.scope.rawValue) ?? options.scope,
-            data: response.payloadValue("data").map { AnyCodable($0) },
+            data: response.payload?["data"],
             version: response.payloadInt("version") ?? 0
         )
     }
@@ -80,17 +85,24 @@ final class DataModule: @unchecked Sendable {
         let sessionName = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "dget"),
-            type: "data.get",
-            session: sessionName,
-            payload: AnyCodable(["key": key, "scope": scope.rawValue] as [String: Any])
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "dget"),
+                resource: "data",
+                method: "get",
+                kind: .request,
+                session: sessionName
+            ),
+            payload: [
+                "key": AnyCodable(key),
+                "scope": AnyCodable(scope.rawValue),
+            ]
         )
 
         let response = try await connection.sendAndWait(frame)
         return DataResult(
             key: response.payloadString("key") ?? key,
             scope: DataScope(rawValue: response.payloadString("scope") ?? scope.rawValue) ?? scope,
-            data: response.payloadValue("data").map { AnyCodable($0) },
+            data: response.payload?["data"],
             version: response.payloadInt("version") ?? 0
         )
     }

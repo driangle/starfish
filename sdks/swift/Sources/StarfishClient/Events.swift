@@ -14,9 +14,10 @@ final class Events: @unchecked Sendable {
 
         let filtered = EventStream<StarfishFrame>()
         stream.subscribe { frame in
-            if let type = filter.type, frame.type != type { return }
-            if let topic = filter.topic, frame.topic != topic { return }
-            if let from = filter.from, frame.from != from { return }
+            if let resource = filter.resource, frame.header.resource != resource { return }
+            if let method = filter.method, frame.header.method != method { return }
+            if let topic = filter.topic, frame.header.topic != topic { return }
+            if let from = filter.from, frame.header.from != from { return }
             filtered.emit(frame)
         }
         return filtered

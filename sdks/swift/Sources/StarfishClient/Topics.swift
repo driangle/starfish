@@ -18,10 +18,14 @@ final class Topics: @unchecked Sendable {
         let sessionName = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "sub"),
-            type: "topic.subscribe",
-            session: sessionName,
-            topic: topic
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "sub"),
+                resource: "topic",
+                method: "subscribe",
+                kind: .request,
+                session: sessionName,
+                topic: topic
+            )
         )
 
         let response = try await connection.sendAndWait(frame)
@@ -38,10 +42,14 @@ final class Topics: @unchecked Sendable {
         let sessionName = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "unsub"),
-            type: "topic.unsubscribe",
-            session: sessionName,
-            topic: topic
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "unsub"),
+                resource: "topic",
+                method: "unsubscribe",
+                kind: .request,
+                session: sessionName,
+                topic: topic
+            )
         )
 
         try connection.send(frame)
@@ -49,17 +57,24 @@ final class Topics: @unchecked Sendable {
         topicPeers.removeValue(forKey: topic)
     }
 
-    func publish(topic: String, payload: AnyCodable, options: FrameOptions? = nil) throws {
+    func publish(topic: String, payload: AnyCodable, options: HeaderOptions? = nil) throws {
         try validateTopicName(topic)
         let sessionName = try session.require()
 
         let frame = StarfishFrame(
-            id: connection.idGen.nextId(prefix: "pub"),
-            type: "topic.publish",
-            session: sessionName,
-            topic: topic,
-            options: options,
-            payload: payload
+            header: StarfishHeader(
+                id: connection.idGen.nextId(prefix: "pub"),
+                resource: "topic",
+                method: "publish",
+                kind: .request,
+                session: sessionName,
+                topic: topic,
+                delivery: options?.delivery,
+                priority: options?.priority,
+                ttl: options?.ttl,
+                meta: options?.meta
+            ),
+            payload: ["data": payload]
         )
 
         try connection.send(frame)
@@ -80,15 +95,17 @@ final class Topics: @unchecked Sendable {
     }
 
     func handleFrame(_ frame: StarfishFrame) {
-        if frame.type == "topic.peers", let topic = frame.topic {
+        guard frame.header.resource == "topic" else { return }
+
+        if frame.header.method == "peers", let topic = frame.header.topic {
             if let subscribers = frame.payloadValue("subscribers") as? [String] {
                 topicPeers[topic] = Set(subscribers)
             }
             return
         }
 
-        if frame.type == "topic.message", let topic = frame.topic {
-            if frame.transport == .rtc && !subscriptions.contains(topic) {
+        if frame.header.method == "message", let topic = frame.header.topic {
+            if frame.header.delivery?.preferTransport == .rtc && !subscriptions.contains(topic) {
                 return
             }
             topicStreams[topic]?.emit(frame)

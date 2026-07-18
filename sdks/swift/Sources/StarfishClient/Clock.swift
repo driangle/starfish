@@ -29,9 +29,13 @@ public final class Clock: @unchecked Sendable {
             let t1 = Date().timeIntervalSince1970 * 1000
 
             let frame = StarfishFrame(
-                id: connection.idGen.nextId(prefix: "clock"),
-                type: "clock.sync",
-                ts: Int(t1)
+                header: StarfishHeader(
+                    id: connection.idGen.nextId(prefix: "clock"),
+                    resource: "clock",
+                    method: "sync",
+                    kind: .request,
+                    ts: Int(t1)
+                )
             )
 
             let response = try await connection.sendAndWait(frame)

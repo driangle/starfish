@@ -62,36 +62,47 @@ final class TypesTests: XCTestCase {
 
     func testFrameRoundTrip() throws {
         let frame = StarfishFrame(
-            id: "test_1",
-            type: "client.hello",
-            ts: 1234567890,
-            session: "my-session",
-            topic: "chat",
-            payload: AnyCodable(["message": "hello"] as [String: Any])
+            header: StarfishHeader(
+                v: 2,
+                id: "test_1",
+                resource: "client",
+                method: "hello",
+                kind: .request,
+                ts: 1234567890,
+                session: "my-session",
+                topic: "chat"
+            ),
+            payload: ["message": AnyCodable("hello")]
         )
 
         let json = try encodeFrame(frame)
         let decoded = try decodeFrame(json)
 
-        XCTAssertEqual(decoded.id, "test_1")
-        XCTAssertEqual(decoded.type, "client.hello")
-        XCTAssertEqual(decoded.ts, 1234567890)
-        XCTAssertEqual(decoded.session, "my-session")
-        XCTAssertEqual(decoded.topic, "chat")
+        XCTAssertEqual(decoded.header.id, "test_1")
+        XCTAssertEqual(decoded.header.resource, "client")
+        XCTAssertEqual(decoded.header.method, "hello")
+        XCTAssertEqual(decoded.header.kind, .request)
+        XCTAssertEqual(decoded.header.ts, 1234567890)
+        XCTAssertEqual(decoded.header.session, "my-session")
+        XCTAssertEqual(decoded.header.topic, "chat")
         XCTAssertEqual(decoded.payloadString("message"), "hello")
     }
 
     func testFrameWithTarget() throws {
         let frame = StarfishFrame(
-            id: "send_1",
-            type: "client.send",
-            to: .multiple(["a", "b"])
+            header: StarfishHeader(
+                id: "send_1",
+                resource: "message",
+                method: "send",
+                kind: .request,
+                to: .multiple(["a", "b"])
+            )
         )
 
         let json = try encodeFrame(frame)
         let decoded = try decodeFrame(json)
 
-        if case .multiple(let ids) = decoded.to {
+        if case .multiple(let ids) = decoded.header.to {
             XCTAssertEqual(ids, ["a", "b"])
         } else {
             XCTFail("Expected multiple target")
@@ -100,13 +111,17 @@ final class TypesTests: XCTestCase {
 
     func testFramePayloadHelpers() {
         let frame = StarfishFrame(
-            id: "test_1",
-            type: "test",
-            payload: AnyCodable([
-                "name": "test",
-                "count": 42,
-                "nested": ["key": "value"],
-            ] as [String: Any])
+            header: StarfishHeader(
+                id: "test_1",
+                resource: "test",
+                method: "test",
+                kind: .request
+            ),
+            payload: [
+                "name": AnyCodable("test"),
+                "count": AnyCodable(42),
+                "nested": AnyCodable(["key": "value"] as [String: Any]),
+            ]
         )
 
         XCTAssertEqual(frame.payloadString("name"), "test")

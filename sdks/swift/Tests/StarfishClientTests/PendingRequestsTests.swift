@@ -13,12 +13,17 @@ final class PendingRequestsTests: XCTestCase {
         // Give the continuation time to register
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        let response = StarfishFrame(id: "resp_1", type: "session.joined", replyTo: "msg_1")
+        let response = StarfishFrame(
+            header: StarfishHeader(
+                id: "resp_1", resource: "session", method: "joined", kind: .response,
+                replyTo: "msg_1"
+            )
+        )
         let consumed = pending.resolve(frame: response)
 
         XCTAssertTrue(consumed)
         let result = try await task.value
-        XCTAssertEqual(result.type, "session.joined")
+        XCTAssertEqual(result.header.method, "joined")
     }
 
     func testResolveWithError() async {
@@ -31,10 +36,14 @@ final class PendingRequestsTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 50_000_000)
 
         let errorFrame = StarfishFrame(
-            id: "err_1",
-            type: "error",
-            replyTo: "msg_2",
-            error: StarfishFrameError(code: "SERVER_ERROR", message: "Something went wrong")
+            header: StarfishHeader(
+                id: "err_1", resource: "error", method: "error", kind: .response,
+                replyTo: "msg_2"
+            ),
+            payload: [
+                "code": AnyCodable("SERVER_ERROR"),
+                "message": AnyCodable("Something went wrong"),
+            ]
         )
         _ = pending.resolve(frame: errorFrame)
 
@@ -49,13 +58,20 @@ final class PendingRequestsTests: XCTestCase {
 
     func testResolveUnknownFrame() {
         let pending = PendingRequests()
-        let frame = StarfishFrame(id: "unknown_1", type: "test", replyTo: "nonexistent")
+        let frame = StarfishFrame(
+            header: StarfishHeader(
+                id: "unknown_1", resource: "test", method: "test", kind: .response,
+                replyTo: "nonexistent"
+            )
+        )
         XCTAssertFalse(pending.resolve(frame: frame))
     }
 
     func testResolveNoReplyTo() {
         let pending = PendingRequests()
-        let frame = StarfishFrame(id: "test_1", type: "test")
+        let frame = StarfishFrame(
+            header: StarfishHeader(id: "test_1", resource: "test", method: "test", kind: .event)
+        )
         XCTAssertFalse(pending.resolve(frame: frame))
     }
 

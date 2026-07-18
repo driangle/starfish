@@ -78,7 +78,7 @@ public final class Connection: @unchecked Sendable {
 
     public func sendAndWait(_ frame: StarfishFrame, timeout: TimeInterval = 10.0) async throws -> StarfishFrame {
         let promise = Task {
-            try await pending.add(messageId: frame.id, timeout: timeout)
+            try await pending.add(messageId: frame.header.id, timeout: timeout)
         }
         try send(frame)
         return try await promise.value
@@ -115,31 +115,16 @@ public final class Connection: @unchecked Sendable {
     }
 
     private func doHandshake() async throws -> StarfishFrame {
-        var payload: [String: Any] = [:]
-
-        if let token = resumeToken {
-            payload["resumeToken"] = token
-            payload["capabilities"] = ["rtc": false]
-        } else {
-            payload["client"] = [
-                "name": options.client?.name ?? "starfish-client",
-                "role": options.client?.role ?? "default",
-                "meta": options.client?.meta?.mapValues { $0.value } ?? [:],
-            ] as [String: Any]
-            payload["capabilities"] = ["rtc": false]
-            if let auth = options.auth {
-                payload["auth"] = ["type": auth.type, "token": auth.token as Any]
-            } else {
-                payload["auth"] = ["type": "none"]
-            }
-        }
-
-        let helloId = idGen.nextId(prefix: "hello")
         let hello = StarfishFrame(
-            id: helloId,
-            type: "client.hello",
-            ts: Int(Date().timeIntervalSince1970 * 1000),
-            payload: AnyCodable(payload)
+            header: StarfishHeader(
+                v: 2,
+                id: idGen.nextId(prefix: "hello"),
+                resource: "client",
+                method: "hello",
+                kind: .request,
+                ts: Int(Date().timeIntervalSince1970 * 1000)
+            ),
+            payload: buildHelloPayload()
         )
 
         let welcome = try await sendAndWait(hello)
@@ -154,6 +139,36 @@ public final class Connection: @unchecked Sendable {
         state$.set(.connected)
 
         return welcome
+    }
+
+    private func buildHelloPayload() -> [String: AnyCodable] {
+        let capabilities: [String: Any] = ["rtc": false]
+
+        if let token = resumeToken {
+            return [
+                "versions": AnyCodable([2]),
+                "resumeToken": AnyCodable(token),
+                "capabilities": AnyCodable(capabilities),
+            ]
+        }
+
+        var payload: [String: AnyCodable] = [
+            "versions": AnyCodable([2]),
+            "client": AnyCodable([
+                "name": options.client?.name ?? "starfish-client",
+                "role": options.client?.role ?? "default",
+                "meta": options.client?.meta?.mapValues { $0.value } ?? [:],
+            ] as [String: Any]),
+            "capabilities": AnyCodable(capabilities),
+        ]
+
+        if let auth = options.auth {
+            payload["auth"] = AnyCodable(["type": auth.type, "token": auth.token as Any] as [String: Any])
+        } else {
+            payload["auth"] = AnyCodable(["type": "none"] as [String: Any])
+        }
+
+        return payload
     }
 
     private func handleClose() {

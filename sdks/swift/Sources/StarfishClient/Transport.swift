@@ -57,28 +57,29 @@ private func selectAuto(
     delivery: DeliveryOptions?,
     rtcState: RTCState?
 ) -> TransportDecision {
-    let type = frame.type
+    let resource = frame.header.resource
+    let method = frame.header.method
 
     // data.*, session.*, presence.* -> always WS
-    if type.hasPrefix("data.") || type.hasPrefix("session.") || type.hasPrefix("presence.") {
+    if resource == "data" || resource == "session" || resource == "presence" {
         return .ws
     }
 
     // topic.publish
-    if type == "topic.publish" {
+    if resource == "topic" && method == "publish" {
         let reliability = delivery?.reliability ?? .reliable
         if reliability == .reliable {
             return .ws
         }
         // unreliable/latest -> RTC if peer path exists
-        guard let topic = frame.topic, let rtcState = rtcState else { return .ws }
+        guard let topic = frame.header.topic, let rtcState = rtcState else { return .ws }
         let peers = rtcState.getTopicPeers(topic)
         let connectedPeers = peers.filter { rtcState.isPeerConnected($0) }
         return connectedPeers.isEmpty ? .ws : .rtc(peers: connectedPeers)
     }
 
-    // client.send
-    if type == "client.send" {
+    // message.send
+    if resource == "message" && method == "send" {
         let peers = resolveAvailablePeers(frame: frame, rtcState: rtcState)
         return peers.isEmpty ? .ws : .rtc(peers: peers)
     }
@@ -91,13 +92,13 @@ private func resolveAvailablePeers(frame: StarfishFrame, rtcState: RTCState?) ->
     guard let rtcState = rtcState else { return [] }
 
     // For topic.publish, resolve from topic subscription map
-    if frame.type == "topic.publish", let topic = frame.topic {
+    if frame.header.resource == "topic" && frame.header.method == "publish", let topic = frame.header.topic {
         return rtcState.getTopicPeers(topic).filter { rtcState.isPeerConnected($0) }
     }
 
     // For direct messages, resolve from frame.to
     let targets: [String]
-    switch frame.to {
+    switch frame.header.to {
     case .single(let id):
         targets = [id]
     case .multiple(let ids):
