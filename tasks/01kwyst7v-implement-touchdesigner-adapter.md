@@ -95,6 +95,13 @@ Build a reusable `.tox` component (`starfishClient`) for TouchDesigner that wrap
 - [ ] **topicToChop**: child COMP that converts a JSON topic stream into CHOP channels (configurable key mapping)
 - [ ] **chopPublisher**: child COMP that publishes CHOP channel values to a topic at a configurable, rate-limited frequency
 
+### Protocol Envelope Compliance
+
+- [ ] Ensure any frame construction uses `header`/`payload` envelope structure (not flat format)
+- [ ] Ensure any frame inspection/parsing references `method`/`resource`/`kind` (not legacy `type` field)
+- [ ] Use structured error format for error handling
+- [ ] Verify adapter works end-to-end with the envelope-based Python SDK
+
 ### Testing & Examples
 
 - [ ] Write unit tests for the async bridge / update queue logic (outside TD)

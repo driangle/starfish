@@ -1,11 +1,12 @@
 ---
 title: "Refactor TouchDesigner adapter for new protocol envelope"
 id: "01kxrcrvv"
-status: pending
+status: cancelled
 priority: medium
 type: feature
 tags: ["adapter", "touchdesigner", "breaking-change"]
 created_at: "2026-07-17"
+cancelled_at: 2026-07-18
 ---
 
 # Refactor TouchDesigner adapter for new protocol envelope
