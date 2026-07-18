@@ -31,9 +31,9 @@ describe("WebRTC signaling relay", () => {
     await initiator.send(offer);
 
     const received = await responder.waitForType("rtc.offer");
-    expect(received.session).toBe(session);
-    expect(received.from).toBe(initiator.clientId);
-    expect(received.payload.sdp).toBe("sdp-offer-data");
+    expect(received.header.session).toBe(session);
+    expect(received.header.from).toBe(initiator.clientId);
+    expect(received.payload?.sdp).toBe("sdp-offer-data");
   });
 
   it("rtc.answer is relayed back to initiator", async () => {
@@ -51,9 +51,9 @@ describe("WebRTC signaling relay", () => {
     await responder.send(answer);
 
     const received = await initiator.waitForType("rtc.answer");
-    expect(received.session).toBe(session);
-    expect(received.from).toBe(responder.clientId);
-    expect(received.payload.sdp).toBe("sdp-answer-data");
+    expect(received.header.session).toBe(session);
+    expect(received.header.from).toBe(responder.clientId);
+    expect(received.payload?.sdp).toBe("sdp-answer-data");
   });
 
   it("rtc.ice candidate is relayed to target", async () => {
@@ -72,8 +72,8 @@ describe("WebRTC signaling relay", () => {
     await client1.send(ice);
 
     const received = await client2.waitForType("rtc.ice");
-    expect(received.session).toBe(session);
-    expect(received.from).toBe(client1.clientId);
-    expect(received.payload.candidate).toEqual(candidate);
+    expect(received.header.session).toBe(session);
+    expect(received.header.from).toBe(client1.clientId);
+    expect(received.payload?.candidate).toEqual(candidate);
   });
 });

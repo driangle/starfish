@@ -16,12 +16,12 @@ Update all integration tests (`tests/`) to use the new protocol envelope and ver
 
 ## Tasks
 
-- [ ] Update connection tests for version negotiation handshake
-- [ ] Update error tests for structured error format
-- [ ] Update all frame assertions to expect `header`/`payload` structure
-- [ ] Update raw WebSocket test frames to use new envelope
-- [ ] Add test for version mismatch negotiation (client offers versions server doesn't support)
-- [ ] Add test for `header.meta` extensibility
+- [x] Update connection tests for version negotiation handshake
+- [x] Update error tests for structured error format
+- [x] Update all frame assertions to expect `header`/`payload` structure
+- [x] Update raw WebSocket test frames to use new envelope
+- [x] Add test for version mismatch negotiation (client offers versions server doesn't support)
+- [x] Add test for `header.meta` extensibility
 - [ ] Verify all existing test scenarios still pass
 
 ## Acceptance Criteria

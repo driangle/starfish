@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { StarfishTestClient } from "./helpers/client.js";
-import { helloFrame, broadcastFrame, publishFrame } from "./helpers/frames.js";
-import { uniqueId, uniqueSession } from "./helpers/setup.js";
+import { helloFrame, broadcastFrame } from "./helpers/frames.js";
+import { uniqueId } from "./helpers/setup.js";
 
 describe("error handling", () => {
   const clients: StarfishTestClient[] = [];
@@ -18,12 +18,28 @@ describe("error handling", () => {
 
   it("unsupported protocol version returns error", async () => {
     const client = await track();
-    const frame = { ...helloFrame(), v: 99 };
+    const frame = {
+      header: {
+        v: 2,
+        id: uniqueId("hello"),
+        resource: "client",
+        method: "hello",
+        kind: "request" as const,
+        ts: Date.now(),
+      },
+      payload: {
+        versions: [99],
+        client: { name: "test", role: "test", meta: {} },
+        capabilities: { rtc: false },
+        auth: { type: "none" },
+      },
+    };
     await client.send(frame);
 
-    const response = await client.waitForReply(frame.id);
-    expect(response.type).toBe("error");
-    expect(response.error?.code).toBe("protocol.unsupported_version");
+    const response = await client.waitForReply(frame.header.id);
+    expect((response.payload as any)?.status).toBe("error");
+    expect((response.payload as any)?.error?.code).toBe("protocol.unsupported_version");
+    expect((response.payload as any)?.error?.retry).toBe(false);
   });
 
   it("invalid JSON returns error or closes connection", async () => {
@@ -32,8 +48,8 @@ describe("error handling", () => {
 
     // Server should either send an error or close the connection
     try {
-      const response = await client.waitForType("error", 3000);
-      expect(response.error?.code).toBe("protocol.invalid_frame");
+      const response = await client.waitForError(3000);
+      expect((response.payload as any)?.error?.code).toBe("protocol.invalid_frame");
     } catch {
       // Connection may have been closed, which is also acceptable
     }
@@ -47,20 +63,20 @@ describe("error handling", () => {
     const bcast = broadcastFrame("nonexistent-session", { data: "test" });
     await client.send(bcast);
 
-    const response = await client.waitForReply(bcast.id);
-    expect(response.type).toBe("error");
+    const response = await client.waitForReply(bcast.header.id);
+    expect((response.payload as any)?.status).toBe("error");
   });
 
   it("missing required frame fields returns error", async () => {
     const client = await track();
 
-    // Send a frame missing the type field
-    const frame = { v: 1, id: uniqueId("bad") } as any;
+    // Send a frame missing required header fields (no resource/method/kind)
+    const frame = { header: { id: uniqueId("bad") } } as any;
     await client.send(frame);
 
     try {
-      const response = await client.waitForType("error", 3000);
-      expect(response.error).toBeDefined();
+      const response = await client.waitForError(3000);
+      expect((response.payload as any)?.error).toBeDefined();
     } catch {
       // Server may silently drop or close connection
     }

@@ -91,11 +91,15 @@ export class StarfishTestClient {
   }
 
   waitForType(type: string, timeout?: number): Promise<StarfishFrame> {
-    return this.waitFor((f) => f.type === type, timeout);
+    return this.waitFor((f) => `${f.header.resource}.${f.header.method}` === type, timeout);
   }
 
   waitForReply(messageId: string, timeout?: number): Promise<StarfishFrame> {
-    return this.waitFor((f) => f.replyTo === messageId, timeout);
+    return this.waitFor((f) => f.header.replyTo === messageId, timeout);
+  }
+
+  waitForError(timeout?: number): Promise<StarfishFrame> {
+    return this.waitFor((f) => (f.payload as any)?.status === "error", timeout);
   }
 
   async hello(opts?: {
@@ -105,10 +109,10 @@ export class StarfishTestClient {
   }): Promise<StarfishFrame> {
     const frame = helloFrame(opts);
     await this.send(frame);
-    const welcome = await this.waitForReply(frame.id);
-    if (welcome.type === "server.welcome") {
-      this.clientId = welcome.payload.clientId;
-      this.resumeToken = welcome.payload.resumeToken;
+    const welcome = await this.waitForReply(frame.header.id);
+    if (welcome.header.resource === "client" && welcome.header.method === "welcome") {
+      this.clientId = (welcome.payload as any).clientId;
+      this.resumeToken = (welcome.payload as any).resumeToken;
     }
     return welcome;
   }
@@ -119,7 +123,7 @@ export class StarfishTestClient {
   ): Promise<StarfishFrame> {
     const frame = joinFrame(session, { create: opts?.create ?? true, ...opts });
     await this.send(frame);
-    return this.waitForReply(frame.id);
+    return this.waitForReply(frame.header.id);
   }
 
   async drain(timeout = 200): Promise<StarfishFrame[]> {

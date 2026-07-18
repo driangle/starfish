@@ -31,7 +31,7 @@ describe("broadcast", () => {
     await recv2.hello({ name: "recv2" });
     await recv2.join(session);
 
-    // Drain client.connected events
+    // Drain session.connected events
     await sender.drain(300);
 
     const bcast = broadcastFrame(session, { cue: "start" });
@@ -44,7 +44,7 @@ describe("broadcast", () => {
 
     expect(m1.payload).toEqual({ cue: "start" });
     expect(m2.payload).toEqual({ cue: "start" });
-    expect(m1.from).toBe(sender.clientId);
+    expect(m1.header.from).toBe(sender.clientId);
 
     // Sender should NOT receive it
     await expect(sender.waitForType("session.broadcast", SHORT_TIMEOUT)).rejects.toThrow();
@@ -61,7 +61,7 @@ describe("broadcast", () => {
     await receiver.hello({ name: "receiver" });
     await receiver.join(session);
 
-    // Drain client.connected
+    // Drain session.connected
     await sender.drain(300);
 
     const bcast = broadcastFrame(session, { cue: "go" }, { includeSelf: true });

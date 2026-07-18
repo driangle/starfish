@@ -1,5 +1,14 @@
-import type { StarfishFrame, FrameOptions } from "./types.js";
+import type { StarfishFrame, StarfishHeader, DeliveryOptions } from "./types.js";
 import { uniqueId } from "./setup.js";
+
+function request(
+  prefix: string,
+  resource: string,
+  method: string,
+  extra?: Partial<StarfishHeader>,
+): StarfishHeader {
+  return { id: uniqueId(prefix), resource, method, kind: "request", ...extra };
+}
 
 export function helloFrame(opts?: {
   name?: string;
@@ -7,11 +16,11 @@ export function helloFrame(opts?: {
   resumeToken?: string;
 }): StarfishFrame {
   const payload: any = {};
-
   if (opts?.resumeToken) {
     payload.resumeToken = opts.resumeToken;
     payload.capabilities = { rtc: false };
   } else {
+    payload.versions = [2];
     payload.client = {
       name: opts?.name ?? "test-client",
       role: opts?.role ?? "test",
@@ -20,30 +29,15 @@ export function helloFrame(opts?: {
     payload.capabilities = { rtc: false };
     payload.auth = { type: "none" };
   }
-
-  return {
-    v: 1,
-    id: uniqueId("hello"),
-    type: "client.hello",
-    ts: Date.now(),
-    payload,
-  };
+  return { header: { ...request("hello", "client", "hello"), v: 2, ts: Date.now() }, payload };
 }
 
 export function joinFrame(
   session: string,
-  opts?: {
-    create?: boolean;
-    name?: string;
-    role?: string;
-    meta?: Record<string, any>;
-  },
+  opts?: { create?: boolean; name?: string; role?: string; meta?: Record<string, any> },
 ): StarfishFrame {
   return {
-    v: 1,
-    id: uniqueId("join"),
-    type: "session.join",
-    session,
+    header: request("join", "session", "join", { session }),
     payload: {
       create: opts?.create ?? true,
       name: opts?.name ?? "test-client",
@@ -54,37 +48,36 @@ export function joinFrame(
 }
 
 export function leaveFrame(session: string): StarfishFrame {
-  return { v: 1, id: uniqueId("leave"), type: "session.leave", session };
+  return { header: request("leave", "session", "leave", { session }) };
 }
 
 export function subscribeFrame(session: string, topic: string): StarfishFrame {
-  return { v: 1, id: uniqueId("sub"), type: "topic.subscribe", session, topic };
+  return { header: request("sub", "topic", "subscribe", { session, topic }) };
 }
 
 export function unsubscribeFrame(session: string, topic: string): StarfishFrame {
-  return {
-    v: 1,
-    id: uniqueId("unsub"),
-    type: "topic.unsubscribe",
-    session,
-    topic,
-  };
+  return { header: request("unsub", "topic", "unsubscribe", { session, topic }) };
 }
 
 export function publishFrame(
   session: string,
   topic: string,
   payload: any,
-  options?: FrameOptions,
+  opts?: {
+    delivery?: DeliveryOptions;
+    priority?: "low" | "normal" | "high" | "critical";
+    ttl?: number;
+  },
 ): StarfishFrame {
   return {
-    v: 1,
-    id: uniqueId("pub"),
-    type: "topic.publish",
-    session,
-    topic,
+    header: request("pub", "topic", "publish", {
+      session,
+      topic,
+      ...(opts?.delivery && { delivery: opts.delivery }),
+      ...(opts?.priority && { priority: opts.priority }),
+      ...(opts?.ttl && { ttl: opts.ttl }),
+    }),
     payload,
-    ...(options && { options }),
   };
 }
 
@@ -93,14 +86,7 @@ export function directSendFrame(
   to: string | string[],
   payload: any,
 ): StarfishFrame {
-  return {
-    v: 1,
-    id: uniqueId("send"),
-    type: "client.send",
-    session,
-    to,
-    payload,
-  };
+  return { header: request("send", "message", "send", { session, to }), payload };
 }
 
 export function broadcastFrame(
@@ -108,37 +94,28 @@ export function broadcastFrame(
   payload: any,
   opts?: { includeSelf?: boolean },
 ): StarfishFrame {
-  const frame: StarfishFrame = {
-    v: 1,
-    id: uniqueId("bcast"),
-    type: "session.broadcast",
-    session,
+  return {
+    header: request("bcast", "session", "broadcast", {
+      session,
+      ...(opts?.includeSelf && { delivery: { includeSelf: true } }),
+    }),
     payload,
   };
-  if (opts?.includeSelf) {
-    frame.options = { delivery: { includeSelf: true } };
-  }
-  return frame;
 }
 
 export function presenceFrame(session: string, payload: any): StarfishFrame {
-  return { v: 1, id: uniqueId("pres"), type: "presence.set", session, payload };
+  return { header: request("pres", "presence", "set", { session }), payload };
 }
 
 export function dataSaveFrame(
   session: string,
   key: string,
-  opts: {
-    scope: "self" | "session";
-    op: string;
-    data?: any;
-    expectedVersion?: number;
-  },
+  opts: { scope: "self" | "session"; op: string; data?: any; expectedVersion?: number },
 ): StarfishFrame {
   const payload: any = { key, scope: opts.scope, op: opts.op };
   if (opts.data !== undefined) payload.data = opts.data;
   if (opts.expectedVersion !== undefined) payload.expectedVersion = opts.expectedVersion;
-  return { v: 1, id: uniqueId("dsave"), type: "data.save", session, payload };
+  return { header: request("dsave", "data", "save", { session }), payload };
 }
 
 export function dataGetFrame(
@@ -146,52 +123,28 @@ export function dataGetFrame(
   key: string,
   scope: "self" | "session",
 ): StarfishFrame {
-  return {
-    v: 1,
-    id: uniqueId("dget"),
-    type: "data.get",
-    session,
-    payload: { key, scope },
-  };
+  return { header: request("dget", "data", "get", { session }), payload: { key, scope } };
 }
 
 export function pingFrame(): StarfishFrame {
-  return { v: 1, id: uniqueId("ping"), type: "ping", ts: Date.now() };
+  return { header: request("ping", "heartbeat", "ping", { ts: Date.now() }) };
 }
 
 export function clockSyncFrame(): StarfishFrame {
-  return { v: 1, id: uniqueId("clock"), type: "clock.sync", ts: Date.now() };
+  return { header: request("clock", "clock", "sync", { ts: Date.now() }) };
 }
 
 export function rtcOfferFrame(session: string, to: string, sdp: string): StarfishFrame {
-  return {
-    v: 1,
-    id: uniqueId("rtc_offer"),
-    type: "rtc.offer",
-    session,
-    to,
-    payload: { sdp },
-  };
+  return { header: request("rtc_offer", "rtc", "offer", { session, to }), payload: { sdp } };
 }
 
 export function rtcAnswerFrame(session: string, to: string, sdp: string): StarfishFrame {
-  return {
-    v: 1,
-    id: uniqueId("rtc_answer"),
-    type: "rtc.answer",
-    session,
-    to,
-    payload: { sdp },
-  };
+  return { header: request("rtc_answer", "rtc", "answer", { session, to }), payload: { sdp } };
 }
 
 export function rtcIceFrame(session: string, to: string, candidate: any): StarfishFrame {
   return {
-    v: 1,
-    id: uniqueId("rtc_ice"),
-    type: "rtc.ice",
-    session,
-    to,
+    header: request("rtc_ice", "rtc", "ice", { session, to }),
     payload: { candidate },
   };
 }

@@ -19,25 +19,73 @@ export function poolEnterFrame(
   if (opts?.role !== undefined) payload.role = opts.role;
   if (opts?.attributes !== undefined) payload.attributes = opts.attributes;
   if (opts?.filter !== undefined) payload.filter = opts.filter;
-  return { v: 1, id: uniqueId("pool_enter"), type: "pool.enter", payload };
+  return {
+    header: {
+      id: uniqueId("pool_enter"),
+      resource: "pool",
+      method: "enter",
+      kind: "request",
+    },
+    payload,
+  };
 }
 
 export function poolLeaveFrame(pool: string): StarfishFrame {
-  return { v: 1, id: uniqueId("pool_leave"), type: "pool.leave", payload: { pool } };
+  return {
+    header: {
+      id: uniqueId("pool_leave"),
+      resource: "pool",
+      method: "leave",
+      kind: "request",
+    },
+    payload: { pool },
+  };
 }
 
 export function poolClaimFrame(pool: string, target: string): StarfishFrame {
-  return { v: 1, id: uniqueId("pool_claim"), type: "pool.claim", payload: { pool, target } };
+  return {
+    header: {
+      id: uniqueId("pool_claim"),
+      resource: "pool",
+      method: "claim",
+      kind: "request",
+    },
+    payload: { pool, target },
+  };
 }
 
 export function poolAcceptFrame(pool: string, from: string): StarfishFrame {
-  return { v: 1, id: uniqueId("pool_accept"), type: "pool.accept", payload: { pool, from } };
+  return {
+    header: {
+      id: uniqueId("pool_accept"),
+      resource: "pool",
+      method: "accept",
+      kind: "request",
+    },
+    payload: { pool, from },
+  };
 }
 
 export function poolRejectFrame(pool: string, from: string): StarfishFrame {
-  return { v: 1, id: uniqueId("pool_reject"), type: "pool.reject", payload: { pool, from } };
+  return {
+    header: {
+      id: uniqueId("pool_reject"),
+      resource: "pool",
+      method: "reject",
+      kind: "request",
+    },
+    payload: { pool, from },
+  };
 }
 
 export function poolAssignFrame(pool: string, groups: string[][]): StarfishFrame {
-  return { v: 1, id: uniqueId("pool_assign"), type: "pool.assign", payload: { pool, groups } };
+  return {
+    header: {
+      id: uniqueId("pool_assign"),
+      resource: "pool",
+      method: "assign",
+      kind: "request",
+    },
+    payload: { pool, groups },
+  };
 }

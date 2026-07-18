@@ -24,9 +24,10 @@ describe("pool claim mode", () => {
       attributes: { name: "alice" },
     });
     await a.send(enterA);
-    const enteredA = await a.waitForReply(enterA.id);
-    expect(enteredA.type).toBe("pool.entered");
-    expect(enteredA.payload.members).toBeInstanceOf(Array);
+    const enteredA = await a.waitForReply(enterA.header.id);
+    expect(enteredA.header.resource).toBe("pool");
+    expect(enteredA.header.method).toBe("enter");
+    expect(enteredA.payload?.members).toBeInstanceOf(Array);
 
     const enterB = poolEnterFrame(pool, {
       create: true,
@@ -35,28 +36,29 @@ describe("pool claim mode", () => {
       attributes: { name: "bob" },
     });
     await b.send(enterB);
-    const enteredB = await b.waitForReply(enterB.id);
-    expect(enteredB.type).toBe("pool.entered");
-    expect(enteredB.payload.members).toBeInstanceOf(Array);
-    expect(enteredB.payload.members.some((m: any) => m.id === a.clientId)).toBe(true);
+    const enteredB = await b.waitForReply(enterB.header.id);
+    expect(enteredB.header.resource).toBe("pool");
+    expect(enteredB.header.method).toBe("enter");
+    expect(enteredB.payload?.members).toBeInstanceOf(Array);
+    expect((enteredB.payload?.members as any[]).some((m: any) => m.id === a.clientId)).toBe(true);
   });
 
-  it("new member triggers pool.member.joined for existing members", async () => {
+  it("new member triggers pool.member-joined for existing members", async () => {
     const pool = uniquePool();
     const a = await authed();
     const b = await authed();
 
     const enterA = poolEnterFrame(pool, { create: true, mode: "claim", groupSize: 2 });
     await a.send(enterA);
-    await a.waitForReply(enterA.id);
+    await a.waitForReply(enterA.header.id);
 
     const enterB = poolEnterFrame(pool, { create: true, mode: "claim", groupSize: 2 });
     await b.send(enterB);
-    await b.waitForReply(enterB.id);
+    await b.waitForReply(enterB.header.id);
 
-    const joined = await a.waitForType("pool.member.joined");
-    expect(joined.payload.pool).toBe(pool);
-    expect(joined.payload.member.id).toBe(b.clientId);
+    const joined = await a.waitForType("pool.member-joined");
+    expect(joined.payload?.pool).toBe(pool);
+    expect((joined.payload?.member as any).id).toBe(b.clientId);
   });
 
   it("successful claim matches both clients immediately", async () => {
@@ -67,7 +69,7 @@ describe("pool claim mode", () => {
     for (const client of [a, b]) {
       const frame = poolEnterFrame(pool, { create: true, mode: "claim", groupSize: 2 });
       await client.send(frame);
-      await client.waitForReply(frame.id);
+      await client.waitForReply(frame.header.id);
     }
 
     const claim = poolClaimFrame(pool, b.clientId!);
@@ -76,10 +78,10 @@ describe("pool claim mode", () => {
     const matchA = await a.waitForType("pool.matched");
     const matchB = await b.waitForType("pool.matched");
 
-    expect(matchA.payload.pool).toBe(pool);
-    expect(matchA.payload.session).toBeTruthy();
-    expect(matchA.payload.session).toBe(matchB.payload.session);
-    expect(matchA.payload.peers).toBeInstanceOf(Array);
+    expect(matchA.payload?.pool).toBe(pool);
+    expect(matchA.payload?.session).toBeTruthy();
+    expect(matchA.payload?.session).toBe(matchB.payload?.session);
+    expect(matchA.payload?.peers).toBeInstanceOf(Array);
   });
 
   it("claiming non-existent target returns pool.target_not_found", async () => {
@@ -88,13 +90,13 @@ describe("pool claim mode", () => {
 
     const enter = poolEnterFrame(pool, { create: true, mode: "claim", groupSize: 2 });
     await a.send(enter);
-    await a.waitForReply(enter.id);
+    await a.waitForReply(enter.header.id);
 
     const claim = poolClaimFrame(pool, "nonexistent-client");
     await a.send(claim);
 
-    const reply = await a.waitForReply(claim.id);
-    expect(reply.error?.code).toBe("pool.target_not_found");
+    const reply = await a.waitForReply(claim.header.id);
+    expect((reply.payload as any)?.error?.code).toBe("pool.target_not_found");
   });
 
   it("pool.claim in auto mode returns pool.mode_mismatch", async () => {
@@ -105,7 +107,7 @@ describe("pool claim mode", () => {
     for (const client of [a, b]) {
       const frame = poolEnterFrame(pool, { create: true, mode: "auto", groupSize: 2 });
       await client.send(frame);
-      await client.waitForReply(frame.id);
+      await client.waitForReply(frame.header.id);
     }
     await a.drain();
     await b.drain();
@@ -113,8 +115,8 @@ describe("pool claim mode", () => {
     const claim = poolClaimFrame(pool, b.clientId!);
     await a.send(claim);
 
-    const reply = await a.waitForReply(claim.id);
-    expect(reply.error?.code).toBe("pool.mode_mismatch");
+    const reply = await a.waitForReply(claim.header.id);
+    expect((reply.payload as any)?.error?.code).toBe("pool.mode_mismatch");
   });
 });
 
@@ -129,15 +131,15 @@ describe("pool mutual mode", () => {
     for (const client of [a, b]) {
       const frame = poolEnterFrame(pool, { create: true, mode: "mutual", groupSize: 2 });
       await client.send(frame);
-      await client.waitForReply(frame.id);
+      await client.waitForReply(frame.header.id);
     }
 
     const claim = poolClaimFrame(pool, b.clientId!);
     await a.send(claim);
 
-    const reply = await a.waitForReply(claim.id);
-    expect(reply.type).toBe("pool.claim.pending");
-    expect(reply.payload.target).toBe(b.clientId);
+    const reply = await a.waitForReply(claim.header.id);
+    expect((reply.payload as any)?.status).toBe("pending");
+    expect(reply.payload?.target).toBe(b.clientId);
   });
 
   it("mutual claims result in pool.matched for both", async () => {
@@ -148,12 +150,12 @@ describe("pool mutual mode", () => {
     for (const client of [a, b]) {
       const frame = poolEnterFrame(pool, { create: true, mode: "mutual", groupSize: 2 });
       await client.send(frame);
-      await client.waitForReply(frame.id);
+      await client.waitForReply(frame.header.id);
     }
 
     const claimA = poolClaimFrame(pool, b.clientId!);
     await a.send(claimA);
-    await a.waitForReply(claimA.id);
+    await a.waitForReply(claimA.header.id);
 
     const claimB = poolClaimFrame(pool, a.clientId!);
     await b.send(claimB);
@@ -161,7 +163,7 @@ describe("pool mutual mode", () => {
     const matchA = await a.waitForType("pool.matched");
     const matchB = await b.waitForType("pool.matched");
 
-    expect(matchA.payload.session).toBe(matchB.payload.session);
+    expect(matchA.payload?.session).toBe(matchB.payload?.session);
   });
 
   it("member leaving clears pending claim", async () => {
@@ -172,12 +174,12 @@ describe("pool mutual mode", () => {
     for (const client of [a, b]) {
       const frame = poolEnterFrame(pool, { create: true, mode: "mutual", groupSize: 2 });
       await client.send(frame);
-      await client.waitForReply(frame.id);
+      await client.waitForReply(frame.header.id);
     }
 
     const claim = poolClaimFrame(pool, b.clientId!);
     await a.send(claim);
-    await a.waitForReply(claim.id);
+    await a.waitForReply(claim.header.id);
 
     const leave = poolLeaveFrame(pool);
     await a.send(leave);
@@ -185,8 +187,8 @@ describe("pool mutual mode", () => {
     const claimB = poolClaimFrame(pool, a.clientId!);
     await b.send(claimB);
 
-    const reply = await b.waitForReply(claimB.id);
-    expect(reply.error?.code).toBe("pool.target_not_found");
+    const reply = await b.waitForReply(claimB.header.id);
+    expect((reply.payload as any)?.error?.code).toBe("pool.target_not_found");
   });
 });
 
@@ -206,7 +208,7 @@ describe("pool propose mode", () => {
         attributes: { name: client === a ? "alice" : "bob" },
       });
       await client.send(frame);
-      await client.waitForReply(frame.id);
+      await client.waitForReply(frame.header.id);
     }
     await a.drain();
 
@@ -214,9 +216,9 @@ describe("pool propose mode", () => {
     await a.send(claim);
 
     const proposal = await b.waitForType("pool.proposal");
-    expect(proposal.payload.pool).toBe(pool);
-    expect(proposal.payload.from).toBe(a.clientId);
-    expect(proposal.payload.attributes).toBeDefined();
+    expect(proposal.payload?.pool).toBe(pool);
+    expect(proposal.payload?.from).toBe(a.clientId);
+    expect(proposal.payload?.attributes).toBeDefined();
   });
 
   it("accepting a proposal matches both sides", async () => {
@@ -227,7 +229,7 @@ describe("pool propose mode", () => {
     for (const client of [a, b]) {
       const frame = poolEnterFrame(pool, { create: true, mode: "propose", groupSize: 2 });
       await client.send(frame);
-      await client.waitForReply(frame.id);
+      await client.waitForReply(frame.header.id);
     }
     await a.drain();
 
@@ -241,10 +243,10 @@ describe("pool propose mode", () => {
     const matchA = await a.waitForType("pool.matched");
     const matchB = await b.waitForType("pool.matched");
 
-    expect(matchA.payload.session).toBe(matchB.payload.session);
+    expect(matchA.payload?.session).toBe(matchB.payload?.session);
   });
 
-  it("rejecting a proposal sends pool.claim.rejected to proposer", async () => {
+  it("rejecting a proposal sends pool.claim-rejected to proposer", async () => {
     const pool = uniquePool();
     const a = await authed();
     const b = await authed();
@@ -252,7 +254,7 @@ describe("pool propose mode", () => {
     for (const client of [a, b]) {
       const frame = poolEnterFrame(pool, { create: true, mode: "propose", groupSize: 2 });
       await client.send(frame);
-      await client.waitForReply(frame.id);
+      await client.waitForReply(frame.header.id);
     }
     await a.drain();
 
@@ -263,9 +265,9 @@ describe("pool propose mode", () => {
     const reject = poolRejectFrame(pool, a.clientId!);
     await b.send(reject);
 
-    const rejected = await a.waitForType("pool.claim.rejected");
-    expect(rejected.payload.pool).toBe(pool);
-    expect(rejected.payload.target).toBe(b.clientId);
+    const rejected = await a.waitForType("pool.claim-rejected");
+    expect(rejected.payload?.pool).toBe(pool);
+    expect(rejected.payload?.target).toBe(b.clientId);
 
     await expect(a.waitForType("pool.matched", SHORT_TIMEOUT)).rejects.toThrow();
   });

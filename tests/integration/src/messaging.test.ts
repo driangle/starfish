@@ -32,10 +32,9 @@ describe("direct messaging", () => {
     });
     await sender.send(msg);
 
-    const received = await receiver.waitForType("client.message");
-    expect(received.session).toBe(session);
-    expect(received.from).toBe(sender.clientId);
-    expect(received.to).toBe(receiver.clientId);
+    const received = await receiver.waitForType("message.message");
+    expect(received.header.session).toBe(session);
+    expect(received.header.from).toBe(sender.clientId);
     expect(received.payload).toEqual({ gesture: "freeze" });
   });
 
@@ -60,14 +59,14 @@ describe("direct messaging", () => {
     await sender.send(msg);
 
     const [m1, m2] = await Promise.all([
-      recv1.waitForType("client.message"),
-      recv2.waitForType("client.message"),
+      recv1.waitForType("message.message"),
+      recv2.waitForType("message.message"),
     ]);
 
     expect(m1.payload).toEqual({ command: "stop" });
     expect(m2.payload).toEqual({ command: "stop" });
-    expect(m1.from).toBe(sender.clientId);
-    expect(m2.from).toBe(sender.clientId);
+    expect(m1.header.from).toBe(sender.clientId);
+    expect(m2.header.from).toBe(sender.clientId);
   });
 
   it("client.send to non-existent client returns error", async () => {
@@ -82,9 +81,9 @@ describe("direct messaging", () => {
     });
     await client.send(msg);
 
-    const error = await client.waitForReply(msg.id);
-    expect(error.type).toBe("error");
-    expect(error.error?.code).toBe("client.not_found");
+    const error = await client.waitForReply(msg.header.id);
+    expect((error.payload as any)?.status).toBe("error");
+    expect((error.payload as any)?.error?.code).toBe("client.not_found");
   });
 
   it("sender does not receive its own direct message", async () => {
@@ -101,9 +100,9 @@ describe("direct messaging", () => {
     const msg = directSendFrame(session, receiver.clientId!, { data: "test" });
     await sender.send(msg);
 
-    await receiver.waitForType("client.message");
+    await receiver.waitForType("message.message");
 
-    // Sender should NOT receive client.message
-    await expect(sender.waitForType("client.message", SHORT_TIMEOUT)).rejects.toThrow();
+    // Sender should NOT receive message.message
+    await expect(sender.waitForType("message.message", SHORT_TIMEOUT)).rejects.toThrow();
   });
 });

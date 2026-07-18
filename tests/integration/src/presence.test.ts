@@ -27,7 +27,7 @@ describe("presence", () => {
     await observer.hello({ name: "observer" });
     await observer.join(session);
 
-    // Drain client.connected
+    // Drain session.connected
     await setter.drain(300);
 
     const pres = presenceFrame(session, {
@@ -39,8 +39,8 @@ describe("presence", () => {
     await setter.send(pres);
 
     const updated = await observer.waitForType("presence.updated");
-    expect(updated.session).toBe(session);
-    expect(updated.from).toBe(setter.clientId);
+    expect(updated.header.session).toBe(session);
+    expect(updated.header.from).toBe(setter.clientId);
     expect(updated.payload).toEqual({
       role: "dancer",
       color: "red",
@@ -60,7 +60,7 @@ describe("presence", () => {
     await observer.hello({ name: "observer" });
     await observer.join(session);
 
-    // Drain client.connected
+    // Drain session.connected
     await setter.drain(300);
 
     // Set initial presence
@@ -73,6 +73,6 @@ describe("presence", () => {
     const second = await observer.waitForType("presence.updated");
     expect(second.payload).toEqual({ x: 5, y: 10 });
     // "name" field should NOT be present (full replace, not merge)
-    expect(second.payload.name).toBeUndefined();
+    expect(second.payload?.name).toBeUndefined();
   });
 });

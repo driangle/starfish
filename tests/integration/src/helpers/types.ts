@@ -1,6 +1,8 @@
 export interface StarfishError {
   code: string;
+  resource: string;
   message: string;
+  retry: boolean;
   details?: any;
 }
 
@@ -10,28 +12,30 @@ export interface DeliveryOptions {
   preferTransport?: "ws" | "rtc" | "auto";
   fallback?: boolean;
   includeSelf?: boolean;
-}
-
-export interface FrameOptions {
-  delivery?: DeliveryOptions;
-  priority?: "low" | "normal" | "high" | "critical";
-  ttl?: number;
   requireAck?: boolean;
 }
 
-export interface StarfishFrame {
-  v: number;
+export interface StarfishHeader {
   id: string;
-  type: string;
+  resource: string;
+  method: string;
+  kind: "request" | "response" | "event";
+
+  v?: number;
   ts?: number;
   session?: string;
   from?: string;
   to?: string | string[];
   topic?: string;
-  ack?: boolean;
   replyTo?: string;
-  transport?: "ws" | "rtc";
-  options?: FrameOptions;
-  payload?: any;
-  error?: StarfishError;
+  meta?: Record<string, unknown>;
+
+  delivery?: DeliveryOptions;
+  priority?: "low" | "normal" | "high" | "critical";
+  ttl?: number;
+}
+
+export interface StarfishFrame {
+  header: StarfishHeader;
+  payload?: Record<string, any>;
 }
