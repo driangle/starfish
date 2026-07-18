@@ -1,51 +1,43 @@
 package starfish
 
-import (
-	"encoding/json"
-)
-
 func (h *Handler) handlePoolAssign(c *Client, f *Frame) {
-	var payload poolAssignPayload
-	if f.Payload == nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
-		return
-	}
-	if err := json.Unmarshal(f.Payload, &payload); err != nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	payload, err := payloadAs[poolAssignPayload](f)
+	if err != nil || f.Payload == nil {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
 	if payload.Pool == "" || len(payload.Groups) == 0 {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
 	pool := h.hub.GetPool(payload.Pool)
 	if pool == nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPoolNotFound, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrPoolNotFound, nil))
 		return
 	}
 
 	if pool.mode != PoolModeDelegated {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPoolModeMismatch, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrPoolModeMismatch, nil))
 		return
 	}
 
 	member := pool.GetMember(c.id)
 	if member == nil || member.role != "matchmaker" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPoolRoleRequired, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrPoolRoleRequired, nil))
 		return
 	}
 
 	// Validate all groups
 	for _, group := range payload.Groups {
 		if len(group) != pool.groupSize {
-			c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPoolInvalidGroup, nil))
+			c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrPoolInvalidGroup, nil))
 			return
 		}
 		for _, memberID := range group {
 			if !pool.HasMember(memberID) || memberID == c.id {
-				c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPoolInvalidGroup, nil))
+				c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrPoolInvalidGroup, nil))
 				return
 			}
 		}
@@ -69,23 +61,23 @@ func (h *Handler) handlePoolAssign(c *Client, f *Frame) {
 		matched = append(matched, matchedGroup{Group: group, Session: sessionName})
 	}
 
-	assignedPayload, _ := json.Marshal(struct {
-		Pool    string         `json:"pool"`
-		Matched []matchedGroup `json:"matched"`
-	}{
-		Pool:    payload.Pool,
-		Matched: matched,
-	})
 	c.SendFrame(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "pool.assigned",
-		ReplyTo: f.ID,
-		Payload: assignedPayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "pool",
+			Method:   "assign",
+			Kind:     "response",
+			ReplyTo:  f.Header.ID,
+		},
+		Payload: map[string]any{
+			"status":  "ok",
+			"pool":    payload.Pool,
+			"matched": matched,
+		},
 	})
 }
 
-// executePoolMatch executes a match: removes members, sends pool.matched, broadcasts pool.member.left.
+// executePoolMatch executes a match: removes members, sends pool.matched, broadcasts pool.member-left.
 func (h *Handler) executePoolMatch(pool *Pool, memberIDs []string, replyTo string) {
 	sessionName, peers := pool.ExecuteMatch(memberIDs)
 	h.sendPoolMatched(pool.name, sessionName, peers, memberIDs)
@@ -111,7 +103,7 @@ func (h *Handler) processAutoMatches(pool *Pool) {
 	}
 }
 
-// sendPoolMatched sends pool.matched to each member and clears their pool tracking.
+// sendPoolMatched sends pool.matched event to each member and clears their pool tracking.
 func (h *Handler) sendPoolMatched(poolName, sessionName string, peers []PoolMemberInfo, memberIDs []string) {
 	for _, id := range memberIDs {
 		client := h.hub.GetClient(id)
@@ -119,20 +111,18 @@ func (h *Handler) sendPoolMatched(poolName, sessionName string, peers []PoolMemb
 			continue
 		}
 
-		matchedPayload, _ := json.Marshal(struct {
-			Pool    string           `json:"pool"`
-			Session string           `json:"session"`
-			Peers   []PoolMemberInfo `json:"peers"`
-		}{
-			Pool:    poolName,
-			Session: sessionName,
-			Peers:   peers,
-		})
 		client.SendFrame(&Frame{
-			V:       1,
-			ID:      h.hub.idGen.MessageID(),
-			Type:    "pool.matched",
-			Payload: matchedPayload,
+			Header: Header{
+				ID:       h.hub.idGen.MessageID(),
+				Resource: "pool",
+				Method:   "matched",
+				Kind:     "event",
+			},
+			Payload: map[string]any{
+				"pool":    poolName,
+				"session": sessionName,
+				"peers":   peers,
+			},
 		})
 
 		client.mu.Lock()
@@ -141,22 +131,19 @@ func (h *Handler) sendPoolMatched(poolName, sessionName string, peers []PoolMemb
 	}
 }
 
-// broadcastMemberLeft broadcasts pool.member.left to visible members.
+// broadcastMemberLeft broadcasts pool.member-left to visible members.
 func (h *Handler) broadcastMemberLeft(pool *Pool, clientID string, reason string) {
-	leftPayload, _ := json.Marshal(struct {
-		Pool     string `json:"pool"`
-		MemberID string `json:"memberId"`
-		Reason   string `json:"reason"`
-	}{
-		Pool:     pool.name,
-		MemberID: clientID,
-		Reason:   reason,
-	})
-
 	pool.BroadcastVisible(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "pool.member.left",
-		Payload: leftPayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "pool",
+			Method:   "member-left",
+			Kind:     "event",
+		},
+		Payload: map[string]any{
+			"pool":     pool.name,
+			"memberId": clientID,
+			"reason":   reason,
+		},
 	}, "")
 }

@@ -1,9 +1,5 @@
 package starfish
 
-import (
-	"encoding/json"
-)
-
 type poolEnterPayload struct {
 	Pool       string         `json:"pool"`
 	Create     bool           `json:"create"`
@@ -39,18 +35,14 @@ type poolAssignPayload struct {
 }
 
 func (h *Handler) handlePoolEnter(c *Client, f *Frame) {
-	var payload poolEnterPayload
-	if f.Payload == nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
-		return
-	}
-	if err := json.Unmarshal(f.Payload, &payload); err != nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	payload, err := payloadAs[poolEnterPayload](f)
+	if err != nil || f.Payload == nil {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "enter", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
 	if payload.Pool == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "enter", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
@@ -60,7 +52,7 @@ func (h *Handler) handlePoolEnter(c *Client, f *Frame) {
 		case PoolModeAuto, PoolModeClaim, PoolModeMutual, PoolModePropose, PoolModeDelegated:
 			mode = PoolMode(payload.Mode)
 		default:
-			c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+			c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "enter", ErrProtocolInvalidFrame, nil))
 			return
 		}
 	}
@@ -75,14 +67,14 @@ func (h *Handler) handlePoolEnter(c *Client, f *Frame) {
 		role = "member"
 	}
 	if role == "matchmaker" && mode != PoolModeDelegated {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPoolModeMismatch, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "enter", ErrPoolModeMismatch, nil))
 		return
 	}
 
 	pool := h.hub.GetPool(payload.Pool)
 	if pool == nil {
 		if !payload.Create {
-			c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPoolNotFound, nil))
+			c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "enter", ErrPoolNotFound, nil))
 			return
 		}
 		pool = h.hub.GetOrCreatePool(payload.Pool, mode, groupSize)
@@ -94,46 +86,41 @@ func (h *Handler) handlePoolEnter(c *Client, f *Frame) {
 	c.pools[payload.Pool] = true
 	c.mu.Unlock()
 
-	type enteredResponse struct {
-		Pool      string           `json:"pool"`
-		Mode      string           `json:"mode"`
-		GroupSize int              `json:"groupSize"`
-		Members   []PoolMemberInfo `json:"members,omitempty"`
-	}
-
-	resp := enteredResponse{
-		Pool:      pool.name,
-		Mode:      string(pool.mode),
-		GroupSize: pool.groupSize,
+	resp := map[string]any{
+		"status":    "ok",
+		"pool":      pool.name,
+		"mode":      string(pool.mode),
+		"groupSize": pool.groupSize,
 	}
 	if pool.IsClaimBased() {
-		resp.Members = members
+		resp["members"] = members
 	}
 
-	respPayload, _ := json.Marshal(resp)
 	c.SendFrame(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "pool.entered",
-		ReplyTo: f.ID,
-		Payload: respPayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "pool",
+			Method:   "enter",
+			Kind:     "response",
+			ReplyTo:  f.Header.ID,
+		},
+		Payload: resp,
 	})
 
-	joinedPayload, _ := json.Marshal(struct {
-		Pool   string         `json:"pool"`
-		Member PoolMemberInfo `json:"member"`
-	}{
-		Pool: pool.name,
-		Member: PoolMemberInfo{
-			ID:         c.id,
-			Attributes: payload.Attributes,
-		},
-	})
 	pool.BroadcastVisible(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "pool.member.joined",
-		Payload: joinedPayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "pool",
+			Method:   "member-joined",
+			Kind:     "event",
+		},
+		Payload: map[string]any{
+			"pool": pool.name,
+			"member": PoolMemberInfo{
+				ID:         c.id,
+				Attributes: payload.Attributes,
+			},
+		},
 	}, c.id)
 
 	if pool.mode == PoolModeAuto {
@@ -142,29 +129,25 @@ func (h *Handler) handlePoolEnter(c *Client, f *Frame) {
 }
 
 func (h *Handler) handlePoolLeave(c *Client, f *Frame) {
-	var payload poolLeavePayload
-	if f.Payload == nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
-		return
-	}
-	if err := json.Unmarshal(f.Payload, &payload); err != nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	payload, err := payloadAs[poolLeavePayload](f)
+	if err != nil || f.Payload == nil {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "leave", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
 	if payload.Pool == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "leave", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
 	pool := h.hub.GetPool(payload.Pool)
 	if pool == nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPoolNotFound, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "leave", ErrPoolNotFound, nil))
 		return
 	}
 
 	if !pool.HasMember(c.id) {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPoolNotMember, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "leave", ErrPoolNotMember, nil))
 		return
 	}
 

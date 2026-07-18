@@ -151,20 +151,18 @@ func (r *ResumeRegistry) expireSessions(clientID string, sessions map[string]boo
 
 		empty := sess.RemoveClient(clientID)
 
-		dcPayload, _ := json.Marshal(struct {
-			ClientID string `json:"clientId"`
-			Reason   string `json:"reason"`
-		}{
-			ClientID: clientID,
-			Reason:   reason,
-		})
-
 		sess.Broadcast(&Frame{
-			V:       1,
-			ID:      r.hub.idGen.MessageID(),
-			Type:    "client.disconnected",
-			Session: sessName,
-			Payload: dcPayload,
+			Header: Header{
+				ID:       r.hub.idGen.MessageID(),
+				Resource: "session",
+				Method:   "disconnected",
+				Kind:     "event",
+				Session:  sessName,
+			},
+			Payload: map[string]any{
+				"clientId": clientID,
+				"reason":   reason,
+			},
 		}, "")
 
 		if empty {

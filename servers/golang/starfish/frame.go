@@ -2,43 +2,50 @@ package starfish
 
 import "encoding/json"
 
-// Frame is the canonical Starfish message envelope.
+// Frame is the canonical Starfish v0.2 message envelope.
 type Frame struct {
-	V         int             `json:"v"`
-	ID        string          `json:"id"`
-	Type      string          `json:"type"`
-	Ts        *int64          `json:"ts,omitempty"`
-	Session   string          `json:"session,omitempty"`
-	From      string          `json:"from,omitempty"`
-	To        json.RawMessage `json:"to,omitempty"`
-	Topic     string          `json:"topic,omitempty"`
-	Ack       *bool           `json:"ack,omitempty"`
-	ReplyTo   string          `json:"replyTo,omitempty"`
-	Transport string          `json:"transport,omitempty"`
-	Options   *Options        `json:"options,omitempty"`
-	Payload   json.RawMessage `json:"payload,omitempty"`
-	Error     *StarfishError  `json:"error,omitempty"`
+	Header  Header         `json:"header"`
+	Payload map[string]any `json:"payload,omitempty"`
 }
 
-type Options struct {
-	Delivery   *Delivery `json:"delivery,omitempty"`
-	Priority   string    `json:"priority,omitempty"`
-	TTL        *int64    `json:"ttl,omitempty"`
-	RequireAck *bool     `json:"requireAck,omitempty"`
+// Header contains routing and protocol metadata for a frame.
+type Header struct {
+	ID       string `json:"id"`
+	Resource string `json:"resource"`
+	Method   string `json:"method"`
+	Kind     string `json:"kind"`
+
+	V       int             `json:"v,omitempty"`
+	Ts      *int64          `json:"ts,omitempty"`
+	Session string          `json:"session,omitempty"`
+	From    string          `json:"from,omitempty"`
+	To      json.RawMessage `json:"to,omitempty"`
+	Topic   string          `json:"topic,omitempty"`
+	ReplyTo string          `json:"replyTo,omitempty"`
+	Meta    map[string]any  `json:"meta,omitempty"`
+
+	Delivery *DeliveryOptions `json:"delivery,omitempty"`
+	Priority string           `json:"priority,omitempty"`
+	TTL      *int64           `json:"ttl,omitempty"`
 }
 
-type Delivery struct {
+// DeliveryOptions controls how a message is delivered.
+type DeliveryOptions struct {
 	Reliability     string `json:"reliability,omitempty"`
 	Ordering        string `json:"ordering,omitempty"`
 	PreferTransport string `json:"preferTransport,omitempty"`
 	Fallback        *bool  `json:"fallback,omitempty"`
 	IncludeSelf     *bool  `json:"includeSelf,omitempty"`
+	RequireAck      *bool  `json:"requireAck,omitempty"`
 }
 
+// StarfishError is a structured protocol error.
 type StarfishError struct {
-	Code    string          `json:"code"`
-	Message string          `json:"message"`
-	Details json.RawMessage `json:"details,omitempty"`
+	Code     string          `json:"code"`
+	Resource string          `json:"resource,omitempty"`
+	Message  string          `json:"message"`
+	Retry    bool            `json:"retry"`
+	Details  json.RawMessage `json:"details,omitempty"`
 }
 
 // ToJSON serializes a Frame to JSON bytes.
@@ -69,16 +76,35 @@ func ParseTo(raw json.RawMessage) ([]string, error) {
 
 // IncludeSelf returns whether the frame's delivery options specify includeSelf.
 func (f *Frame) IncludeSelf() bool {
-	if f.Options != nil && f.Options.Delivery != nil && f.Options.Delivery.IncludeSelf != nil {
-		return *f.Options.Delivery.IncludeSelf
+	if f.Header.Delivery != nil && f.Header.Delivery.IncludeSelf != nil {
+		return *f.Header.Delivery.IncludeSelf
 	}
 	return false
 }
 
 // RequireAck returns whether the frame requests acknowledgement.
 func (f *Frame) RequireAck() bool {
-	if f.Options != nil && f.Options.RequireAck != nil {
-		return *f.Options.RequireAck
+	if f.Header.Delivery != nil && f.Header.Delivery.RequireAck != nil {
+		return *f.Header.Delivery.RequireAck
 	}
 	return false
+}
+
+// payloadAs unmarshals a frame's payload into a typed struct.
+func payloadAs[T any](f *Frame) (T, error) {
+	var v T
+	data, err := json.Marshal(f.Payload)
+	if err != nil {
+		return v, err
+	}
+	err = json.Unmarshal(data, &v)
+	return v, err
+}
+
+// marshalPayload converts a struct to map[string]any for frame payloads.
+func marshalPayload(v any) map[string]any {
+	data, _ := json.Marshal(v)
+	var m map[string]any
+	json.Unmarshal(data, &m)
+	return m
 }

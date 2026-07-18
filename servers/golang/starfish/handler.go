@@ -31,7 +31,7 @@ func NewHandler(hub *Server) *Handler {
 	h.handlers["topic.publish"] = h.requireAuth(h.handleTopicPublish)
 
 	// Messaging
-	h.handlers["client.send"] = h.requireAuth(h.handleClientSend)
+	h.handlers["message.send"] = h.requireAuth(h.handleClientSend)
 	h.handlers["session.broadcast"] = h.requireAuth(h.handleSessionBroadcast)
 
 	// Presence
@@ -42,10 +42,10 @@ func NewHandler(hub *Server) *Handler {
 	h.handlers["data.get"] = h.requireAuth(h.handleDataGet)
 
 	// System
-	h.handlers["ping"] = h.handlePing
+	h.handlers["heartbeat.ping"] = h.handlePing
 	h.handlers["clock.sync"] = h.handleClockSync
-	h.handlers["ack"] = h.requireAuth(h.handleAck)
-	h.handlers["nack"] = h.requireAuth(h.handleNack)
+	h.handlers["ack.ack"] = h.requireAuth(h.handleAck)
+	h.handlers["ack.nack"] = h.requireAuth(h.handleNack)
 
 	// Pools
 	h.handlers["pool.enter"] = h.requireAuth(h.handlePoolEnter)
@@ -66,10 +66,11 @@ func NewHandler(hub *Server) *Handler {
 
 // Dispatch routes a frame to the appropriate handler.
 func (h *Handler) Dispatch(c *Client, f *Frame) {
-	handler, ok := h.handlers[f.Type]
+	key := f.Header.Resource + "." + f.Header.Method
+	handler, ok := h.handlers[key]
 	if !ok {
-		log.Printf("unknown message type: %s from client %s", f.Type, c.id)
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+		log.Printf("unknown resource.method: %s from client %s", key, c.id)
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, f.Header.Resource, f.Header.Method, ErrProtocolInvalidFrame, nil))
 		return
 	}
 	handler(c, f)
@@ -79,7 +80,7 @@ func (h *Handler) Dispatch(c *Client, f *Frame) {
 func (h *Handler) requireAuth(fn HandlerFunc) HandlerFunc {
 	return func(c *Client, f *Frame) {
 		if !c.authenticated {
-			c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrAuthRequired, nil))
+			c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, f.Header.Resource, f.Header.Method, ErrAuthRequired, nil))
 			return
 		}
 		fn(c, f)

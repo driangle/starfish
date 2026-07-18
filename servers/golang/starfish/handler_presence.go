@@ -1,8 +1,10 @@
 package starfish
 
+import "encoding/json"
+
 func (h *Handler) handlePresenceSet(c *Client, f *Frame) {
-	if f.Session == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "presence", "set", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
@@ -10,21 +12,23 @@ func (h *Handler) handlePresenceSet(c *Client, f *Frame) {
 		return
 	}
 
-	if len(f.Payload) > MaxPresenceSize {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPayloadTooLarge, nil))
+	// Check payload size by marshaling it
+	payloadBytes, _ := json.Marshal(f.Payload)
+	if len(payloadBytes) > MaxPresenceSize {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "presence", "set", ErrPayloadTooLarge, nil))
 		return
 	}
 
-	sess := h.hub.GetSession(f.Session)
+	sess := h.hub.GetSession(f.Header.Session)
 	if sess == nil {
 		return
 	}
 
 	// Store presence on the client for resume
 	c.mu.Lock()
-	c.presence[f.Session] = f.Payload
+	c.presence[f.Header.Session] = payloadBytes
 	c.mu.Unlock()
 
 	// Enqueue for throttled broadcast
-	sess.presence.Set(c.id, f.Payload)
+	sess.presence.Set(c.id, payloadBytes)
 }

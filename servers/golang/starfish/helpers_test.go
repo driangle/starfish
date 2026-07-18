@@ -79,17 +79,21 @@ func readFrame(t *testing.T, conn *websocket.Conn) *starfish.Frame {
 // hello performs a client.hello handshake and returns the welcome frame.
 func hello(t *testing.T, conn *websocket.Conn, name string) *starfish.Frame {
 	t.Helper()
-	payload, _ := json.Marshal(map[string]any{
-		"client": map[string]any{
-			"name": name,
-			"role": "test",
-		},
-	})
 	sendFrame(t, conn, &starfish.Frame{
-		V:       1,
-		ID:      "hello_1",
-		Type:    "client.hello",
-		Payload: payload,
+		Header: starfish.Header{
+			ID:       "hello_1",
+			Resource: "client",
+			Method:   "hello",
+			Kind:     "request",
+			V:        2,
+		},
+		Payload: map[string]any{
+			"versions": []int{2},
+			"client": map[string]any{
+				"name": name,
+				"role": "test",
+			},
+		},
 	})
 	return readFrame(t, conn)
 }
@@ -97,41 +101,39 @@ func hello(t *testing.T, conn *websocket.Conn, name string) *starfish.Frame {
 // getClientID extracts clientId from a welcome frame's payload.
 func getClientID(t *testing.T, welcome *starfish.Frame) string {
 	t.Helper()
-	var p struct {
-		ClientID string `json:"clientId"`
+	id, ok := welcome.Payload["clientId"].(string)
+	if !ok {
+		t.Fatalf("missing clientId in welcome payload")
 	}
-	if err := json.Unmarshal(welcome.Payload, &p); err != nil {
-		t.Fatalf("failed to parse welcome payload: %v", err)
-	}
-	return p.ClientID
+	return id
 }
 
 // getResumeToken extracts resumeToken from a welcome frame's payload.
 func getResumeToken(t *testing.T, welcome *starfish.Frame) string {
 	t.Helper()
-	var p struct {
-		ResumeToken string `json:"resumeToken"`
+	token, ok := welcome.Payload["resumeToken"].(string)
+	if !ok {
+		t.Fatalf("missing resumeToken in welcome payload")
 	}
-	if err := json.Unmarshal(welcome.Payload, &p); err != nil {
-		t.Fatalf("failed to parse welcome payload: %v", err)
-	}
-	return p.ResumeToken
+	return token
 }
 
-// joinSession joins a session and returns the session.joined frame.
+// joinSession joins a session and returns the session join response frame.
 func joinSession(t *testing.T, conn *websocket.Conn, sessionName string) *starfish.Frame {
 	t.Helper()
-	payload, _ := json.Marshal(map[string]any{
-		"create": true,
-		"name":   "test-client",
-		"role":   "test",
-	})
 	sendFrame(t, conn, &starfish.Frame{
-		V:       1,
-		ID:      "join_1",
-		Type:    "session.join",
-		Session: sessionName,
-		Payload: payload,
+		Header: starfish.Header{
+			ID:       "join_1",
+			Resource: "session",
+			Method:   "join",
+			Kind:     "request",
+			Session:  sessionName,
+		},
+		Payload: map[string]any{
+			"create": true,
+			"name":   "test-client",
+			"role":   "test",
+		},
 	})
 	return readFrame(t, conn)
 }

@@ -103,17 +103,12 @@ func (c *Client) ReadPump() {
 
 		var f Frame
 		if err := json.Unmarshal(data, &f); err != nil {
-			c.SendFrame(NewErrorFrame(c.hub.idGen, "", ErrProtocolInvalidFrame, nil))
+			c.SendFrame(NewErrorFrame(c.hub.idGen, "", "", "", ErrProtocolInvalidFrame, nil))
 			continue
 		}
 
-		if f.V != 1 {
-			c.SendFrame(NewErrorFrame(c.hub.idGen, f.ID, ErrProtocolUnsupportedVer, nil))
-			continue
-		}
-
-		if f.ID == "" || f.Type == "" {
-			c.SendFrame(NewErrorFrame(c.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+		if f.Header.ID == "" || f.Header.Resource == "" || f.Header.Method == "" || f.Header.Kind == "" {
+			c.SendFrame(NewErrorFrame(c.hub.idGen, f.Header.ID, f.Header.Resource, f.Header.Method, ErrProtocolInvalidFrame, nil))
 			continue
 		}
 

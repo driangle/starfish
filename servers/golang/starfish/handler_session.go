@@ -1,45 +1,39 @@
 package starfish
 
-import (
-	"encoding/json"
-)
-
 type joinPayload struct {
-	Create bool            `json:"create"`
-	Name   string          `json:"name"`
-	Role   string          `json:"role"`
-	Meta   json.RawMessage `json:"meta"`
+	Create bool           `json:"create"`
+	Name   string         `json:"name"`
+	Role   string         `json:"role"`
+	Meta   map[string]any `json:"meta"`
 }
 
 func (h *Handler) handleSessionJoin(c *Client, f *Frame) {
-	if f.Session == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "session", "join", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
-	var payload joinPayload
-	if f.Payload != nil {
-		if err := json.Unmarshal(f.Payload, &payload); err != nil {
-			c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
-			return
-		}
+	payload, err := payloadAs[joinPayload](f)
+	if err != nil {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "session", "join", ErrProtocolInvalidFrame, nil))
+		return
 	}
 
 	// Check if session exists
-	sess := h.hub.GetSession(f.Session)
+	sess := h.hub.GetSession(f.Header.Session)
 	if sess == nil {
 		if !payload.Create {
-			c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrSessionNotFound, nil))
+			c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "session", "join", ErrSessionNotFound, nil))
 			return
 		}
-		sess = h.hub.GetOrCreateSession(f.Session)
+		sess = h.hub.GetOrCreateSession(f.Header.Session)
 	}
 
 	// Add client to session
 	clients := sess.AddClient(c)
 
 	c.mu.Lock()
-	c.sessions[f.Session] = true
+	c.sessions[f.Header.Session] = true
 	if payload.Name != "" {
 		c.name = payload.Name
 	}
@@ -47,68 +41,72 @@ func (h *Handler) handleSessionJoin(c *Client, f *Frame) {
 		c.role = payload.Role
 	}
 	if payload.Meta != nil {
-		c.meta = payload.Meta
+		c.meta = marshalRaw(payload.Meta)
 	}
 	c.mu.Unlock()
 
-	// Send session.joined to the joining client
-	joinedPayload, _ := json.Marshal(struct {
-		ClientID string       `json:"clientId"`
-		Clients  []ClientInfo `json:"clients"`
-	}{
-		ClientID: c.id,
-		Clients:  clients,
-	})
-
+	// Send session join response
 	c.SendFrame(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "session.joined",
-		Session: f.Session,
-		ReplyTo: f.ID,
-		Payload: joinedPayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "session",
+			Method:   "join",
+			Kind:     "response",
+			Session:  f.Header.Session,
+			ReplyTo:  f.Header.ID,
+		},
+		Payload: map[string]any{
+			"status":   "ok",
+			"clientId": c.id,
+			"clients":  clients,
+		},
 	})
 
-	// Broadcast client.connected to other clients in the session
-	connPayload, _ := json.Marshal(struct {
-		Client ClientInfo `json:"client"`
-	}{
-		Client: c.Info(),
-	})
-
+	// Broadcast session connected event to other clients
 	sess.Broadcast(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "client.connected",
-		Session: f.Session,
-		Payload: connPayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "session",
+			Method:   "connected",
+			Kind:     "event",
+			Session:  f.Header.Session,
+		},
+		Payload: map[string]any{
+			"client": c.Info(),
+		},
 	}, c.id) // Exclude the joining client
 }
 
 func (h *Handler) handleSessionLeave(c *Client, f *Frame) {
-	if f.Session == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "session", "leave", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
 	c.mu.Lock()
-	inSession := c.sessions[f.Session]
+	inSession := c.sessions[f.Header.Session]
 	c.mu.Unlock()
 
 	if !inSession {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrSessionNotFound, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "session", "leave", ErrSessionNotFound, nil))
 		return
 	}
 
-	h.removeClientFromSession(c, f.Session, "left")
+	h.removeClientFromSession(c, f.Header.Session, "left")
 
 	// Confirm to the client
 	c.SendFrame(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "session.left",
-		Session: f.Session,
-		ReplyTo: f.ID,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "session",
+			Method:   "leave",
+			Kind:     "response",
+			Session:  f.Header.Session,
+			ReplyTo:  f.Header.ID,
+		},
+		Payload: map[string]any{
+			"status": "ok",
+		},
 	})
 }
 
@@ -127,21 +125,19 @@ func (h *Handler) removeClientFromSession(c *Client, sessionName string, reason 
 
 	empty := sess.RemoveClient(c.id)
 
-	// Broadcast client.disconnected
-	dcPayload, _ := json.Marshal(struct {
-		ClientID string `json:"clientId"`
-		Reason   string `json:"reason"`
-	}{
-		ClientID: c.id,
-		Reason:   reason,
-	})
-
+	// Broadcast session disconnected event
 	sess.Broadcast(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "client.disconnected",
-		Session: sessionName,
-		Payload: dcPayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "session",
+			Method:   "disconnected",
+			Kind:     "event",
+			Session:  sessionName,
+		},
+		Payload: map[string]any{
+			"clientId": c.id,
+			"reason":   reason,
+		},
 	}, "")
 
 	if empty {

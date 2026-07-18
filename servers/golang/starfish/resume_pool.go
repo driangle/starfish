@@ -1,7 +1,5 @@
 package starfish
 
-import "encoding/json"
-
 // ResumePoolEntry holds a client's pool membership data for resume.
 type ResumePoolEntry struct {
 	Attributes map[string]any
@@ -39,21 +37,18 @@ func (r *ResumeRegistry) expirePoolMemberships(clientID string, pools map[string
 
 		empty := pool.RemoveMember(clientID)
 
-		leftPayload, _ := json.Marshal(struct {
-			Pool     string `json:"pool"`
-			MemberID string `json:"memberId"`
-			Reason   string `json:"reason"`
-		}{
-			Pool:     poolName,
-			MemberID: clientID,
-			Reason:   reason,
-		})
-
 		pool.BroadcastVisible(&Frame{
-			V:       1,
-			ID:      r.hub.idGen.MessageID(),
-			Type:    "pool.member.left",
-			Payload: leftPayload,
+			Header: Header{
+				ID:       r.hub.idGen.MessageID(),
+				Resource: "pool",
+				Method:   "member-left",
+				Kind:     "event",
+			},
+			Payload: map[string]any{
+				"pool":     poolName,
+				"memberId": clientID,
+				"reason":   reason,
+			},
 		}, "")
 
 		if empty {

@@ -18,8 +18,8 @@ type dataGetPayload struct {
 }
 
 func (h *Handler) handleDataSave(c *Client, f *Frame) {
-	if f.Session == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "data", "save", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
@@ -27,100 +27,88 @@ func (h *Handler) handleDataSave(c *Client, f *Frame) {
 		return
 	}
 
-	var payload dataSavePayload
-	if err := json.Unmarshal(f.Payload, &payload); err != nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	payload, err := payloadAs[dataSavePayload](f)
+	if err != nil {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "data", "save", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
 	if payload.Key == "" || (payload.Scope != "session" && payload.Scope != "self") {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "data", "save", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
 	if len(payload.Data) > MaxDataValueSize {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrPayloadTooLarge, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "data", "save", ErrPayloadTooLarge, nil))
 		return
 	}
 
-	sess := h.hub.GetSession(f.Session)
+	sess := h.hub.GetSession(f.Header.Session)
 	if sess == nil {
 		return
 	}
 
-	entry, err := sess.data.Apply(payload.Op, payload.Key, payload.Scope, c.id, payload.Data, payload.ExpectedVersion)
-	if err != nil {
-		if conflict, ok := err.(*ConflictError); ok {
-			c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrDataConflict, struct {
-				Key             string          `json:"key"`
-				ExpectedVersion int64           `json:"expectedVersion"`
-				ActualVersion   int64           `json:"actualVersion"`
-				CurrentData     json.RawMessage `json:"currentData"`
-			}{
-				Key:             payload.Key,
-				ExpectedVersion: *payload.ExpectedVersion,
-				ActualVersion:   conflict.ActualVersion,
-				CurrentData:     conflict.CurrentData,
-			}))
+	entry, applyErr := sess.data.Apply(payload.Op, payload.Key, payload.Scope, c.id, payload.Data, payload.ExpectedVersion)
+	if applyErr != nil {
+		if conflict, ok := applyErr.(*ConflictError); ok {
+			errFrame := NewErrorFrame(h.hub.idGen, f.Header.ID, "data", "save", ErrDataConflict, nil)
+			errFrame.Payload["details"] = map[string]any{
+				"key":             payload.Key,
+				"expectedVersion": *payload.ExpectedVersion,
+				"actualVersion":   conflict.ActualVersion,
+				"currentData":     json.RawMessage(conflict.CurrentData),
+			}
+			c.SendFrame(errFrame)
 			return
 		}
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrDataInvalidOp, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "data", "save", ErrDataInvalidOp, nil))
 		return
 	}
 
-	// Reply with data.saved
-	savedPayload, _ := json.Marshal(struct {
-		Key     string          `json:"key"`
-		Scope   string          `json:"scope"`
-		Data    json.RawMessage `json:"data"`
-		Version int64           `json:"version"`
-	}{
-		Key:     payload.Key,
-		Scope:   payload.Scope,
-		Data:    entry.Data,
-		Version: entry.Version,
-	})
-
+	// Reply with data save response
 	c.SendFrame(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "data.saved",
-		Session: f.Session,
-		ReplyTo: f.ID,
-		Payload: savedPayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "data",
+			Method:   "save",
+			Kind:     "response",
+			Session:  f.Header.Session,
+			ReplyTo:  f.Header.ID,
+		},
+		Payload: map[string]any{
+			"status":  "ok",
+			"key":     payload.Key,
+			"scope":   payload.Scope,
+			"data":    json.RawMessage(entry.Data),
+			"version": entry.Version,
+		},
 	})
 
-	// Broadcast data.changed for session-scoped data
+	// Broadcast data changed event for session-scoped data
 	if payload.Scope == "session" {
-		changedPayload, _ := json.Marshal(struct {
-			Key       string          `json:"key"`
-			Scope     string          `json:"scope"`
-			Op        string          `json:"op"`
-			Data      json.RawMessage `json:"data"`
-			Version   int64           `json:"version"`
-			UpdatedBy string          `json:"updatedBy"`
-		}{
-			Key:       payload.Key,
-			Scope:     payload.Scope,
-			Op:        payload.Op,
-			Data:      entry.Data,
-			Version:   entry.Version,
-			UpdatedBy: c.id,
-		})
-
 		sess.Broadcast(&Frame{
-			V:       1,
-			ID:      h.hub.idGen.MessageID(),
-			Type:    "data.changed",
-			Session: f.Session,
-			Payload: changedPayload,
+			Header: Header{
+				ID:       h.hub.idGen.MessageID(),
+				Resource: "data",
+				Method:   "changed",
+				Kind:     "event",
+				Session:  f.Header.Session,
+			},
+			Payload: map[string]any{
+				"key":       payload.Key,
+				"scope":     payload.Scope,
+				"op":        payload.Op,
+				"data":      json.RawMessage(entry.Data),
+				"version":   entry.Version,
+				"updatedBy": c.id,
+			},
 		}, "")
 	}
 }
 
 func (h *Handler) handleDataGet(c *Client, f *Frame) {
-	if f.Session == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "data", "get", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
@@ -128,42 +116,39 @@ func (h *Handler) handleDataGet(c *Client, f *Frame) {
 		return
 	}
 
-	var payload dataGetPayload
-	if err := json.Unmarshal(f.Payload, &payload); err != nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	payload, err := payloadAs[dataGetPayload](f)
+	if err != nil {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "data", "get", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
 	if payload.Key == "" || (payload.Scope != "session" && payload.Scope != "self") {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "data", "get", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
-	sess := h.hub.GetSession(f.Session)
+	sess := h.hub.GetSession(f.Header.Session)
 	if sess == nil {
 		return
 	}
 
 	entry := sess.data.Get(payload.Key, payload.Scope, c.id)
 
-	valuePayload, _ := json.Marshal(struct {
-		Key     string          `json:"key"`
-		Scope   string          `json:"scope"`
-		Data    json.RawMessage `json:"data"`
-		Version int64           `json:"version"`
-	}{
-		Key:     payload.Key,
-		Scope:   payload.Scope,
-		Data:    entry.Data,
-		Version: entry.Version,
-	})
-
 	c.SendFrame(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "data.value",
-		Session: f.Session,
-		ReplyTo: f.ID,
-		Payload: valuePayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "data",
+			Method:   "get",
+			Kind:     "response",
+			Session:  f.Header.Session,
+			ReplyTo:  f.Header.ID,
+		},
+		Payload: map[string]any{
+			"status":  "ok",
+			"key":     payload.Key,
+			"scope":   payload.Scope,
+			"data":    json.RawMessage(entry.Data),
+			"version": entry.Version,
+		},
 	})
 }

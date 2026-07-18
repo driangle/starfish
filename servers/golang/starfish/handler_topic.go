@@ -1,17 +1,13 @@
 package starfish
 
-import (
-	"encoding/json"
-)
-
 func (h *Handler) handleTopicSubscribe(c *Client, f *Frame) {
-	if f.Session == "" || f.Topic == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" || f.Header.Topic == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "topic", "subscribe", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
-	if len(f.Topic) > MaxTopicNameLen {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrTopicInvalid, nil))
+	if len(f.Header.Topic) > MaxTopicNameLen {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "topic", "subscribe", ErrTopicInvalid, nil))
 		return
 	}
 
@@ -19,35 +15,41 @@ func (h *Handler) handleTopicSubscribe(c *Client, f *Frame) {
 		return
 	}
 
-	sess := h.hub.GetSession(f.Session)
+	sess := h.hub.GetSession(f.Header.Session)
 
-	subscribers := sess.Subscribe(f.Topic, c)
+	subscribers := sess.Subscribe(f.Header.Topic, c)
 
 	// Track on the client
 	c.mu.Lock()
-	if c.topics[f.Session] == nil {
-		c.topics[f.Session] = make(map[string]bool)
+	if c.topics[f.Header.Session] == nil {
+		c.topics[f.Header.Session] = make(map[string]bool)
 	}
-	c.topics[f.Session][f.Topic] = true
+	c.topics[f.Header.Session][f.Header.Topic] = true
 	c.mu.Unlock()
 
 	// Confirm subscription
 	c.SendFrame(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "topic.subscribed",
-		Session: f.Session,
-		Topic:   f.Topic,
-		ReplyTo: f.ID,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "topic",
+			Method:   "subscribe",
+			Kind:     "response",
+			Session:  f.Header.Session,
+			Topic:    f.Header.Topic,
+			ReplyTo:  f.Header.ID,
+		},
+		Payload: map[string]any{
+			"status": "ok",
+		},
 	})
 
-	// Send topic.peers to all subscribers
-	h.sendTopicPeers(sess, f.Session, f.Topic, subscribers)
+	// Send topic peers event to all subscribers
+	h.sendTopicPeers(sess, f.Header.Session, f.Header.Topic, subscribers)
 }
 
 func (h *Handler) handleTopicUnsubscribe(c *Client, f *Frame) {
-	if f.Session == "" || f.Topic == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" || f.Header.Topic == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "topic", "unsubscribe", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
@@ -55,36 +57,42 @@ func (h *Handler) handleTopicUnsubscribe(c *Client, f *Frame) {
 		return
 	}
 
-	sess := h.hub.GetSession(f.Session)
+	sess := h.hub.GetSession(f.Header.Session)
 
-	subscribers := sess.Unsubscribe(f.Topic, c.id)
+	subscribers := sess.Unsubscribe(f.Header.Topic, c.id)
 
 	// Remove from client tracking
 	c.mu.Lock()
-	if topicSet, ok := c.topics[f.Session]; ok {
-		delete(topicSet, f.Topic)
+	if topicSet, ok := c.topics[f.Header.Session]; ok {
+		delete(topicSet, f.Header.Topic)
 	}
 	c.mu.Unlock()
 
 	// Confirm unsubscription
 	c.SendFrame(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "topic.unsubscribed",
-		Session: f.Session,
-		Topic:   f.Topic,
-		ReplyTo: f.ID,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "topic",
+			Method:   "unsubscribe",
+			Kind:     "response",
+			Session:  f.Header.Session,
+			Topic:    f.Header.Topic,
+			ReplyTo:  f.Header.ID,
+		},
+		Payload: map[string]any{
+			"status": "ok",
+		},
 	})
 
-	// Send updated topic.peers to remaining subscribers
+	// Send updated topic peers to remaining subscribers
 	if len(subscribers) > 0 {
-		h.sendTopicPeers(sess, f.Session, f.Topic, subscribers)
+		h.sendTopicPeers(sess, f.Header.Session, f.Header.Topic, subscribers)
 	}
 }
 
 func (h *Handler) handleTopicPublish(c *Client, f *Frame) {
-	if f.Session == "" || f.Topic == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" || f.Header.Topic == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "topic", "publish", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
@@ -92,40 +100,38 @@ func (h *Handler) handleTopicPublish(c *Client, f *Frame) {
 		return
 	}
 
-	sess := h.hub.GetSession(f.Session)
+	sess := h.hub.GetSession(f.Header.Session)
 
-	// Get subscribers and deliver as topic.message
-	// Per spec: publisher only receives own message if also subscribed.
-	// Since GetSubscribers only returns subscribed clients, the publisher
-	// will only be in the list if subscribed — so we send to all.
-	subscribers := sess.GetSubscribers(f.Topic)
+	subscribers := sess.GetSubscribers(f.Header.Topic)
 	for _, sub := range subscribers {
 		sub.SendFrame(&Frame{
-			V:       1,
-			ID:      f.ID,
-			Type:    "topic.message",
-			Session: f.Session,
-			From:    c.id,
-			Topic:   f.Topic,
+			Header: Header{
+				ID:       f.Header.ID,
+				Resource: "topic",
+				Method:   "message",
+				Kind:     "event",
+				Session:  f.Header.Session,
+				From:     c.id,
+				Topic:    f.Header.Topic,
+			},
 			Payload: f.Payload,
 		})
 	}
 }
 
 func (h *Handler) sendTopicPeers(sess *Session, sessionName string, topicName string, subscribers []string) {
-	peersPayload, _ := json.Marshal(struct {
-		Subscribers []string `json:"subscribers"`
-	}{
-		Subscribers: subscribers,
-	})
-
 	peersFrame := &Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "topic.peers",
-		Session: sessionName,
-		Topic:   topicName,
-		Payload: peersPayload,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "topic",
+			Method:   "peers",
+			Kind:     "event",
+			Session:  sessionName,
+			Topic:    topicName,
+		},
+		Payload: map[string]any{
+			"subscribers": subscribers,
+		},
 	}
 
 	// Send to all clients in the session that are subscribed to this topic
@@ -137,11 +143,11 @@ func (h *Handler) sendTopicPeers(sess *Session, sessionName string, topicName st
 // requireSession checks that the client is in the specified session.
 func (h *Handler) requireSession(c *Client, f *Frame) bool {
 	c.mu.Lock()
-	inSession := c.sessions[f.Session]
+	inSession := c.sessions[f.Header.Session]
 	c.mu.Unlock()
 
 	if !inSession {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrSessionNotFound, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, f.Header.Resource, f.Header.Method, ErrSessionNotFound, nil))
 		return false
 	}
 	return true

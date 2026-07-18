@@ -1,11 +1,12 @@
 ---
 title: "Refactor Go server for new protocol envelope"
 id: "01kxrcr59"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["server", "golang", "breaking-change"]
 created_at: "2026-07-17"
+completed_at: 2026-07-18
 ---
 
 # Refactor Go server for new protocol envelope
@@ -16,13 +17,13 @@ Update the Go server (`servers/golang/`) to parse, validate, route, and emit fra
 
 ## Tasks
 
-- [ ] Update frame validation to expect `Header`/`Payload` structure
-- [ ] Replace `Type`-based routing with `Method`/`Resource`/`Kind`-based routing
-- [ ] Implement version negotiation during handshake
-- [ ] Update error responses to structured format
-- [ ] Update all handler functions for new envelope
-- [ ] Replace type rewriting with `Kind: "event"` for server-pushed frames
-- [ ] Update unit tests
+- [x] Update frame validation to expect `Header`/`Payload` structure
+- [x] Replace `Type`-based routing with `Method`/`Resource`/`Kind`-based routing
+- [x] Implement version negotiation during handshake
+- [x] Update error responses to structured format
+- [x] Update all handler functions for new envelope
+- [x] Replace type rewriting with `Kind: "event"` for server-pushed frames
+- [x] Update unit tests
 
 ## Acceptance Criteria
 

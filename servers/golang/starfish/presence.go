@@ -66,13 +66,20 @@ func (pt *PresenceThrottle) flush() {
 	pt.mu.Unlock()
 
 	for clientID, payload := range batch {
+		// Convert the raw JSON payload to map[string]any for the envelope
+		var presenceData map[string]any
+		json.Unmarshal(payload, &presenceData)
+
 		pt.session.Broadcast(&Frame{
-			V:       1,
-			ID:      pt.hub.idGen.MessageID(),
-			Type:    "presence.updated",
-			Session: pt.session.name,
-			From:    clientID,
-			Payload: payload,
-		}, "") // Send to all including the sender (presence updates are visible to everyone)
+			Header: Header{
+				ID:       pt.hub.idGen.MessageID(),
+				Resource: "presence",
+				Method:   "updated",
+				Kind:     "event",
+				Session:  pt.session.name,
+				From:     clientID,
+			},
+			Payload: presenceData,
+		}, "") // Send to all including the sender
 	}
 }

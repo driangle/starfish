@@ -1,8 +1,8 @@
 package starfish
 
 func (h *Handler) handleClientSend(c *Client, f *Frame) {
-	if f.Session == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "message", "send", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
@@ -10,40 +10,43 @@ func (h *Handler) handleClientSend(c *Client, f *Frame) {
 		return
 	}
 
-	targets, err := ParseTo(f.To)
+	targets, err := ParseTo(f.Header.To)
 	if err != nil || len(targets) == 0 {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "message", "send", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
-	sess := h.hub.GetSession(f.Session)
+	sess := h.hub.GetSession(f.Header.Session)
 	if sess == nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrSessionNotFound, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "message", "send", ErrSessionNotFound, nil))
 		return
 	}
 
 	for _, targetID := range targets {
 		target := sess.GetClient(targetID)
 		if target == nil {
-			c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrClientNotFound, nil))
+			c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "message", "send", ErrClientNotFound, nil))
 			return
 		}
 
 		target.SendFrame(&Frame{
-			V:       1,
-			ID:      f.ID,
-			Type:    "client.message",
-			Session: f.Session,
-			From:    c.id,
-			To:      f.To,
+			Header: Header{
+				ID:       f.Header.ID,
+				Resource: "message",
+				Method:   "message",
+				Kind:     "event",
+				Session:  f.Header.Session,
+				From:     c.id,
+				To:       f.Header.To,
+			},
 			Payload: f.Payload,
 		})
 	}
 }
 
 func (h *Handler) handleSessionBroadcast(c *Client, f *Frame) {
-	if f.Session == "" {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
+	if f.Header.Session == "" {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "session", "broadcast", ErrProtocolInvalidFrame, nil))
 		return
 	}
 
@@ -51,9 +54,9 @@ func (h *Handler) handleSessionBroadcast(c *Client, f *Frame) {
 		return
 	}
 
-	sess := h.hub.GetSession(f.Session)
+	sess := h.hub.GetSession(f.Header.Session)
 	if sess == nil {
-		c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrSessionNotFound, nil))
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "session", "broadcast", ErrSessionNotFound, nil))
 		return
 	}
 
@@ -63,11 +66,14 @@ func (h *Handler) handleSessionBroadcast(c *Client, f *Frame) {
 	}
 
 	sess.Broadcast(&Frame{
-		V:       1,
-		ID:      f.ID,
-		Type:    "session.broadcast",
-		Session: f.Session,
-		From:    c.id,
+		Header: Header{
+			ID:       f.Header.ID,
+			Resource: "session",
+			Method:   "broadcast",
+			Kind:     "event",
+			Session:  f.Header.Session,
+			From:     c.id,
+		},
 		Payload: f.Payload,
 	}, excludeID)
 }

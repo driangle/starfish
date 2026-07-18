@@ -6,10 +6,11 @@ import (
 )
 
 type helloPayload struct {
-	Client *struct {
-		Name string          `json:"name"`
-		Role string          `json:"role"`
-		Meta json.RawMessage `json:"meta"`
+	Versions []int `json:"versions"`
+	Client   *struct {
+		Name string         `json:"name"`
+		Role string         `json:"role"`
+		Meta map[string]any `json:"meta"`
 	} `json:"client"`
 	Capabilities *struct {
 		RTC bool `json:"rtc"`
@@ -17,29 +18,17 @@ type helloPayload struct {
 	ResumeToken string `json:"resumeToken"`
 }
 
-type welcomePayload struct {
-	ClientID          string     `json:"clientId"`
-	Resumed           bool       `json:"resumed,omitempty"`
-	ResumeToken       string     `json:"resumeToken"`
-	ResumeTimeout     int64      `json:"resumeTimeout"`
-	ServerTime        int64      `json:"serverTime"`
-	HeartbeatInterval int64      `json:"heartbeatInterval"`
-	SessionRequired   bool       `json:"sessionRequired,omitempty"`
-	Sessions          []string   `json:"sessions,omitempty"`
-	RTC               *rtcConfig `json:"rtc,omitempty"`
-}
-
-type rtcConfig struct {
-	ICEServers []ICEServer `json:"iceServers"`
-}
-
 func (h *Handler) handleClientHello(c *Client, f *Frame) {
-	var payload helloPayload
-	if f.Payload != nil {
-		if err := json.Unmarshal(f.Payload, &payload); err != nil {
-			c.SendFrame(NewErrorFrame(h.hub.idGen, f.ID, ErrProtocolInvalidFrame, nil))
-			return
-		}
+	payload, err := payloadAs[helloPayload](f)
+	if err != nil {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "client", "welcome", ErrProtocolInvalidFrame, nil))
+		return
+	}
+
+	// Version negotiation: check that client supports v2
+	if !versionSupported(payload.Versions) {
+		c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "client", "welcome", ErrProtocolUnsupportedVer, nil))
+		return
 	}
 
 	now := time.Now()
@@ -94,32 +83,36 @@ func (h *Handler) handleClientHello(c *Client, f *Frame) {
 			}
 
 			newToken := h.hub.idGen.ResumeToken()
-			c.mu.Lock()
-			// Store new token reference (not directly used, but could be tracked)
-			c.mu.Unlock()
 
-			wp := welcomePayload{
-				ClientID:          c.id,
-				Resumed:           true,
-				ResumeToken:       newToken,
-				ResumeTimeout:     h.hub.config.ResumeTimeout.Milliseconds(),
-				ServerTime:        ts,
-				HeartbeatInterval: h.hub.config.HeartbeatInterval.Milliseconds(),
-				Sessions:          sessionNames,
+			wp := map[string]any{
+				"status":            "ok",
+				"version":           2,
+				"clientId":          c.id,
+				"resumed":           true,
+				"resumeToken":       newToken,
+				"resumeTimeout":     h.hub.config.ResumeTimeout.Milliseconds(),
+				"serverTime":        ts,
+				"heartbeatInterval": h.hub.config.HeartbeatInterval.Milliseconds(),
+				"sessions":          sessionNames,
 			}
 
 			if len(h.hub.config.ICEServers) > 0 {
-				wp.RTC = &rtcConfig{ICEServers: h.hub.config.ICEServers}
+				wp["rtc"] = map[string]any{
+					"iceServers": h.hub.config.ICEServers,
+				}
 			}
 
-			payloadBytes, _ := json.Marshal(wp)
 			c.SendFrame(&Frame{
-				V:       1,
-				ID:      h.hub.idGen.MessageID(),
-				Type:    "server.welcome",
-				Ts:      &ts,
-				ReplyTo: f.ID,
-				Payload: payloadBytes,
+				Header: Header{
+					ID:       h.hub.idGen.MessageID(),
+					Resource: "client",
+					Method:   "welcome",
+					Kind:     "response",
+					V:        2,
+					Ts:       &ts,
+					ReplyTo:  f.Header.ID,
+				},
+				Payload: wp,
 			})
 
 			// Register new resume token
@@ -138,7 +131,9 @@ func (h *Handler) handleClientHello(c *Client, f *Frame) {
 	if payload.Client != nil {
 		c.name = payload.Client.Name
 		c.role = payload.Client.Role
-		c.meta = payload.Client.Meta
+		if payload.Client.Meta != nil {
+			c.meta = marshalRaw(payload.Client.Meta)
+		}
 	}
 	if payload.Capabilities != nil {
 		c.rtcCapable = payload.Capabilities.RTC
@@ -149,29 +144,56 @@ func (h *Handler) handleClientHello(c *Client, f *Frame) {
 
 	h.hub.RegisterClient(c)
 
-	wp := welcomePayload{
-		ClientID:          clientID,
-		ResumeToken:       resumeToken,
-		ResumeTimeout:     h.hub.config.ResumeTimeout.Milliseconds(),
-		ServerTime:        ts,
-		HeartbeatInterval: h.hub.config.HeartbeatInterval.Milliseconds(),
-		SessionRequired:   true,
+	wp := map[string]any{
+		"status":            "ok",
+		"version":           2,
+		"clientId":          clientID,
+		"resumeToken":       resumeToken,
+		"resumeTimeout":     h.hub.config.ResumeTimeout.Milliseconds(),
+		"serverTime":        ts,
+		"heartbeatInterval": h.hub.config.HeartbeatInterval.Milliseconds(),
+		"sessionRequired":   true,
 	}
 
 	if len(h.hub.config.ICEServers) > 0 {
-		wp.RTC = &rtcConfig{ICEServers: h.hub.config.ICEServers}
+		wp["rtc"] = map[string]any{
+			"iceServers": h.hub.config.ICEServers,
+		}
 	}
 
-	payloadBytes, _ := json.Marshal(wp)
 	c.SendFrame(&Frame{
-		V:       1,
-		ID:      h.hub.idGen.MessageID(),
-		Type:    "server.welcome",
-		Ts:      &ts,
-		ReplyTo: f.ID,
-		Payload: payloadBytes,
+		Header: Header{
+			ID:       h.hub.idGen.MessageID(),
+			Resource: "client",
+			Method:   "welcome",
+			Kind:     "response",
+			V:        2,
+			Ts:       &ts,
+			ReplyTo:  f.Header.ID,
+		},
+		Payload: wp,
 	})
 
 	// Register resume token
 	h.hub.resumes.RegisterToken(c, resumeToken)
+}
+
+// versionSupported checks if the client's version list includes v2.
+// If no versions are provided, we accept (backwards compat during transition).
+func versionSupported(versions []int) bool {
+	if len(versions) == 0 {
+		return true
+	}
+	for _, v := range versions {
+		if v == 2 {
+			return true
+		}
+	}
+	return false
+}
+
+// marshalRaw converts a map to json.RawMessage for storage.
+func marshalRaw(v any) []byte {
+	data, _ := json.Marshal(v)
+	return data
 }

@@ -17,60 +17,60 @@ func TestDataSaveGet(t *testing.T) {
 	joinSession(t, conn, "s1")
 
 	// Save data
-	savePayload, _ := json.Marshal(map[string]any{
-		"key":   "score",
-		"scope": "session",
-		"op":    "replace",
-		"data":  42,
-	})
 	sendFrame(t, conn, &starfish.Frame{
-		V:       1,
-		ID:      "save_1",
-		Type:    "data.save",
-		Session: "s1",
-		Payload: savePayload,
+		Header: starfish.Header{
+			ID:       "save_1",
+			Resource: "data",
+			Method:   "save",
+			Kind:     "request",
+			Session:  "s1",
+		},
+		Payload: map[string]any{
+			"key":   "score",
+			"scope": "session",
+			"op":    "replace",
+			"data":  42,
+		},
 	})
 
 	saved := readFrame(t, conn)
-	if saved.Type != "data.saved" {
-		t.Fatalf("expected data.saved, got %s", saved.Type)
+	if saved.Header.Resource != "data" || saved.Header.Method != "save" || saved.Header.Kind != "response" {
+		t.Fatalf("expected data/save/response, got %s/%s/%s", saved.Header.Resource, saved.Header.Method, saved.Header.Kind)
 	}
 
-	// Also read data.changed (broadcast to all including sender)
+	// Also read data/changed event (broadcast to all including sender)
 	changed := readFrame(t, conn)
-	if changed.Type != "data.changed" {
-		t.Fatalf("expected data.changed, got %s", changed.Type)
+	if changed.Header.Resource != "data" || changed.Header.Method != "changed" || changed.Header.Kind != "event" {
+		t.Fatalf("expected data/changed/event, got %s/%s/%s", changed.Header.Resource, changed.Header.Method, changed.Header.Kind)
 	}
 
 	// Get data
-	getPayload, _ := json.Marshal(map[string]any{
-		"key":   "score",
-		"scope": "session",
-	})
 	sendFrame(t, conn, &starfish.Frame{
-		V:       1,
-		ID:      "get_1",
-		Type:    "data.get",
-		Session: "s1",
-		Payload: getPayload,
+		Header: starfish.Header{
+			ID:       "get_1",
+			Resource: "data",
+			Method:   "get",
+			Kind:     "request",
+			Session:  "s1",
+		},
+		Payload: map[string]any{
+			"key":   "score",
+			"scope": "session",
+		},
 	})
 
 	value := readFrame(t, conn)
-	if value.Type != "data.value" {
-		t.Fatalf("expected data.value, got %s", value.Type)
+	if value.Header.Resource != "data" || value.Header.Method != "get" || value.Header.Kind != "response" {
+		t.Fatalf("expected data/get/response, got %s/%s/%s", value.Header.Resource, value.Header.Method, value.Header.Kind)
 	}
 
-	var vp struct {
-		Key     string `json:"key"`
-		Version int64  `json:"version"`
-		Data    int    `json:"data"`
+	data, _ := value.Payload["data"].(float64)
+	if data != 42 {
+		t.Fatalf("expected data 42, got %v", data)
 	}
-	json.Unmarshal(value.Payload, &vp)
-	if vp.Data != 42 {
-		t.Fatalf("expected data 42, got %d", vp.Data)
-	}
-	if vp.Version != 1 {
-		t.Fatalf("expected version 1, got %d", vp.Version)
+	version, _ := value.Payload["version"].(float64)
+	if version != 1 {
+		t.Fatalf("expected version 1, got %v", version)
 	}
 }
 
@@ -82,44 +82,54 @@ func TestDataConflict(t *testing.T) {
 	joinSession(t, conn, "s1")
 
 	// Save with replace
-	savePayload, _ := json.Marshal(map[string]any{
-		"key":   "score",
-		"scope": "session",
-		"op":    "replace",
-		"data":  10,
-	})
 	sendFrame(t, conn, &starfish.Frame{
-		V:       1,
-		ID:      "s1",
-		Type:    "data.save",
-		Session: "s1",
-		Payload: savePayload,
+		Header: starfish.Header{
+			ID:       "s1",
+			Resource: "data",
+			Method:   "save",
+			Kind:     "request",
+			Session:  "s1",
+		},
+		Payload: map[string]any{
+			"key":   "score",
+			"scope": "session",
+			"op":    "replace",
+			"data":  10,
+		},
 	})
-	readFrame(t, conn) // data.saved
-	readFrame(t, conn) // data.changed
+	readFrame(t, conn) // data/save response
+	readFrame(t, conn) // data/changed event
 
 	// Try to save with wrong expectedVersion
-	conflictPayload, _ := json.Marshal(map[string]any{
-		"key":             "score",
-		"scope":           "session",
-		"op":              "replace",
-		"data":            20,
-		"expectedVersion": 0, // Wrong - actual is 1
-	})
 	sendFrame(t, conn, &starfish.Frame{
-		V:       1,
-		ID:      "s2",
-		Type:    "data.save",
-		Session: "s1",
-		Payload: conflictPayload,
+		Header: starfish.Header{
+			ID:       "s2",
+			Resource: "data",
+			Method:   "save",
+			Kind:     "request",
+			Session:  "s1",
+		},
+		Payload: map[string]any{
+			"key":             "score",
+			"scope":           "session",
+			"op":              "replace",
+			"data":            20,
+			"expectedVersion": 0, // Wrong - actual is 1
+		},
 	})
 
 	errFrame := readFrame(t, conn)
-	if errFrame.Type != "error" {
-		t.Fatalf("expected error, got %s", errFrame.Type)
+	if errFrame.Header.Kind != "response" {
+		t.Fatalf("expected kind response, got %s", errFrame.Header.Kind)
 	}
-	if errFrame.Error.Code != "data.conflict" {
-		t.Fatalf("expected data.conflict, got %s", errFrame.Error.Code)
+	status, _ := errFrame.Payload["status"].(string)
+	if status != "error" {
+		t.Fatalf("expected status error, got %s", status)
+	}
+	errObj, _ := errFrame.Payload["error"].(map[string]any)
+	code, _ := errObj["code"].(string)
+	if code != "data.conflict" {
+		t.Fatalf("expected data.conflict, got %s", code)
 	}
 }
 
@@ -139,36 +149,36 @@ func TestResumeConnection(t *testing.T) {
 
 	// Reconnect with resume token
 	conn2 := env.connect(t)
-	payload, _ := json.Marshal(map[string]any{
-		"resumeToken": resumeToken,
-	})
 	sendFrame(t, conn2, &starfish.Frame{
-		V:       1,
-		ID:      "hello_2",
-		Type:    "client.hello",
-		Payload: payload,
+		Header: starfish.Header{
+			ID:       "hello_2",
+			Resource: "client",
+			Method:   "hello",
+			Kind:     "request",
+			V:        2,
+		},
+		Payload: map[string]any{
+			"versions":    []int{2},
+			"resumeToken": resumeToken,
+		},
 	})
 
 	welcome2 := readFrame(t, conn2)
-	if welcome2.Type != "server.welcome" {
-		t.Fatalf("expected server.welcome, got %s", welcome2.Type)
+	if welcome2.Header.Resource != "client" || welcome2.Header.Method != "welcome" {
+		t.Fatalf("expected client/welcome, got %s/%s", welcome2.Header.Resource, welcome2.Header.Method)
 	}
 
-	var wp struct {
-		ClientID string   `json:"clientId"`
-		Resumed  bool     `json:"resumed"`
-		Sessions []string `json:"sessions"`
+	resumedClientID, _ := welcome2.Payload["clientId"].(string)
+	if resumedClientID != clientID {
+		t.Fatalf("expected same clientId %s, got %s", clientID, resumedClientID)
 	}
-	json.Unmarshal(welcome2.Payload, &wp)
-
-	if wp.ClientID != clientID {
-		t.Fatalf("expected same clientId %s, got %s", clientID, wp.ClientID)
-	}
-	if !wp.Resumed {
+	resumed, _ := welcome2.Payload["resumed"].(bool)
+	if !resumed {
 		t.Fatal("expected resumed: true")
 	}
-	if len(wp.Sessions) != 1 || wp.Sessions[0] != "s1" {
-		t.Fatalf("expected sessions [s1], got %v", wp.Sessions)
+	sessions, _ := welcome2.Payload["sessions"].([]any)
+	if len(sessions) != 1 {
+		t.Fatalf("expected sessions [s1], got %v", sessions)
 	}
 }
 
@@ -185,7 +195,7 @@ func TestResumeExpired(t *testing.T) {
 	conn2 := env.connect(t)
 	hello(t, conn2, "observer")
 	joinSession(t, conn2, "s1")
-	_ = readFrame(t, conn1) // client.connected for observer
+	_ = readFrame(t, conn1) // session/connected for observer
 
 	// Disconnect client 1
 	conn1.Close(websocket.StatusNormalClosure, "")
@@ -193,37 +203,35 @@ func TestResumeExpired(t *testing.T) {
 	// Wait for resume timeout (500ms in test config)
 	time.Sleep(700 * time.Millisecond)
 
-	// Observer should have received client.disconnected with reason "timeout"
+	// Observer should have received session/disconnected with reason "timeout"
 	disconnected := readFrame(t, conn2)
-	if disconnected.Type != "client.disconnected" {
-		t.Fatalf("expected client.disconnected, got %s", disconnected.Type)
+	if disconnected.Header.Resource != "session" || disconnected.Header.Method != "disconnected" {
+		t.Fatalf("expected session/disconnected, got %s/%s", disconnected.Header.Resource, disconnected.Header.Method)
 	}
-	var dp struct {
-		Reason string `json:"reason"`
-	}
-	json.Unmarshal(disconnected.Payload, &dp)
-	if dp.Reason != "timeout" {
-		t.Fatalf("expected reason timeout, got %s", dp.Reason)
+	reason, _ := disconnected.Payload["reason"].(string)
+	if reason != "timeout" {
+		t.Fatalf("expected reason timeout, got %s", reason)
 	}
 
 	// Try to resume with expired token -- should get fresh connection
 	conn3 := env.connect(t)
-	payload, _ := json.Marshal(map[string]any{
-		"resumeToken": resumeToken,
-	})
 	sendFrame(t, conn3, &starfish.Frame{
-		V:       1,
-		ID:      "hello_3",
-		Type:    "client.hello",
-		Payload: payload,
+		Header: starfish.Header{
+			ID:       "hello_3",
+			Resource: "client",
+			Method:   "hello",
+			Kind:     "request",
+			V:        2,
+		},
+		Payload: map[string]any{
+			"versions":    []int{2},
+			"resumeToken": resumeToken,
+		},
 	})
 
 	welcome3 := readFrame(t, conn3)
-	var wp struct {
-		Resumed bool `json:"resumed"`
-	}
-	json.Unmarshal(welcome3.Payload, &wp)
-	if wp.Resumed {
+	resumed, _ := welcome3.Payload["resumed"].(bool)
+	if resumed {
 		t.Fatal("expected resumed: false after expiry")
 	}
 }
@@ -240,27 +248,30 @@ func TestRTCSignalingRelay(t *testing.T) {
 	w2 := hello(t, conn2, "peer-b")
 	id2 := getClientID(t, w2)
 	joinSession(t, conn2, "s1")
-	_ = readFrame(t, conn1) // client.connected
-	_ = id1
+	_ = readFrame(t, conn1) // session/connected
 
 	// Send rtc.offer from conn1 to conn2
 	to, _ := json.Marshal(id2)
-	offerPayload, _ := json.Marshal(map[string]string{"sdp": "test-sdp"})
 	sendFrame(t, conn1, &starfish.Frame{
-		V:       1,
-		ID:      "rtc_1",
-		Type:    "rtc.offer",
-		Session: "s1",
-		To:      to,
-		Payload: offerPayload,
+		Header: starfish.Header{
+			ID:       "rtc_1",
+			Resource: "rtc",
+			Method:   "offer",
+			Kind:     "event",
+			Session:  "s1",
+			To:       to,
+		},
+		Payload: map[string]any{"sdp": "test-sdp"},
 	})
 
 	// conn2 should receive the offer
 	offer := readFrame(t, conn2)
-	if offer.Type != "rtc.offer" {
-		t.Fatalf("expected rtc.offer, got %s", offer.Type)
+	if offer.Header.Resource != "rtc" || offer.Header.Method != "offer" {
+		t.Fatalf("expected rtc/offer, got %s/%s", offer.Header.Resource, offer.Header.Method)
 	}
-	if offer.From != id1 {
-		t.Fatalf("expected from %s, got %s", id1, offer.From)
+	if offer.Header.From != id1 {
+		t.Fatalf("expected from %s, got %s", id1, offer.Header.From)
 	}
+
+	_ = id1 // used above
 }
