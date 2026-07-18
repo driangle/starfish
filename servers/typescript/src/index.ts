@@ -1,7 +1,7 @@
 export type {
   StarfishFrame,
   StarfishError,
-  FrameOptions,
+  StarfishHeader,
   DeliveryOptions,
 } from "./types.js";
 

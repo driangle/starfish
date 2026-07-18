@@ -11,12 +11,14 @@ export function handleClockSync(
 ): void {
   const now = Date.now();
   client.sendFrame({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "clock.synced",
-    ts: now,
-    replyTo: frame.id,
-    payload: { serverTime: now },
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "clock",
+      method: "sync",
+      kind: "response",
+      replyTo: frame.header.id,
+    },
+    payload: { status: "ok", serverTime: now },
   });
 }
 
@@ -37,15 +39,15 @@ export function handleNack(
 }
 
 function routeReply(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
-  if (!frame.replyTo) {
+  if (!frame.header.replyTo) {
     client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME),
+      createErrorFrame(hub.idGen, frame.header.id, ERR_PROTOCOL_INVALID_FRAME, frame.header.resource, frame.header.method),
     );
     return;
   }
 
-  frame.from = client.id;
-  const targets = parseTo(frame.to);
+  frame.header.from = client.id;
+  const targets = parseTo(frame.header.to);
   if (targets.length === 0) return;
 
   for (const targetId of targets) {

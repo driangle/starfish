@@ -21,13 +21,13 @@ export function handlePoolClaim(hub: StarfishServer, client: Client, frame: Star
   if (!requirePoolMember(pool, hub, client, frame)) return;
 
   if (!pool.isClaimBased()) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_MODE_MISMATCH));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_MODE_MISMATCH, "pool", "claim"));
     return;
   }
 
   const targetId = (frame.payload as { target?: string } | undefined)?.target;
   if (!targetId || !pool.hasMember(targetId)) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_TARGET_NOT_FOUND));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_TARGET_NOT_FOUND, "pool", "claim"));
     return;
   }
 
@@ -49,20 +49,26 @@ export function handlePoolClaim(hub: StarfishServer, client: Client, frame: Star
     } else {
       pool.addClaim(client.id, targetId);
       client.sendFrame({
-        v: 1,
-        id: hub.idGen.messageId(),
-        type: "pool.claim.pending",
-        replyTo: frame.id,
-        payload: { pool: pool.name, target: targetId },
+        header: {
+          id: hub.idGen.messageId(),
+          resource: "pool",
+          method: "claim",
+          kind: "response",
+          replyTo: frame.header.id,
+        },
+        payload: { status: "pending", pool: pool.name, target: targetId },
       });
     }
   } else if (pool.mode === "propose") {
     pool.addProposal(client.id, targetId);
     const member = pool.getMember(client.id)!;
     hub.getClient(targetId)?.sendFrame({
-      v: 1,
-      id: hub.idGen.messageId(),
-      type: "pool.proposal",
+      header: {
+        id: hub.idGen.messageId(),
+        resource: "pool",
+        method: "proposal",
+        kind: "event",
+      },
       payload: { pool: pool.name, from: client.id, attributes: member.attributes },
     });
   }
@@ -75,7 +81,7 @@ export function handlePoolAccept(hub: StarfishServer, client: Client, frame: Sta
 
   const proposerId = (frame.payload as { from?: string } | undefined)?.from;
   if (!proposerId || pool.getProposer(client.id) !== proposerId) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_TARGET_NOT_FOUND));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_TARGET_NOT_FOUND, "pool", "accept"));
     return;
   }
 
@@ -96,15 +102,18 @@ export function handlePoolReject(hub: StarfishServer, client: Client, frame: Sta
 
   const proposerId = (frame.payload as { from?: string } | undefined)?.from;
   if (!proposerId || pool.getProposer(client.id) !== proposerId) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_TARGET_NOT_FOUND));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_TARGET_NOT_FOUND, "pool", "reject"));
     return;
   }
 
   pool.removeProposal(client.id);
   hub.getClient(proposerId)?.sendFrame({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "pool.claim.rejected",
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "pool",
+      method: "claim-rejected",
+      kind: "event",
+    },
     payload: { pool: pool.name, target: client.id },
   });
 }
@@ -115,28 +124,28 @@ export function handlePoolAssign(hub: StarfishServer, client: Client, frame: Sta
   if (!requirePoolMember(pool, hub, client, frame)) return;
 
   if (pool.mode !== "delegated") {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_MODE_MISMATCH));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_MODE_MISMATCH, "pool", "assign"));
     return;
   }
   if (!pool.isMatchmaker(client.id)) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_ROLE_REQUIRED));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_ROLE_REQUIRED, "pool", "assign"));
     return;
   }
 
   const groups = (frame.payload as { groups?: string[][] } | undefined)?.groups;
   if (!groups || !Array.isArray(groups)) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_INVALID_GROUP));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_INVALID_GROUP, "pool", "assign"));
     return;
   }
 
   for (const group of groups) {
     if (group.length !== pool.groupSize) {
-      client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_INVALID_GROUP));
+      client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_INVALID_GROUP, "pool", "assign"));
       return;
     }
     for (const memberId of group) {
       if (!pool.hasMember(memberId)) {
-        client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_TARGET_NOT_FOUND));
+        client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_TARGET_NOT_FOUND, "pool", "assign"));
         return;
       }
     }
@@ -150,9 +159,12 @@ export function handlePoolAssign(hub: StarfishServer, client: Client, frame: Sta
 
     for (const memberId of group) {
       client.sendFrame({
-        v: 1,
-        id: hub.idGen.messageId(),
-        type: "pool.member.left",
+        header: {
+          id: hub.idGen.messageId(),
+          resource: "pool",
+          method: "member-left",
+          kind: "event",
+        },
         payload: { pool: pool.name, memberId, reason: "matched" },
       });
       hub.getClient(memberId)?.pools.delete(pool.name);
@@ -160,11 +172,14 @@ export function handlePoolAssign(hub: StarfishServer, client: Client, frame: Sta
   }
 
   client.sendFrame({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "pool.assigned",
-    replyTo: frame.id,
-    payload: { pool: pool.name, matched },
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "pool",
+      method: "assign",
+      kind: "response",
+      replyTo: frame.header.id,
+    },
+    payload: { status: "ok", pool: pool.name, matched },
   });
 
   if (pool.isEmpty) hub.removePool(pool.name);

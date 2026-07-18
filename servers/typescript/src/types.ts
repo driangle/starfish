@@ -1,39 +1,40 @@
-export type StarfishFrame = {
-  v: 1;
-  id: string;
-  type: string;
-  ts?: number;
-  session?: string;
-  from?: string;
-  to?: string | string[];
-  topic?: string;
-  ack?: boolean;
-  replyTo?: string;
-  transport?: "ws" | "rtc";
-  options?: FrameOptions;
-  payload?: unknown;
-  error?: StarfishError;
-};
-
-export type FrameOptions = {
-  delivery?: DeliveryOptions;
-  priority?: "low" | "normal" | "high" | "critical";
-  ttl?: number;
-  requireAck?: boolean;
-};
-
 export type DeliveryOptions = {
   reliability?: "reliable" | "unreliable" | "latest";
   ordering?: "ordered" | "unordered";
   preferTransport?: "ws" | "rtc" | "auto";
   fallback?: boolean;
   includeSelf?: boolean;
+  requireAck?: boolean;
+};
+
+export type StarfishHeader = {
+  v?: 2;
+  id: string;
+  resource: string;
+  method: string;
+  kind: "request" | "response" | "event";
+  ts?: number;
+  session?: string;
+  from?: string;
+  to?: string | string[];
+  topic?: string;
+  replyTo?: string;
+  delivery?: DeliveryOptions;
+  priority?: "low" | "normal" | "high" | "critical";
+  ttl?: number;
+  meta?: Record<string, unknown>;
+};
+
+export type StarfishFrame = {
+  header: StarfishHeader;
+  payload?: Record<string, unknown>;
 };
 
 export type StarfishError = {
   code: string;
+  resource: string;
   message: string;
-  details?: unknown;
+  retry: boolean;
 };
 
 export function parseTo(to: string | string[] | undefined): string[] {
@@ -43,9 +44,9 @@ export function parseTo(to: string | string[] | undefined): string[] {
 }
 
 export function includeSelf(frame: StarfishFrame): boolean {
-  return frame.options?.delivery?.includeSelf === true;
+  return frame.header.delivery?.includeSelf === true;
 }
 
 export function requireAck(frame: StarfishFrame): boolean {
-  return frame.options?.requireAck === true;
+  return frame.header.delivery?.requireAck === true;
 }

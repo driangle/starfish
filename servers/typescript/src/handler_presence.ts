@@ -8,11 +8,11 @@ export function handlePresenceSet(hub: StarfishServer, client: Client, frame: St
   const payloadSize = JSON.stringify(frame.payload ?? null).length;
   if (payloadSize > MAX_PRESENCE_SIZE) {
     client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_PAYLOAD_TOO_LARGE),
+      createErrorFrame(hub.idGen, frame.header.id, ERR_PAYLOAD_TOO_LARGE, "presence", "set"),
     );
     return;
   }
 
-  const session = hub.getSession(frame.session!)!;
+  const session = hub.getSession(frame.header.session!)!;
   session.setPresence(client.id, frame.payload);
 }

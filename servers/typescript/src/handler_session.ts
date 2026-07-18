@@ -21,9 +21,9 @@ export function requireSession(
   fn: HandlerFunc,
 ): HandlerFunc {
   return (client: Client, frame: StarfishFrame) => {
-    if (!frame.session || !client.sessions.has(frame.session)) {
+    if (!frame.header.session || !client.sessions.has(frame.header.session)) {
       client.sendFrame(
-        createErrorFrame(hub.idGen, frame.id, ERR_SESSION_NOT_FOUND),
+        createErrorFrame(hub.idGen, frame.header.id, ERR_SESSION_NOT_FOUND, frame.header.resource, frame.header.method),
       );
       return;
     }
@@ -32,48 +32,54 @@ export function requireSession(
 }
 
 export function handleSessionJoin(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
-  if (!frame.session) {
+  if (!frame.header.session) {
     client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME),
+      createErrorFrame(hub.idGen, frame.header.id, ERR_PROTOCOL_INVALID_FRAME, "session", "join"),
     );
     return;
   }
 
   const payload = (frame.payload ?? {}) as JoinPayload;
 
-  let session = hub.getSession(frame.session);
+  let session = hub.getSession(frame.header.session);
   if (!session) {
     if (!payload.create) {
       client.sendFrame(
-        createErrorFrame(hub.idGen, frame.id, ERR_SESSION_NOT_FOUND),
+        createErrorFrame(hub.idGen, frame.header.id, ERR_SESSION_NOT_FOUND, "session", "join"),
       );
       return;
     }
-    session = hub.getOrCreateSession(frame.session);
+    session = hub.getOrCreateSession(frame.header.session);
   }
 
   const clients = session.addClient(client);
-  client.sessions.add(frame.session);
+  client.sessions.add(frame.header.session);
 
   if (payload.name) client.name = payload.name;
   if (payload.role) client.role = payload.role;
   if (payload.meta !== undefined) client.meta = payload.meta;
 
   client.sendFrame({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "session.joined",
-    session: frame.session,
-    replyTo: frame.id,
-    payload: { clientId: client.id, clients },
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "session",
+      method: "join",
+      kind: "response",
+      session: frame.header.session,
+      replyTo: frame.header.id,
+    },
+    payload: { status: "ok", clientId: client.id, clients },
   });
 
   session.broadcast(
     {
-      v: 1,
-      id: hub.idGen.messageId(),
-      type: "client.connected",
-      session: frame.session,
+      header: {
+        id: hub.idGen.messageId(),
+        resource: "session",
+        method: "connected",
+        kind: "event",
+        session: frame.header.session,
+      },
       payload: { client: client.info() },
     },
     client.id,
@@ -81,28 +87,32 @@ export function handleSessionJoin(hub: StarfishServer, client: Client, frame: St
 }
 
 export function handleSessionLeave(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
-  if (!frame.session) {
+  if (!frame.header.session) {
     client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME),
+      createErrorFrame(hub.idGen, frame.header.id, ERR_PROTOCOL_INVALID_FRAME, "session", "leave"),
     );
     return;
   }
 
-  if (!client.sessions.has(frame.session)) {
+  if (!client.sessions.has(frame.header.session)) {
     client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_SESSION_NOT_FOUND),
+      createErrorFrame(hub.idGen, frame.header.id, ERR_SESSION_NOT_FOUND, "session", "leave"),
     );
     return;
   }
 
-  removeClientFromSession(hub, client, frame.session, "left");
+  removeClientFromSession(hub, client, frame.header.session, "left");
 
   client.sendFrame({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "session.left",
-    session: frame.session,
-    replyTo: frame.id,
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "session",
+      method: "leave",
+      kind: "response",
+      session: frame.header.session,
+      replyTo: frame.header.id,
+    },
+    payload: { status: "ok" },
   });
 }
 
@@ -119,10 +129,13 @@ export function removeClientFromSession(
   const empty = session.removeClient(client.id);
 
   session.broadcast({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "client.disconnected",
-    session: sessionName,
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "session",
+      method: "disconnected",
+      kind: "event",
+      session: sessionName,
+    },
     payload: { clientId: client.id, reason },
   });
 

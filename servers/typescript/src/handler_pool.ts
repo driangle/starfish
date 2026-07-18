@@ -24,14 +24,14 @@ export function handlePoolEnter(hub: StarfishServer, client: Client, frame: Star
 
   const poolName = payload?.pool;
   if (!poolName) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_NOT_FOUND));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_NOT_FOUND, "pool", "enter"));
     return;
   }
 
   let pool = hub.getPool(poolName);
   if (!pool) {
     if (!(payload.create ?? false)) {
-      client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_NOT_FOUND));
+      client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_NOT_FOUND, "pool", "enter"));
       return;
     }
     pool = hub.getOrCreatePool(poolName, payload.mode ?? "auto", payload.groupSize ?? 2);
@@ -42,6 +42,7 @@ export function handlePoolEnter(hub: StarfishServer, client: Client, frame: Star
   client.pools.add(pool.name);
 
   const enteredPayload: Record<string, unknown> = {
+    status: "ok",
     pool: pool.name,
     mode: pool.mode,
     groupSize: pool.groupSize,
@@ -51,10 +52,13 @@ export function handlePoolEnter(hub: StarfishServer, client: Client, frame: Star
   }
 
   client.sendFrame({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "pool.entered",
-    replyTo: frame.id,
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "pool",
+      method: "enter",
+      kind: "response",
+      replyTo: frame.header.id,
+    },
     payload: enteredPayload,
   });
 

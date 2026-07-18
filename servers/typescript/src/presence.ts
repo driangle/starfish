@@ -36,12 +36,15 @@ export class PresenceThrottle {
     for (const [clientId, payload] of batch) {
       this.session.broadcast(
         {
-          v: 1,
-          id: this.hub.idGen.messageId(),
-          type: "presence.updated",
-          session: this.session.name,
-          from: clientId,
-          payload,
+          header: {
+            id: this.hub.idGen.messageId(),
+            resource: "presence",
+            method: "updated",
+            kind: "event",
+            session: this.session.name,
+            from: clientId,
+          },
+          payload: payload as Record<string, unknown> | undefined,
         },
       );
     }

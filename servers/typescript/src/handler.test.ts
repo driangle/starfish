@@ -16,36 +16,17 @@ describe("validateFrame", () => {
     }
   });
 
-  it("rejects missing v field", () => {
-    const result = validateFrame(JSON.stringify({ id: "m1", type: "ping" }));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.errorCode).toBe("protocol.unsupported_version");
-    }
-  });
-
-  it("rejects wrong v field", () => {
-    const result = validateFrame(
-      JSON.stringify({ v: 2, id: "m1", type: "ping" }),
-    );
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.errorCode).toBe("protocol.unsupported_version");
-      expect(result.replyTo).toBe("m1");
-    }
-  });
-
-  it("rejects missing id", () => {
-    const result = validateFrame(JSON.stringify({ v: 1, type: "ping" }));
+  it("rejects missing header", () => {
+    const result = validateFrame(JSON.stringify({ id: "m1", resource: "heartbeat", method: "ping", kind: "request" }));
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.errorCode).toBe("protocol.invalid_frame");
     }
   });
 
-  it("rejects empty id", () => {
+  it("rejects header that is not an object", () => {
     const result = validateFrame(
-      JSON.stringify({ v: 1, id: "", type: "ping" }),
+      JSON.stringify({ header: "not-an-object" }),
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -53,17 +34,59 @@ describe("validateFrame", () => {
     }
   });
 
-  it("rejects missing type", () => {
-    const result = validateFrame(JSON.stringify({ v: 1, id: "m1" }));
+  it("rejects missing id in header", () => {
+    const result = validateFrame(
+      JSON.stringify({ header: { resource: "heartbeat", method: "ping", kind: "request" } }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.errorCode).toBe("protocol.invalid_frame");
     }
   });
 
-  it("rejects empty type", () => {
+  it("rejects empty id in header", () => {
     const result = validateFrame(
-      JSON.stringify({ v: 1, id: "m1", type: "" }),
+      JSON.stringify({ header: { id: "", resource: "heartbeat", method: "ping", kind: "request" } }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errorCode).toBe("protocol.invalid_frame");
+    }
+  });
+
+  it("rejects missing resource in header", () => {
+    const result = validateFrame(
+      JSON.stringify({ header: { id: "m1", method: "ping", kind: "request" } }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errorCode).toBe("protocol.invalid_frame");
+    }
+  });
+
+  it("rejects empty resource in header", () => {
+    const result = validateFrame(
+      JSON.stringify({ header: { id: "m1", resource: "", method: "ping", kind: "request" } }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errorCode).toBe("protocol.invalid_frame");
+    }
+  });
+
+  it("rejects missing method in header", () => {
+    const result = validateFrame(
+      JSON.stringify({ header: { id: "m1", resource: "heartbeat", kind: "request" } }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errorCode).toBe("protocol.invalid_frame");
+    }
+  });
+
+  it("rejects missing kind in header", () => {
+    const result = validateFrame(
+      JSON.stringify({ header: { id: "m1", resource: "heartbeat", method: "ping" } }),
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -73,13 +96,16 @@ describe("validateFrame", () => {
 
   it("accepts valid frame", () => {
     const result = validateFrame(
-      JSON.stringify({ v: 1, id: "m1", type: "ping" }),
+      JSON.stringify({
+        header: { id: "m1", resource: "heartbeat", method: "ping", kind: "request" },
+      }),
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.frame.v).toBe(1);
-      expect(result.frame.id).toBe("m1");
-      expect(result.frame.type).toBe("ping");
+      expect(result.frame.header.id).toBe("m1");
+      expect(result.frame.header.resource).toBe("heartbeat");
+      expect(result.frame.header.method).toBe("ping");
+      expect(result.frame.header.kind).toBe("request");
     }
   });
 });
@@ -96,32 +122,42 @@ describe("Handler", () => {
   });
 
   it("rejects unknown message type", () => {
-    hub.handler.dispatch(client, { v: 1, id: "m1", type: "unknown.type" });
+    hub.handler.dispatch(client, {
+      header: { id: "m1", resource: "unknown", method: "type", kind: "request" },
+    });
 
     expect(client.sent).toHaveLength(1);
-    expect(client.sent[0].type).toBe("error");
-    expect(client.sent[0].error?.code).toBe("protocol.invalid_frame");
-    expect(client.sent[0].replyTo).toBe("m1");
+    expect(client.sent[0].header.resource).toBe("unknown");
+    expect(client.sent[0].header.method).toBe("type");
+    expect(client.sent[0].header.kind).toBe("response");
+    expect((client.sent[0].payload as any)?.status).toBe("error");
+    expect((client.sent[0].payload as any)?.error?.code).toBe("protocol.invalid_frame");
+    expect(client.sent[0].header.replyTo).toBe("m1");
   });
 
   it("auth guard rejects unauthenticated client", () => {
-    hub.handler.registerAuth("test.guarded", () => {});
+    hub.handler.registerAuth("test/guarded", () => {});
 
-    hub.handler.dispatch(client, { v: 1, id: "m1", type: "test.guarded" });
+    hub.handler.dispatch(client, {
+      header: { id: "m1", resource: "test", method: "guarded", kind: "request" },
+    });
 
     expect(client.sent).toHaveLength(1);
-    expect(client.sent[0].type).toBe("error");
-    expect(client.sent[0].error?.code).toBe("auth.required");
+    expect(client.sent[0].header.kind).toBe("response");
+    expect((client.sent[0].payload as any)?.status).toBe("error");
+    expect((client.sent[0].payload as any)?.error?.code).toBe("auth.required");
   });
 
   it("auth guard allows authenticated client", () => {
     let called = false;
-    hub.handler.registerAuth("test.guarded", () => {
+    hub.handler.registerAuth("test/guarded", () => {
       called = true;
     });
 
     client.authenticated = true;
-    hub.handler.dispatch(client, { v: 1, id: "m1", type: "test.guarded" });
+    hub.handler.dispatch(client, {
+      header: { id: "m1", resource: "test", method: "guarded", kind: "request" },
+    });
 
     expect(called).toBe(true);
     expect(client.sent).toHaveLength(0);
@@ -139,12 +175,10 @@ describe("client.hello handler", () => {
     client = createTestClient(hub);
   });
 
-  it("produces server.welcome with unique clientId", () => {
+  it("produces welcome response with unique clientId", () => {
     hub.handler.dispatch(client, {
-      v: 1,
-      id: "m1",
-      type: "client.hello",
-      payload: { client: { name: "Alice" } },
+      header: { id: "m1", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2], client: { name: "Alice" } },
     });
 
     expect(client.authenticated).toBe(true);
@@ -152,9 +186,11 @@ describe("client.hello handler", () => {
 
     expect(client.sent).toHaveLength(1);
     const welcome = client.sent[0];
-    expect(welcome.type).toBe("server.welcome");
-    expect(welcome.replyTo).toBe("m1");
-    expect(welcome.ts).toBeTypeOf("number");
+    expect(welcome.header.resource).toBe("client");
+    expect(welcome.header.method).toBe("welcome");
+    expect(welcome.header.kind).toBe("response");
+    expect(welcome.header.replyTo).toBe("m1");
+    expect(welcome.header.ts).toBeTypeOf("number");
 
     const payload = welcome.payload as Record<string, unknown>;
     expect(payload.clientId).toBe(client.id);
@@ -166,10 +202,9 @@ describe("client.hello handler", () => {
 
   it("sets client identity from payload", () => {
     hub.handler.dispatch(client, {
-      v: 1,
-      id: "m1",
-      type: "client.hello",
+      header: { id: "m1", resource: "client", method: "hello", kind: "request" },
       payload: {
+        versions: [2],
         client: { name: "Bob", role: "editor", meta: { color: "blue" } },
         capabilities: { rtc: true },
       },
@@ -181,25 +216,24 @@ describe("client.hello handler", () => {
     expect(client.rtcCapable).toBe(true);
   });
 
-  it("works with empty payload", () => {
+  it("works with minimal payload", () => {
     hub.handler.dispatch(client, {
-      v: 1,
-      id: "m1",
-      type: "client.hello",
+      header: { id: "m1", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2] },
     });
 
     expect(client.authenticated).toBe(true);
     expect(client.id).toMatch(/^client_/);
     expect(client.sent).toHaveLength(1);
-    expect(client.sent[0].type).toBe("server.welcome");
+    expect(client.sent[0].header.resource).toBe("client");
+    expect(client.sent[0].header.method).toBe("welcome");
+    expect(client.sent[0].header.kind).toBe("response");
   });
 
   it("registers client in hub", () => {
     hub.handler.dispatch(client, {
-      v: 1,
-      id: "m1",
-      type: "client.hello",
-      payload: {},
+      header: { id: "m1", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2] },
     });
 
     expect(hub.getClient(client.id)).toBe(client);
@@ -207,10 +241,8 @@ describe("client.hello handler", () => {
 
   it("includes ICE servers in welcome when configured", () => {
     hub.handler.dispatch(client, {
-      v: 1,
-      id: "m1",
-      type: "client.hello",
-      payload: {},
+      header: { id: "m1", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2] },
     });
 
     const payload = client.sent[0].payload as Record<string, unknown>;
@@ -227,12 +259,16 @@ describe("ping handler", () => {
     const hub = createTestHub();
     const client = createTestClient(hub);
 
-    hub.handler.dispatch(client, { v: 1, id: "m1", type: "ping" });
+    hub.handler.dispatch(client, {
+      header: { id: "m1", resource: "heartbeat", method: "ping", kind: "request" },
+    });
 
     expect(client.sent).toHaveLength(1);
-    expect(client.sent[0].type).toBe("pong");
-    expect(client.sent[0].replyTo).toBe("m1");
-    expect(client.sent[0].ts).toBeTypeOf("number");
+    expect(client.sent[0].header.resource).toBe("heartbeat");
+    expect(client.sent[0].header.method).toBe("pong");
+    expect(client.sent[0].header.kind).toBe("response");
+    expect(client.sent[0].header.replyTo).toBe("m1");
+    expect(client.sent[0].header.ts).toBeTypeOf("number");
   });
 });
 
@@ -244,13 +280,11 @@ describe("from field overwrite", () => {
     const client = createTestClient(hub);
 
     hub.handler.dispatch(client, {
-      v: 1,
-      id: "m1",
-      type: "client.hello",
-      payload: {},
+      header: { id: "m1", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2] },
     });
 
     const welcomeFrame = client.sent[0];
-    expect(welcomeFrame.from).toBe(client.id);
+    expect(welcomeFrame.header.from).toBe(client.id);
   });
 });

@@ -31,17 +31,17 @@ export function handleDataSave(hub: StarfishServer, client: Client, frame: Starf
     !payload.key ||
     (payload.scope !== "session" && payload.scope !== "self")
   ) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_PROTOCOL_INVALID_FRAME, "data", "save"));
     return;
   }
 
   const dataSize = JSON.stringify(payload.data ?? null).length;
   if (dataSize > MAX_DATA_VALUE_SIZE) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_PAYLOAD_TOO_LARGE));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_PAYLOAD_TOO_LARGE, "data", "save"));
     return;
   }
 
-  const session = hub.getSession(frame.session!)!;
+  const session = hub.getSession(frame.header.session!)!;
 
   let entry;
   try {
@@ -56,7 +56,7 @@ export function handleDataSave(hub: StarfishServer, client: Client, frame: Starf
   } catch (err) {
     if (err instanceof ConflictError) {
       client.sendFrame(
-        createErrorFrame(hub.idGen, frame.id, ERR_DATA_CONFLICT, {
+        createErrorFrame(hub.idGen, frame.header.id, ERR_DATA_CONFLICT, "data", "save", {
           key: payload.key,
           expectedVersion: payload.expectedVersion,
           actualVersion: err.actualVersion,
@@ -65,17 +65,21 @@ export function handleDataSave(hub: StarfishServer, client: Client, frame: Starf
       );
       return;
     }
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_DATA_INVALID_OP));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_DATA_INVALID_OP, "data", "save"));
     return;
   }
 
   client.sendFrame({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "data.saved",
-    session: frame.session,
-    replyTo: frame.id,
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "data",
+      method: "save",
+      kind: "response",
+      session: frame.header.session,
+      replyTo: frame.header.id,
+    },
     payload: {
+      status: "ok",
       key: payload.key,
       scope: payload.scope,
       data: entry.data,
@@ -86,10 +90,13 @@ export function handleDataSave(hub: StarfishServer, client: Client, frame: Starf
   if (payload.scope === "session") {
     session.broadcast(
       {
-        v: 1,
-        id: hub.idGen.messageId(),
-        type: "data.changed",
-        session: frame.session,
+        header: {
+          id: hub.idGen.messageId(),
+          resource: "data",
+          method: "changed",
+          kind: "event",
+          session: frame.header.session,
+        },
         payload: {
           key: payload.key,
           scope: payload.scope,
@@ -111,20 +118,24 @@ export function handleDataGet(hub: StarfishServer, client: Client, frame: Starfi
     !payload.key ||
     (payload.scope !== "session" && payload.scope !== "self")
   ) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_PROTOCOL_INVALID_FRAME, "data", "get"));
     return;
   }
 
-  const session = hub.getSession(frame.session!)!;
+  const session = hub.getSession(frame.header.session!)!;
   const entry = session.data.get(payload.key, payload.scope, client.id);
 
   client.sendFrame({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "data.value",
-    session: frame.session,
-    replyTo: frame.id,
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "data",
+      method: "get",
+      kind: "response",
+      session: frame.header.session,
+      replyTo: frame.header.id,
+    },
     payload: {
+      status: "ok",
       key: payload.key,
       scope: payload.scope,
       data: entry.data,

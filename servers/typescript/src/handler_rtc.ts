@@ -26,20 +26,20 @@ export function handleRTCIce(hub: StarfishServer, client: Client, frame: Starfis
 }
 
 function relayRTC(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
-  const targets = parseTo(frame.to);
+  const targets = parseTo(frame.header.to);
   if (targets.length !== 1) {
     client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME),
+      createErrorFrame(hub.idGen, frame.header.id, ERR_PROTOCOL_INVALID_FRAME, "rtc", frame.header.method),
     );
     return;
   }
 
   const targetId = targets[0];
 
-  const session = hub.getSession(frame.session!);
+  const session = hub.getSession(frame.header.session!);
   if (!session) {
     client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_SESSION_NOT_FOUND),
+      createErrorFrame(hub.idGen, frame.header.id, ERR_SESSION_NOT_FOUND, "rtc", frame.header.method),
     );
     return;
   }
@@ -47,18 +47,21 @@ function relayRTC(hub: StarfishServer, client: Client, frame: StarfishFrame): vo
   const target = session.getClient(targetId);
   if (!target) {
     client.sendFrame(
-      createErrorFrame(hub.idGen, frame.id, ERR_CLIENT_NOT_FOUND),
+      createErrorFrame(hub.idGen, frame.header.id, ERR_CLIENT_NOT_FOUND, "rtc", frame.header.method),
     );
     return;
   }
 
   target.sendFrame({
-    v: 1,
-    id: frame.id,
-    type: frame.type,
-    session: frame.session,
-    from: client.id,
-    to: targetId,
+    header: {
+      id: frame.header.id,
+      resource: "rtc",
+      method: frame.header.method,
+      kind: "event",
+      session: frame.header.session,
+      from: client.id,
+      to: targetId,
+    },
     payload: frame.payload,
   });
 }

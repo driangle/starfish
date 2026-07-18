@@ -16,24 +16,37 @@ describe("clock.sync", () => {
 
   it("returns clock.synced with serverTime", () => {
     hub.handler.dispatch(c, {
-      v: 1, id: "cs1", type: "clock.sync",
+      header: {
+        id: "cs1",
+        resource: "clock",
+        method: "sync",
+        kind: "request",
+      },
     });
 
     expect(c.sent).toHaveLength(1);
-    expect(c.sent[0].type).toBe("clock.synced");
-    expect(c.sent[0].replyTo).toBe("cs1");
+    expect(c.sent[0].header.resource).toBe("clock");
+    expect(c.sent[0].header.method).toBe("sync");
+    expect(c.sent[0].header.kind).toBe("response");
+    expect(c.sent[0].header.replyTo).toBe("cs1");
     const payload = c.sent[0].payload as { serverTime: number };
     expect(typeof payload.serverTime).toBe("number");
-    expect(c.sent[0].ts).toBe(payload.serverTime);
   });
 
   it("does not require authentication", () => {
     const unauth = createTestClient(hub);
     hub.handler.dispatch(unauth, {
-      v: 1, id: "cs2", type: "clock.sync",
+      header: {
+        id: "cs2",
+        resource: "clock",
+        method: "sync",
+        kind: "request",
+      },
     });
 
-    expect(unauth.sent[0].type).toBe("clock.synced");
+    expect(unauth.sent[0].header.resource).toBe("clock");
+    expect(unauth.sent[0].header.method).toBe("sync");
+    expect(unauth.sent[0].header.kind).toBe("response");
   });
 });
 
@@ -52,14 +65,21 @@ describe("ack", () => {
 
   it("routes ack to target client", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "ack1", type: "ack",
-      replyTo: "msg_1", to: c2.id,
+      header: {
+        id: "ack1",
+        resource: "ack",
+        method: "ack",
+        kind: "request",
+        replyTo: "msg_1",
+        to: c2.id,
+      },
     });
 
     expect(c2.sent).toHaveLength(1);
-    expect(c2.sent[0].type).toBe("ack");
-    expect(c2.sent[0].from).toBe(c1.id);
-    expect(c2.sent[0].replyTo).toBe("msg_1");
+    expect(c2.sent[0].header.resource).toBe("ack");
+    expect(c2.sent[0].header.method).toBe("ack");
+    expect(c2.sent[0].header.from).toBe(c1.id);
+    expect(c2.sent[0].header.replyTo).toBe("msg_1");
   });
 
   it("routes ack to multiple targets", () => {
@@ -67,8 +87,14 @@ describe("ack", () => {
     authenticate(hub, c3);
 
     hub.handler.dispatch(c1, {
-      v: 1, id: "ack2", type: "ack",
-      replyTo: "msg_2", to: [c2.id, c3.id],
+      header: {
+        id: "ack2",
+        resource: "ack",
+        method: "ack",
+        kind: "request",
+        replyTo: "msg_2",
+        to: [c2.id, c3.id],
+      },
     });
 
     expect(c2.sent).toHaveLength(1);
@@ -77,19 +103,30 @@ describe("ack", () => {
 
   it("returns error without replyTo", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "ack3", type: "ack",
-      to: c2.id,
+      header: {
+        id: "ack3",
+        resource: "ack",
+        method: "ack",
+        kind: "request",
+        to: c2.id,
+      },
     });
 
     expect(c1.sent).toHaveLength(1);
-    expect(c1.sent[0].type).toBe("error");
-    expect(c1.sent[0].error?.code).toBe("protocol.invalid_frame");
+    expect((c1.sent[0].payload as any)?.status).toBe("error");
+    expect((c1.sent[0].payload as any)?.error?.code).toBe("protocol.invalid_frame");
   });
 
   it("silently ignores missing targets", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "ack4", type: "ack",
-      replyTo: "msg_1", to: "nonexistent",
+      header: {
+        id: "ack4",
+        resource: "ack",
+        method: "ack",
+        kind: "request",
+        replyTo: "msg_1",
+        to: "nonexistent",
+      },
     });
 
     // No error, no crash
@@ -98,8 +135,13 @@ describe("ack", () => {
 
   it("silently handles no targets", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "ack5", type: "ack",
-      replyTo: "msg_1",
+      header: {
+        id: "ack5",
+        resource: "ack",
+        method: "ack",
+        kind: "request",
+        replyTo: "msg_1",
+      },
     });
 
     expect(c1.sent).toHaveLength(0);
@@ -108,12 +150,18 @@ describe("ack", () => {
   it("requires authentication", () => {
     const unauth = createTestClient(hub);
     hub.handler.dispatch(unauth, {
-      v: 1, id: "ack6", type: "ack",
-      replyTo: "msg_1", to: c2.id,
+      header: {
+        id: "ack6",
+        resource: "ack",
+        method: "ack",
+        kind: "request",
+        replyTo: "msg_1",
+        to: c2.id,
+      },
     });
 
-    expect(unauth.sent[0].type).toBe("error");
-    expect(unauth.sent[0].error?.code).toBe("auth.required");
+    expect((unauth.sent[0].payload as any)?.status).toBe("error");
+    expect((unauth.sent[0].payload as any)?.error?.code).toBe("auth.required");
   });
 });
 
@@ -132,23 +180,36 @@ describe("nack", () => {
 
   it("routes nack to target client", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "nack1", type: "nack",
-      replyTo: "msg_1", to: c2.id,
+      header: {
+        id: "nack1",
+        resource: "ack",
+        method: "nack",
+        kind: "request",
+        replyTo: "msg_1",
+        to: c2.id,
+      },
     });
 
     expect(c2.sent).toHaveLength(1);
-    expect(c2.sent[0].type).toBe("nack");
-    expect(c2.sent[0].from).toBe(c1.id);
+    expect(c2.sent[0].header.resource).toBe("ack");
+    expect(c2.sent[0].header.method).toBe("nack");
+    expect(c2.sent[0].header.from).toBe(c1.id);
   });
 
   it("requires authentication", () => {
     const unauth = createTestClient(hub);
     hub.handler.dispatch(unauth, {
-      v: 1, id: "nack2", type: "nack",
-      replyTo: "msg_1", to: c2.id,
+      header: {
+        id: "nack2",
+        resource: "ack",
+        method: "nack",
+        kind: "request",
+        replyTo: "msg_1",
+        to: c2.id,
+      },
     });
 
-    expect(unauth.sent[0].type).toBe("error");
-    expect(unauth.sent[0].error?.code).toBe("auth.required");
+    expect((unauth.sent[0].payload as any)?.status).toBe("error");
+    expect((unauth.sent[0].payload as any)?.error?.code).toBe("auth.required");
   });
 });

@@ -16,13 +16,16 @@ export function enterPool(
   },
 ): void {
   hub.handler.dispatch(client, {
-    v: 1,
-    id: `enter-${opts.pool}`,
-    type: "pool.enter",
+    header: {
+      id: `enter-${opts.pool}`,
+      resource: "pool",
+      method: "enter",
+      kind: "request",
+    },
     payload: opts,
   });
 }
 
-export function findFrames(client: { sent: StarfishFrame[] }, type: string): StarfishFrame[] {
-  return client.sent.filter((f) => f.type === type);
+export function findFrames(client: { sent: StarfishFrame[] }, resource: string, method: string): StarfishFrame[] {
+  return client.sent.filter((f) => f.header.resource === resource && f.header.method === method);
 }

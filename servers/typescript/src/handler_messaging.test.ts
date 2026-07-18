@@ -6,8 +6,8 @@ import { createTestHub, createTestClient, authenticate } from "./test-helpers.js
 
 function joinSession(hub: StarfishServer, client: Client & { sent: StarfishFrame[] }, session: string): void {
   hub.handler.dispatch(client, {
-    v: 1, id: "join", type: "session.join",
-    session, payload: { create: true },
+    header: { id: "join", resource: "session", method: "join", kind: "request", session },
+    payload: { create: true },
   });
   client.sent.length = 0;
 }
@@ -31,17 +31,18 @@ describe("client.send", () => {
 
   it("delivers client.message to target", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "m1", type: "client.send",
-      session: "room1", to: c2.id,
+      header: { id: "m1", resource: "message", method: "send", kind: "request", session: "room1", to: c2.id },
       payload: { text: "hi" },
     });
 
     expect(c1.sent).toHaveLength(0);
     expect(c2.sent).toHaveLength(1);
-    expect(c2.sent[0].type).toBe("client.message");
-    expect(c2.sent[0].from).toBe(c1.id);
-    expect(c2.sent[0].to).toBe(c2.id);
-    expect(c2.sent[0].session).toBe("room1");
+    expect(c2.sent[0].header.resource).toBe("message");
+    expect(c2.sent[0].header.method).toBe("message");
+    expect(c2.sent[0].header.kind).toBe("event");
+    expect(c2.sent[0].header.from).toBe(c1.id);
+    expect(c2.sent[0].header.to).toBe(c2.id);
+    expect(c2.sent[0].header.session).toBe("room1");
     expect(c2.sent[0].payload).toEqual({ text: "hi" });
   });
 
@@ -53,48 +54,48 @@ describe("client.send", () => {
     c2.sent.length = 0;
 
     hub.handler.dispatch(c1, {
-      v: 1, id: "m1", type: "client.send",
-      session: "room1", to: [c2.id, c3.id],
+      header: { id: "m1", resource: "message", method: "send", kind: "request", session: "room1", to: [c2.id, c3.id] },
       payload: { text: "hi all" },
     });
 
     expect(c2.sent).toHaveLength(1);
-    expect(c2.sent[0].type).toBe("client.message");
+    expect(c2.sent[0].header.resource).toBe("message");
+    expect(c2.sent[0].header.method).toBe("message");
     expect(c3.sent).toHaveLength(1);
-    expect(c3.sent[0].type).toBe("client.message");
+    expect(c3.sent[0].header.resource).toBe("message");
+    expect(c3.sent[0].header.method).toBe("message");
   });
 
   it("returns error for nonexistent target", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "m1", type: "client.send",
-      session: "room1", to: "nonexistent",
+      header: { id: "m1", resource: "message", method: "send", kind: "request", session: "room1", to: "nonexistent" },
       payload: { text: "hi" },
     });
 
     expect(c1.sent).toHaveLength(1);
-    expect(c1.sent[0].type).toBe("error");
-    expect(c1.sent[0].error?.code).toBe("client.not_found");
+    expect((c1.sent[0].payload as any)?.status).toBe("error");
+    expect((c1.sent[0].payload as any)?.error?.code).toBe("client.not_found");
   });
 
   it("requires session membership", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "m1", type: "client.send",
-      session: "nonexistent", to: c2.id,
+      header: { id: "m1", resource: "message", method: "send", kind: "request", session: "nonexistent", to: c2.id },
       payload: {},
     });
 
-    expect(c1.sent[0].error?.code).toBe("session.not_found");
+    expect((c1.sent[0].payload as any)?.status).toBe("error");
+    expect((c1.sent[0].payload as any)?.error?.code).toBe("session.not_found");
   });
 
   it("requires authentication", () => {
     const unauth = createTestClient(hub);
     hub.handler.dispatch(unauth, {
-      v: 1, id: "m1", type: "client.send",
-      session: "room1", to: c2.id,
+      header: { id: "m1", resource: "message", method: "send", kind: "request", session: "room1", to: c2.id },
       payload: {},
     });
 
-    expect(unauth.sent[0].error?.code).toBe("auth.required");
+    expect((unauth.sent[0].payload as any)?.status).toBe("error");
+    expect((unauth.sent[0].payload as any)?.error?.code).toBe("auth.required");
   });
 });
 
@@ -122,42 +123,43 @@ describe("session.broadcast", () => {
 
   it("broadcasts to all members except sender", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "b1", type: "session.broadcast",
-      session: "room1",
+      header: { id: "b1", resource: "session", method: "broadcast", kind: "request", session: "room1" },
       payload: { text: "hello all" },
     });
 
     expect(c1.sent).toHaveLength(0);
     expect(c2.sent).toHaveLength(1);
-    expect(c2.sent[0].type).toBe("session.broadcast");
-    expect(c2.sent[0].from).toBe(c1.id);
-    expect(c2.sent[0].session).toBe("room1");
+    expect(c2.sent[0].header.resource).toBe("session");
+    expect(c2.sent[0].header.method).toBe("broadcast");
+    expect(c2.sent[0].header.kind).toBe("event");
+    expect(c2.sent[0].header.from).toBe(c1.id);
+    expect(c2.sent[0].header.session).toBe("room1");
     expect(c2.sent[0].payload).toEqual({ text: "hello all" });
     expect(c3.sent).toHaveLength(1);
-    expect(c3.sent[0].type).toBe("session.broadcast");
+    expect(c3.sent[0].header.resource).toBe("session");
+    expect(c3.sent[0].header.method).toBe("broadcast");
   });
 
   it("includes sender when includeSelf is true", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "b1", type: "session.broadcast",
-      session: "room1",
-      options: { delivery: { includeSelf: true } },
+      header: { id: "b1", resource: "session", method: "broadcast", kind: "request", session: "room1", delivery: { includeSelf: true } },
       payload: { text: "echo" },
     });
 
     expect(c1.sent).toHaveLength(1);
-    expect(c1.sent[0].type).toBe("session.broadcast");
+    expect(c1.sent[0].header.resource).toBe("session");
+    expect(c1.sent[0].header.method).toBe("broadcast");
     expect(c2.sent).toHaveLength(1);
     expect(c3.sent).toHaveLength(1);
   });
 
   it("requires session membership", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "b1", type: "session.broadcast",
-      session: "nonexistent",
+      header: { id: "b1", resource: "session", method: "broadcast", kind: "request", session: "nonexistent" },
       payload: {},
     });
 
-    expect(c1.sent[0].error?.code).toBe("session.not_found");
+    expect((c1.sent[0].payload as any)?.status).toBe("error");
+    expect((c1.sent[0].payload as any)?.error?.code).toBe("session.not_found");
   });
 });

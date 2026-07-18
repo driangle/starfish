@@ -6,8 +6,14 @@ import { createTestHub, createTestClient, authenticate } from "./test-helpers.js
 
 function joinSession(hub: StarfishServer, client: Client & { sent: StarfishFrame[] }, session: string): void {
   hub.handler.dispatch(client, {
-    v: 1, id: "join", type: "session.join",
-    session, payload: { create: true },
+    header: {
+      id: "join",
+      resource: "session",
+      method: "join",
+      kind: "request",
+      session,
+    },
+    payload: { create: true },
   });
   client.sent.length = 0;
 }
@@ -29,23 +35,31 @@ describe("RTC relay", () => {
     c2.sent.length = 0;
   });
 
-  const rtcTypes = ["rtc.connect", "rtc.offer", "rtc.answer", "rtc.ice"] as const;
+  const rtcMethods = ["connect", "offer", "answer", "ice"] as const;
 
-  for (const type of rtcTypes) {
-    describe(type, () => {
+  for (const method of rtcMethods) {
+    describe(`rtc.${method}`, () => {
       it("relays to target peer with from set to sender", () => {
         hub.handler.dispatch(c1, {
-          v: 1, id: "r1", type,
-          session: "room1", to: c2.id,
+          header: {
+            id: "r1",
+            resource: "rtc",
+            method,
+            kind: "request",
+            session: "room1",
+            to: c2.id,
+          },
           payload: { sdp: "test" },
         });
 
         expect(c1.sent).toHaveLength(0);
         expect(c2.sent).toHaveLength(1);
-        expect(c2.sent[0].type).toBe(type);
-        expect(c2.sent[0].from).toBe(c1.id);
-        expect(c2.sent[0].to).toBe(c2.id);
-        expect(c2.sent[0].session).toBe("room1");
+        expect(c2.sent[0].header.resource).toBe("rtc");
+        expect(c2.sent[0].header.method).toBe(method);
+        expect(c2.sent[0].header.kind).toBe("event");
+        expect(c2.sent[0].header.from).toBe(c1.id);
+        expect(c2.sent[0].header.to).toBe(c2.id);
+        expect(c2.sent[0].header.session).toBe("room1");
         expect(c2.sent[0].payload).toEqual({ sdp: "test" });
       });
 
@@ -55,70 +69,105 @@ describe("RTC relay", () => {
         joinSession(hub, c3, "room2");
 
         hub.handler.dispatch(c1, {
-          v: 1, id: "r1", type,
-          session: "room1", to: c3.id,
+          header: {
+            id: "r1",
+            resource: "rtc",
+            method,
+            kind: "request",
+            session: "room1",
+            to: c3.id,
+          },
           payload: {},
         });
 
         expect(c1.sent).toHaveLength(1);
-        expect(c1.sent[0].error?.code).toBe("client.not_found");
+        expect((c1.sent[0].payload as any)?.error?.code).toBe("client.not_found");
       });
 
       it("rejects when no to field", () => {
         hub.handler.dispatch(c1, {
-          v: 1, id: "r1", type,
-          session: "room1",
+          header: {
+            id: "r1",
+            resource: "rtc",
+            method,
+            kind: "request",
+            session: "room1",
+          },
           payload: {},
         });
 
         expect(c1.sent).toHaveLength(1);
-        expect(c1.sent[0].error?.code).toBe("protocol.invalid_frame");
+        expect((c1.sent[0].payload as any)?.error?.code).toBe("protocol.invalid_frame");
       });
 
       it("rejects when multiple targets", () => {
         hub.handler.dispatch(c1, {
-          v: 1, id: "r1", type,
-          session: "room1", to: [c2.id, c1.id],
+          header: {
+            id: "r1",
+            resource: "rtc",
+            method,
+            kind: "request",
+            session: "room1",
+            to: [c2.id, c1.id],
+          },
           payload: {},
         });
 
         expect(c1.sent).toHaveLength(1);
-        expect(c1.sent[0].error?.code).toBe("protocol.invalid_frame");
+        expect((c1.sent[0].payload as any)?.error?.code).toBe("protocol.invalid_frame");
       });
 
       it("requires authentication", () => {
         const unauth = createTestClient(hub);
         hub.handler.dispatch(unauth, {
-          v: 1, id: "r1", type,
-          session: "room1", to: c2.id,
+          header: {
+            id: "r1",
+            resource: "rtc",
+            method,
+            kind: "request",
+            session: "room1",
+            to: c2.id,
+          },
           payload: {},
         });
 
-        expect(unauth.sent[0].error?.code).toBe("auth.required");
+        expect((unauth.sent[0].payload as any)?.error?.code).toBe("auth.required");
       });
 
       it("requires session membership", () => {
         hub.handler.dispatch(c1, {
-          v: 1, id: "r1", type,
-          session: "nonexistent", to: c2.id,
+          header: {
+            id: "r1",
+            resource: "rtc",
+            method,
+            kind: "request",
+            session: "nonexistent",
+            to: c2.id,
+          },
           payload: {},
         });
 
-        expect(c1.sent[0].error?.code).toBe("session.not_found");
+        expect((c1.sent[0].payload as any)?.error?.code).toBe("session.not_found");
       });
     });
   }
 
   it("overwrites from even if client sets it", () => {
     hub.handler.dispatch(c1, {
-      v: 1, id: "r1", type: "rtc.offer",
-      session: "room1", to: c2.id,
-      from: "spoofed_id",
+      header: {
+        id: "r1",
+        resource: "rtc",
+        method: "offer",
+        kind: "request",
+        session: "room1",
+        to: c2.id,
+        from: "spoofed_id",
+      },
       payload: { sdp: "test" },
     });
 
     expect(c2.sent).toHaveLength(1);
-    expect(c2.sent[0].from).toBe(c1.id);
+    expect(c2.sent[0].header.from).toBe(c1.id);
   });
 
   it("rejects RTC between clients in different sessions", () => {
@@ -128,13 +177,19 @@ describe("RTC relay", () => {
     c3.sent.length = 0;
 
     hub.handler.dispatch(c1, {
-      v: 1, id: "r1", type: "rtc.connect",
-      session: "room1", to: c3.id,
+      header: {
+        id: "r1",
+        resource: "rtc",
+        method: "connect",
+        kind: "request",
+        session: "room1",
+        to: c3.id,
+      },
       payload: {},
     });
 
     expect(c1.sent).toHaveLength(1);
-    expect(c1.sent[0].error?.code).toBe("client.not_found");
+    expect((c1.sent[0].payload as any)?.error?.code).toBe("client.not_found");
     expect(c3.sent).toHaveLength(0);
   });
 });

@@ -46,12 +46,12 @@ describe("Session", () => {
     session.addClient(c1);
     session.addClient(c2);
 
-    const frame: StarfishFrame = { v: 1, id: "m1", type: "test" };
+    const frame: StarfishFrame = { header: { id: "m1", resource: "test", method: "test", kind: "event" } };
     session.broadcast(frame, "c1");
 
     expect(c1.sent).toHaveLength(0);
     expect(c2.sent).toHaveLength(1);
-    expect(c2.sent[0].type).toBe("test");
+    expect(c2.sent[0].header.resource).toBe("test");
   });
 
   it("broadcasts to all when no exclusion", () => {
@@ -65,7 +65,7 @@ describe("Session", () => {
     session.addClient(c1);
     session.addClient(c2);
 
-    session.broadcast({ v: 1, id: "m1", type: "test" });
+    session.broadcast({ header: { id: "m1", resource: "test", method: "test", kind: "event" } });
     expect(c1.sent).toHaveLength(1);
     expect(c2.sent).toHaveLength(1);
   });
@@ -85,16 +85,18 @@ describe("session.join", () => {
 
   it("creates session with create: true", () => {
     hub.handler.dispatch(client, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1", payload: { create: true },
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: { create: true },
     });
 
     expect(client.sent).toHaveLength(1);
-    expect(client.sent[0].type).toBe("session.joined");
-    expect(client.sent[0].session).toBe("room1");
-    expect(client.sent[0].replyTo).toBe("j1");
+    expect(client.sent[0].header.resource).toBe("session");
+    expect(client.sent[0].header.method).toBe("join");
+    expect(client.sent[0].header.kind).toBe("response");
+    expect(client.sent[0].header.session).toBe("room1");
+    expect(client.sent[0].header.replyTo).toBe("j1");
 
-    const payload = client.sent[0].payload as { clientId: string; clients: ClientInfo[] };
+    const payload = client.sent[0].payload as { status: string; clientId: string; clients: ClientInfo[] };
     expect(payload.clientId).toBe(client.id);
     expect(payload.clients).toHaveLength(1);
     expect(payload.clients[0].id).toBe(client.id);
@@ -105,31 +107,33 @@ describe("session.join", () => {
 
   it("rejects join without create when session does not exist", () => {
     hub.handler.dispatch(client, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1", payload: {},
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: {},
     });
 
     expect(client.sent).toHaveLength(1);
-    expect(client.sent[0].type).toBe("error");
-    expect(client.sent[0].error?.code).toBe("session.not_found");
+    expect((client.sent[0].payload as any)?.status).toBe("error");
+    expect((client.sent[0].payload as any)?.error?.code).toBe("session.not_found");
   });
 
   it("joins existing session without create flag", () => {
     const c1 = createTestClient(hub);
     authenticate(hub, c1);
     hub.handler.dispatch(c1, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1", payload: { create: true },
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: { create: true },
     });
     c1.sent.length = 0;
 
     hub.handler.dispatch(client, {
-      v: 1, id: "j2", type: "session.join",
-      session: "room1", payload: {},
+      header: { id: "j2", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: {},
     });
 
     expect(client.sent).toHaveLength(1);
-    expect(client.sent[0].type).toBe("session.joined");
+    expect(client.sent[0].header.resource).toBe("session");
+    expect(client.sent[0].header.method).toBe("join");
+    expect(client.sent[0].header.kind).toBe("response");
     const payload = client.sent[0].payload as { clients: ClientInfo[] };
     expect(payload.clients).toHaveLength(2);
   });
@@ -138,40 +142,43 @@ describe("session.join", () => {
     const c1 = createTestClient(hub);
     authenticate(hub, c1);
     hub.handler.dispatch(c1, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1", payload: { create: true },
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: { create: true },
     });
     c1.sent.length = 0;
 
     hub.handler.dispatch(client, {
-      v: 1, id: "j2", type: "session.join",
-      session: "room1", payload: { create: true },
+      header: { id: "j2", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: { create: true },
     });
 
     expect(c1.sent).toHaveLength(1);
-    expect(c1.sent[0].type).toBe("client.connected");
-    expect(c1.sent[0].session).toBe("room1");
+    expect(c1.sent[0].header.resource).toBe("session");
+    expect(c1.sent[0].header.method).toBe("connected");
+    expect(c1.sent[0].header.kind).toBe("event");
+    expect(c1.sent[0].header.session).toBe("room1");
     const connPayload = c1.sent[0].payload as { client: ClientInfo };
     expect(connPayload.client.id).toBe(client.id);
 
     expect(client.sent).toHaveLength(1);
-    expect(client.sent[0].type).toBe("session.joined");
+    expect(client.sent[0].header.resource).toBe("session");
+    expect(client.sent[0].header.method).toBe("join");
+    expect(client.sent[0].header.kind).toBe("response");
   });
 
   it("rejects join without session field", () => {
     hub.handler.dispatch(client, {
-      v: 1, id: "j1", type: "session.join",
+      header: { id: "j1", resource: "session", method: "join", kind: "request" },
       payload: { create: true },
     });
 
-    expect(client.sent[0].type).toBe("error");
-    expect(client.sent[0].error?.code).toBe("protocol.invalid_frame");
+    expect((client.sent[0].payload as any)?.status).toBe("error");
+    expect((client.sent[0].payload as any)?.error?.code).toBe("protocol.invalid_frame");
   });
 
   it("updates client identity from join payload", () => {
     hub.handler.dispatch(client, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1",
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
       payload: { create: true, name: "Alice", role: "editor", meta: { color: "red" } },
     });
 
@@ -183,12 +190,12 @@ describe("session.join", () => {
   it("requires authentication", () => {
     const unauthClient = createTestClient(hub);
     hub.handler.dispatch(unauthClient, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1", payload: { create: true },
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: { create: true },
     });
 
-    expect(unauthClient.sent[0].type).toBe("error");
-    expect(unauthClient.sent[0].error?.code).toBe("auth.required");
+    expect((unauthClient.sent[0].payload as any)?.status).toBe("error");
+    expect((unauthClient.sent[0].payload as any)?.error?.code).toBe("auth.required");
   });
 });
 
@@ -203,21 +210,23 @@ describe("session.leave", () => {
     client = createTestClient(hub);
     authenticate(hub, client);
     hub.handler.dispatch(client, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1", payload: { create: true },
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: { create: true },
     });
     client.sent.length = 0;
   });
 
   it("sends session.left confirmation", () => {
     hub.handler.dispatch(client, {
-      v: 1, id: "l1", type: "session.leave", session: "room1",
+      header: { id: "l1", resource: "session", method: "leave", kind: "request", session: "room1" },
     });
 
     expect(client.sent).toHaveLength(1);
-    expect(client.sent[0].type).toBe("session.left");
-    expect(client.sent[0].session).toBe("room1");
-    expect(client.sent[0].replyTo).toBe("l1");
+    expect(client.sent[0].header.resource).toBe("session");
+    expect(client.sent[0].header.method).toBe("leave");
+    expect(client.sent[0].header.kind).toBe("response");
+    expect(client.sent[0].header.session).toBe("room1");
+    expect(client.sent[0].header.replyTo).toBe("l1");
     expect(client.sessions.has("room1")).toBe(false);
   });
 
@@ -225,17 +234,19 @@ describe("session.leave", () => {
     const c2 = createTestClient(hub);
     authenticate(hub, c2);
     hub.handler.dispatch(c2, {
-      v: 1, id: "j2", type: "session.join",
-      session: "room1", payload: {},
+      header: { id: "j2", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: {},
     });
     c2.sent.length = 0;
 
     hub.handler.dispatch(client, {
-      v: 1, id: "l1", type: "session.leave", session: "room1",
+      header: { id: "l1", resource: "session", method: "leave", kind: "request", session: "room1" },
     });
 
     expect(c2.sent).toHaveLength(1);
-    expect(c2.sent[0].type).toBe("client.disconnected");
+    expect(c2.sent[0].header.resource).toBe("session");
+    expect(c2.sent[0].header.method).toBe("disconnected");
+    expect(c2.sent[0].header.kind).toBe("event");
     const dcPayload = c2.sent[0].payload as { clientId: string; reason: string };
     expect(dcPayload.clientId).toBe(client.id);
     expect(dcPayload.reason).toBe("left");
@@ -244,25 +255,25 @@ describe("session.leave", () => {
   it("destroys session when last client leaves", () => {
     expect(hub.getSession("room1")).toBeDefined();
     hub.handler.dispatch(client, {
-      v: 1, id: "l1", type: "session.leave", session: "room1",
+      header: { id: "l1", resource: "session", method: "leave", kind: "request", session: "room1" },
     });
     expect(hub.getSession("room1")).toBeUndefined();
   });
 
   it("rejects leave when not in session", () => {
     hub.handler.dispatch(client, {
-      v: 1, id: "l1", type: "session.leave", session: "nonexistent",
+      header: { id: "l1", resource: "session", method: "leave", kind: "request", session: "nonexistent" },
     });
-    expect(client.sent[0].type).toBe("error");
-    expect(client.sent[0].error?.code).toBe("session.not_found");
+    expect((client.sent[0].payload as any)?.status).toBe("error");
+    expect((client.sent[0].payload as any)?.error?.code).toBe("session.not_found");
   });
 
   it("rejects leave without session field", () => {
     hub.handler.dispatch(client, {
-      v: 1, id: "l1", type: "session.leave",
+      header: { id: "l1", resource: "session", method: "leave", kind: "request" },
     });
-    expect(client.sent[0].type).toBe("error");
-    expect(client.sent[0].error?.code).toBe("protocol.invalid_frame");
+    expect((client.sent[0].payload as any)?.status).toBe("error");
+    expect((client.sent[0].payload as any)?.error?.code).toBe("protocol.invalid_frame");
   });
 });
 
@@ -280,34 +291,40 @@ describe("requireSession guard", () => {
 
   it("rejects when client is not in session", () => {
     let called = false;
-    hub.handler.registerAuth("test.guarded", hub.handler.requireSession(() => { called = true; }));
-    hub.handler.dispatch(client, { v: 1, id: "m1", type: "test.guarded", session: "room1" });
+    hub.handler.registerAuth("test/guarded", hub.handler.requireSession(() => { called = true; }));
+    hub.handler.dispatch(client, {
+      header: { id: "m1", resource: "test", method: "guarded", kind: "request", session: "room1" },
+    });
 
     expect(called).toBe(false);
-    expect(client.sent[0].error?.code).toBe("session.not_found");
+    expect((client.sent[0].payload as any)?.error?.code).toBe("session.not_found");
   });
 
   it("allows when client is in session", () => {
     let called = false;
-    hub.handler.registerAuth("test.guarded", hub.handler.requireSession(() => { called = true; }));
+    hub.handler.registerAuth("test/guarded", hub.handler.requireSession(() => { called = true; }));
 
     hub.handler.dispatch(client, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1", payload: { create: true },
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: { create: true },
     });
     client.sent.length = 0;
 
-    hub.handler.dispatch(client, { v: 1, id: "m1", type: "test.guarded", session: "room1" });
+    hub.handler.dispatch(client, {
+      header: { id: "m1", resource: "test", method: "guarded", kind: "request", session: "room1" },
+    });
     expect(called).toBe(true);
   });
 
   it("rejects when session field is missing", () => {
     let called = false;
-    hub.handler.registerAuth("test.guarded", hub.handler.requireSession(() => { called = true; }));
-    hub.handler.dispatch(client, { v: 1, id: "m1", type: "test.guarded" });
+    hub.handler.registerAuth("test/guarded", hub.handler.requireSession(() => { called = true; }));
+    hub.handler.dispatch(client, {
+      header: { id: "m1", resource: "test", method: "guarded", kind: "request" },
+    });
 
     expect(called).toBe(false);
-    expect(client.sent[0].error?.code).toBe("session.not_found");
+    expect((client.sent[0].payload as any)?.error?.code).toBe("session.not_found");
   });
 });
 
@@ -325,16 +342,16 @@ describe("client disconnect", () => {
     authenticate(hub, c2);
 
     hub.handler.dispatch(c1, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1", payload: { create: true },
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: { create: true },
     });
     hub.handler.dispatch(c2, {
-      v: 1, id: "j2", type: "session.join",
-      session: "room1", payload: {},
+      header: { id: "j2", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: {},
     });
     hub.handler.dispatch(c2, {
-      v: 1, id: "j3", type: "session.join",
-      session: "room2", payload: { create: true },
+      header: { id: "j3", resource: "session", method: "join", kind: "request", session: "room2" },
+      payload: { create: true },
     });
     c1.sent.length = 0;
     c2.sent.length = 0;
@@ -349,8 +366,10 @@ describe("client disconnect", () => {
     vi.advanceTimersByTime(hub.config.resumeTimeoutMs);
 
     expect(c1.sent).toHaveLength(1);
-    expect(c1.sent[0].type).toBe("client.disconnected");
-    expect(c1.sent[0].session).toBe("room1");
+    expect(c1.sent[0].header.resource).toBe("session");
+    expect(c1.sent[0].header.method).toBe("disconnected");
+    expect(c1.sent[0].header.kind).toBe("event");
+    expect(c1.sent[0].header.session).toBe("room1");
     const dcPayload = c1.sent[0].payload as { clientId: string; reason: string };
     expect(dcPayload.clientId).toBe(c2.id);
     expect(dcPayload.reason).toBe("timeout");
@@ -366,18 +385,18 @@ describe("multiple sessions", () => {
     authenticate(hub, client);
 
     hub.handler.dispatch(client, {
-      v: 1, id: "j1", type: "session.join",
-      session: "room1", payload: { create: true },
+      header: { id: "j1", resource: "session", method: "join", kind: "request", session: "room1" },
+      payload: { create: true },
     });
     hub.handler.dispatch(client, {
-      v: 1, id: "j2", type: "session.join",
-      session: "room2", payload: { create: true },
+      header: { id: "j2", resource: "session", method: "join", kind: "request", session: "room2" },
+      payload: { create: true },
     });
 
     expect(client.sessions.size).toBe(2);
 
     hub.handler.dispatch(client, {
-      v: 1, id: "l1", type: "session.leave", session: "room1",
+      header: { id: "l1", resource: "session", method: "leave", kind: "request", session: "room1" },
     });
 
     expect(client.sessions.size).toBe(1);

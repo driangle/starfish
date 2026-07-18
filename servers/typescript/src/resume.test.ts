@@ -6,13 +6,15 @@ import { createTestHub, createTestClient, authenticate } from "./test-helpers.js
 
 function joinSession(hub: StarfishServer, client: Client & { sent: StarfishFrame[] }, session: string): void {
   hub.handler.dispatch(client, {
-    v: 1, id: "join", type: "session.join",
-    session, payload: { create: true },
+    header: { id: "join", resource: "session", method: "join", kind: "request", session },
+    payload: { create: true },
   });
   client.sent.length = 0;
 }
 
 type WelcomePayload = {
+  status: string;
+  version: number;
   clientId: string;
   resumed?: boolean;
   resumeToken: string;
@@ -20,7 +22,9 @@ type WelcomePayload = {
 };
 
 function getWelcome(client: Client & { sent: StarfishFrame[] }): WelcomePayload {
-  const welcome = client.sent.find((f) => f.type === "server.welcome");
+  const welcome = client.sent.find(
+    (f) => f.header.resource === "client" && f.header.method === "welcome",
+  );
   return welcome!.payload as WelcomePayload;
 }
 
@@ -39,7 +43,8 @@ describe("resume", () => {
   it("fresh handshake returns a resumeToken", () => {
     const c = createTestClient(hub);
     hub.handler.dispatch(c, {
-      v: 1, id: "hello", type: "client.hello", payload: {},
+      header: { id: "hello", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2] },
     });
 
     const welcome = getWelcome(c);
@@ -65,15 +70,16 @@ describe("resume", () => {
     vi.advanceTimersByTime(hub.config.resumeTimeoutMs);
 
     expect(c1.sent).toHaveLength(1);
-    expect(c1.sent[0].type).toBe("client.disconnected");
+    expect(c1.sent[0].header.resource).toBe("session");
+    expect(c1.sent[0].header.method).toBe("disconnected");
     expect((c1.sent[0].payload as { reason: string }).reason).toBe("timeout");
   });
 
   it("successful resume restores session and topic state", () => {
     const c1 = createTestClient(hub);
     hub.handler.dispatch(c1, {
-      v: 1, id: "hello", type: "client.hello",
-      payload: { client: { name: "alice", role: "editor" } },
+      header: { id: "hello", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2], client: { name: "alice", role: "editor" } },
     });
     const token = getWelcome(c1).resumeToken;
     const originalId = c1.id;
@@ -81,8 +87,8 @@ describe("resume", () => {
 
     joinSession(hub, c1, "room1");
     hub.handler.dispatch(c1, {
-      v: 1, id: "sub", type: "topic.subscribe",
-      session: "room1", topic: "cursor",
+      header: { id: "sub", resource: "topic", method: "subscribe", kind: "request", session: "room1", topic: "cursor" },
+      payload: {},
     });
     c1.sent.length = 0;
 
@@ -93,8 +99,8 @@ describe("resume", () => {
     // Resume with new client object
     const c2 = createTestClient(hub);
     hub.handler.dispatch(c2, {
-      v: 1, id: "hello2", type: "client.hello",
-      payload: { resumeToken: token },
+      header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2], resumeToken: token },
     });
 
     const welcome = getWelcome(c2);
@@ -115,7 +121,8 @@ describe("resume", () => {
   it("resume issues new token and invalidates old", () => {
     const c1 = createTestClient(hub);
     hub.handler.dispatch(c1, {
-      v: 1, id: "hello", type: "client.hello", payload: {},
+      header: { id: "hello", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2] },
     });
     const oldToken = getWelcome(c1).resumeToken;
     c1.sent.length = 0;
@@ -127,8 +134,8 @@ describe("resume", () => {
     // Resume
     const c2 = createTestClient(hub);
     hub.handler.dispatch(c2, {
-      v: 1, id: "hello2", type: "client.hello",
-      payload: { resumeToken: oldToken },
+      header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2], resumeToken: oldToken },
     });
     const newToken = getWelcome(c2).resumeToken;
     expect(newToken).not.toBe(oldToken);
@@ -136,31 +143,34 @@ describe("resume", () => {
     // Old token should be invalid now — falls through to fresh connection
     const c3 = createTestClient(hub);
     hub.handler.dispatch(c3, {
-      v: 1, id: "hello3", type: "client.hello",
-      payload: { resumeToken: oldToken },
+      header: { id: "hello3", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2], resumeToken: oldToken },
     });
-    expect(c3.sent[0].type).toBe("server.welcome");
-    expect(c3.sent[0].payload.resumed).toBeFalsy();
-    expect(c3.sent[0].payload.clientId).toBeDefined();
-    expect(c3.sent[0].payload.clientId).not.toBe(c2.sent[0].payload.clientId);
+    expect(c3.sent[0].header.resource).toBe("client");
+    expect(c3.sent[0].header.method).toBe("welcome");
+    expect(c3.sent[0].payload!.resumed).toBeFalsy();
+    expect(c3.sent[0].payload!.clientId).toBeDefined();
+    expect(c3.sent[0].payload!.clientId).not.toBe(c2.sent[0].payload!.clientId);
   });
 
   it("invalid token falls through to fresh connection", () => {
     const c = createTestClient(hub);
     hub.handler.dispatch(c, {
-      v: 1, id: "hello", type: "client.hello",
-      payload: { resumeToken: "rt_bogus" },
+      header: { id: "hello", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2], resumeToken: "rt_bogus" },
     });
 
-    expect(c.sent[0].type).toBe("server.welcome");
-    expect(c.sent[0].payload.resumed).toBeFalsy();
-    expect(c.sent[0].payload.clientId).toBeDefined();
+    expect(c.sent[0].header.resource).toBe("client");
+    expect(c.sent[0].header.method).toBe("welcome");
+    expect(c.sent[0].payload!.resumed).toBeFalsy();
+    expect(c.sent[0].payload!.clientId).toBeDefined();
   });
 
   it("expired token falls through to fresh connection", () => {
     const c1 = createTestClient(hub);
     hub.handler.dispatch(c1, {
-      v: 1, id: "hello", type: "client.hello", payload: {},
+      header: { id: "hello", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2] },
     });
     const token = getWelcome(c1).resumeToken;
     c1.sent.length = 0;
@@ -175,26 +185,28 @@ describe("resume", () => {
     // Try to resume — token has expired, falls through to fresh connection
     const c2 = createTestClient(hub);
     hub.handler.dispatch(c2, {
-      v: 1, id: "hello2", type: "client.hello",
-      payload: { resumeToken: token },
+      header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2], resumeToken: token },
     });
-    expect(c2.sent[0].type).toBe("server.welcome");
-    expect(c2.sent[0].payload.resumed).toBeFalsy();
-    expect(c2.sent[0].payload.clientId).toBeDefined();
+    expect(c2.sent[0].header.resource).toBe("client");
+    expect(c2.sent[0].header.method).toBe("welcome");
+    expect(c2.sent[0].payload!.resumed).toBeFalsy();
+    expect(c2.sent[0].payload!.clientId).toBeDefined();
   });
 
   it("restores presence on resume", () => {
     const c1 = createTestClient(hub);
     hub.handler.dispatch(c1, {
-      v: 1, id: "hello", type: "client.hello", payload: {},
+      header: { id: "hello", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2] },
     });
     const token = getWelcome(c1).resumeToken;
     c1.sent.length = 0;
 
     joinSession(hub, c1, "room1");
     hub.handler.dispatch(c1, {
-      v: 1, id: "p1", type: "presence.set",
-      session: "room1", payload: { cursor: { x: 10, y: 20 } },
+      header: { id: "p1", resource: "presence", method: "set", kind: "request", session: "room1" },
+      payload: { cursor: { x: 10, y: 20 } },
     });
     c1.sent.length = 0;
 
@@ -203,8 +215,8 @@ describe("resume", () => {
 
     const c2 = createTestClient(hub);
     hub.handler.dispatch(c2, {
-      v: 1, id: "hello2", type: "client.hello",
-      payload: { resumeToken: token },
+      header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2], resumeToken: token },
     });
 
     const sess = hub.getSession("room1");
@@ -225,7 +237,8 @@ describe("resume", () => {
     // Need to re-authenticate to get token
     const c1b = createTestClient(hub);
     hub.handler.dispatch(c1b, {
-      v: 1, id: "hello", type: "client.hello", payload: {},
+      header: { id: "hello", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2] },
     });
     const token = getWelcome(c1b).resumeToken;
     c1b.sent.length = 0;
@@ -238,13 +251,15 @@ describe("resume", () => {
     // Resume before timeout
     const c1c = createTestClient(hub);
     hub.handler.dispatch(c1c, {
-      v: 1, id: "hello2", type: "client.hello",
-      payload: { resumeToken: token },
+      header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
+      payload: { versions: [2], resumeToken: token },
     });
 
     // Advance past timeout — should NOT broadcast disconnect
     vi.advanceTimersByTime(hub.config.resumeTimeoutMs + 1);
-    const disconnects = other.sent.filter((f) => f.type === "client.disconnected");
+    const disconnects = other.sent.filter(
+      (f) => f.header.resource === "session" && f.header.method === "disconnected",
+    );
     expect(disconnects).toHaveLength(0);
   });
 });

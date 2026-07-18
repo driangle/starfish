@@ -1,3 +1,4 @@
+import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
 import type { StarfishServer } from "./starfish_server.js";
 import type { Pool } from "./pool.js";
@@ -107,17 +108,17 @@ export class ResumeRegistry {
       if (!sess) continue;
 
       sess.broadcast({
-        v: 1,
-        id: this.hub.idGen.messageId(),
-        type: "client.disconnected",
-        session: sessName,
+        header: {
+          id: this.hub.idGen.messageId(),
+          resource: "session",
+          method: "disconnected",
+          kind: "event",
+          session: sessName,
+        },
         payload: { clientId: entry.clientId, reason: "timeout" },
       });
-
-      // Session already had client removed in store(), check if empty
     }
 
-    // Remove from pools and broadcast pool.member.left
     for (const poolName of entry.pools) {
       const pool = this.hub.getPool(poolName);
       if (!pool) continue;
@@ -136,10 +137,13 @@ export class ResumeRegistry {
       const empty = sess.removeClient(client.id);
 
       sess.broadcast({
-        v: 1,
-        id: this.hub.idGen.messageId(),
-        type: "client.disconnected",
-        session: sessName,
+        header: {
+          id: this.hub.idGen.messageId(),
+          resource: "session",
+          method: "disconnected",
+          kind: "event",
+          session: sessName,
+        },
         payload: { clientId: client.id, reason: "left" },
       });
 
@@ -165,10 +169,13 @@ export class ResumeRegistry {
     memberId: string,
     reason: string,
   ): void {
-    const frame = {
-      v: 1 as const,
-      id: this.hub.idGen.messageId(),
-      type: "pool.member.left",
+    const frame: StarfishFrame = {
+      header: {
+        id: this.hub.idGen.messageId(),
+        resource: "pool",
+        method: "member-left",
+        kind: "event",
+      },
       payload: { pool: pool.name, memberId, reason },
     };
 

@@ -1,11 +1,12 @@
 ---
 title: "Refactor TypeScript server for new protocol envelope"
 id: "01kxrcqy2"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["server", "typescript", "breaking-change"]
 created_at: "2026-07-17"
+completed_at: 2026-07-18
 ---
 
 # Refactor TypeScript server for new protocol envelope
@@ -16,14 +17,14 @@ Update the TypeScript server (`servers/typescript/`) to parse, validate, route, 
 
 ## Tasks
 
-- [ ] Update frame validation (`validateFrame`) to expect `header`/`payload` structure
-- [ ] Replace `type`-based routing with `method`/`resource`/`kind`-based routing
-- [ ] Implement version negotiation during handshake instead of per-frame validation
-- [ ] Update error responses to structured format (`status`, `code`, `resource`, `retry`)
-- [ ] Update all handler files to construct responses with new envelope
-- [ ] Replace type rewriting logic (verb→noun) with `kind: "event"` for server-pushed frames
-- [ ] Update unit tests and handler tests for new envelope
-- [ ] Update error codes and constants
+- [x] Update frame validation (`validateFrame`) to expect `header`/`payload` structure
+- [x] Replace `type`-based routing with `method`/`resource`/`kind`-based routing
+- [x] Implement version negotiation during handshake instead of per-frame validation
+- [x] Update error responses to structured format (`status`, `code`, `resource`, `retry`)
+- [x] Update all handler files to construct responses with new envelope
+- [x] Replace type rewriting logic (verb→noun) with `kind: "event"` for server-pushed frames
+- [x] Update unit tests and handler tests for new envelope
+- [x] Update error codes and constants
 
 ## Acceptance Criteria
 

@@ -50,35 +50,67 @@ describe("createErrorFrame", () => {
     const gen = new IDGenerator();
     const frame = createErrorFrame(gen, "msg_1", ERR_AUTH_REQUIRED);
 
-    expect(frame.v).toBe(1);
-    expect(frame.type).toBe("error");
-    expect(frame.replyTo).toBe("msg_1");
-    expect(frame.id).toBe("srv_1");
-    expect(frame.error).toBeDefined();
-    expect(frame.error!.code).toBe("auth.required");
-    expect(frame.error!.message).toBe("Authentication required.");
+    expect(frame.header.kind).toBe("response");
+    expect(frame.header.resource).toBe("client");
+    expect(frame.header.method).toBe("error");
+    expect(frame.header.replyTo).toBe("msg_1");
+    expect(frame.header.id).toBe("srv_1");
+    expect(frame.payload?.status).toBe("error");
+    const error = frame.payload?.error as {
+      code: string;
+      resource: string;
+      message: string;
+      retry: boolean;
+    };
+    expect(error).toBeDefined();
+    expect(error.code).toBe("auth.required");
+    expect(error.resource).toBe("client");
+    expect(error.message).toBe("Authentication required.");
+    expect(error.retry).toBe(false);
   });
 
   it("includes details when provided", () => {
     const gen = new IDGenerator();
     const details = { maxSize: 65536 };
-    const frame = createErrorFrame(gen, "msg_1", ERR_PAYLOAD_TOO_LARGE, details);
+    const frame = createErrorFrame(
+      gen,
+      "msg_1",
+      ERR_PAYLOAD_TOO_LARGE,
+      undefined,
+      undefined,
+      details,
+    );
 
-    expect(frame.error!.details).toEqual({ maxSize: 65536 });
+    expect(frame.payload?.details).toEqual({ maxSize: 65536 });
   });
 
   it("omits details when not provided", () => {
     const gen = new IDGenerator();
     const frame = createErrorFrame(gen, "msg_1", ERR_AUTH_REQUIRED);
 
-    expect(frame.error).not.toHaveProperty("details");
+    expect(frame.payload).not.toHaveProperty("details");
   });
 
   it("handles unknown error codes", () => {
     const gen = new IDGenerator();
     const frame = createErrorFrame(gen, "msg_1", "unknown.code");
 
-    expect(frame.error!.message).toBe("Unknown error.");
+    const error = frame.payload?.error as { message: string };
+    expect(error.message).toBe("Unknown error.");
+  });
+
+  it("uses custom resource and method when provided", () => {
+    const gen = new IDGenerator();
+    const frame = createErrorFrame(
+      gen,
+      "msg_1",
+      ERR_AUTH_REQUIRED,
+      "session",
+      "join",
+    );
+
+    expect(frame.header.resource).toBe("session");
+    expect(frame.header.method).toBe("join");
   });
 
   it("all 19 error codes produce valid messages", () => {
@@ -87,9 +119,17 @@ describe("createErrorFrame", () => {
     const gen = new IDGenerator();
     for (const code of ALL_CODES) {
       const frame = createErrorFrame(gen, "msg_1", code);
-      expect(frame.error!.code).toBe(code);
-      expect(frame.error!.message).not.toBe("Unknown error.");
-      expect(frame.error!.message.length).toBeGreaterThan(0);
+      expect(frame.payload?.status).toBe("error");
+      const error = frame.payload?.error as {
+        code: string;
+        resource: string;
+        message: string;
+        retry: boolean;
+      };
+      expect(error.code).toBe(code);
+      expect(error.message).not.toBe("Unknown error.");
+      expect(error.message.length).toBeGreaterThan(0);
+      expect(typeof error.retry).toBe("boolean");
     }
   });
 
@@ -98,6 +138,6 @@ describe("createErrorFrame", () => {
     const frame1 = createErrorFrame(gen, "msg_1", ERR_AUTH_REQUIRED);
     const frame2 = createErrorFrame(gen, "msg_2", ERR_AUTH_FAILED);
 
-    expect(frame1.id).not.toBe(frame2.id);
+    expect(frame1.header.id).not.toBe(frame2.header.id);
   });
 });

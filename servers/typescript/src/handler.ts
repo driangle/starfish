@@ -38,108 +38,109 @@ export class Handler {
   constructor(hub: StarfishServer) {
     this.hub = hub;
 
-    this.handlers.set("client.hello", (c, f) => handleClientHello(this.hub, c, f));
-    this.handlers.set("ping", (c, f) => this.handlePing(c, f));
+    this.handlers.set("client/hello", (c, f) => handleClientHello(this.hub, c, f));
+    this.handlers.set("heartbeat/ping", (c, f) => this.handlePing(c, f));
     this.handlers.set(
-      "session.join",
+      "session/join",
       this.requireAuth((c, f) => handleSessionJoin(this.hub, c, f)),
     );
     this.handlers.set(
-      "session.leave",
+      "session/leave",
       this.requireAuth((c, f) => handleSessionLeave(this.hub, c, f)),
     );
 
     this.handlers.set(
-      "topic.subscribe",
+      "topic/subscribe",
       this.requireAuth(this.requireSession((c, f) => handleTopicSubscribe(this.hub, c, f))),
     );
     this.handlers.set(
-      "topic.unsubscribe",
+      "topic/unsubscribe",
       this.requireAuth(this.requireSession((c, f) => handleTopicUnsubscribe(this.hub, c, f))),
     );
     this.handlers.set(
-      "topic.publish",
+      "topic/publish",
       this.requireAuth(this.requireSession((c, f) => handleTopicPublish(this.hub, c, f))),
     );
     this.handlers.set(
-      "client.send",
+      "message/send",
       this.requireAuth(this.requireSession((c, f) => handleClientSend(this.hub, c, f))),
     );
     this.handlers.set(
-      "session.broadcast",
+      "session/broadcast",
       this.requireAuth(this.requireSession((c, f) => handleSessionBroadcast(this.hub, c, f))),
     );
     this.handlers.set(
-      "presence.set",
+      "presence/set",
       this.requireAuth(this.requireSession((c, f) => handlePresenceSet(this.hub, c, f))),
     );
     this.handlers.set(
-      "data.save",
+      "data/save",
       this.requireAuth(this.requireSession((c, f) => handleDataSave(this.hub, c, f))),
     );
     this.handlers.set(
-      "data.get",
+      "data/get",
       this.requireAuth(this.requireSession((c, f) => handleDataGet(this.hub, c, f))),
     );
     this.handlers.set(
-      "rtc.connect",
+      "rtc/connect",
       this.requireAuth(this.requireSession((c, f) => handleRTCConnect(this.hub, c, f))),
     );
     this.handlers.set(
-      "rtc.offer",
+      "rtc/offer",
       this.requireAuth(this.requireSession((c, f) => handleRTCOffer(this.hub, c, f))),
     );
     this.handlers.set(
-      "rtc.answer",
+      "rtc/answer",
       this.requireAuth(this.requireSession((c, f) => handleRTCAnswer(this.hub, c, f))),
     );
     this.handlers.set(
-      "rtc.ice",
+      "rtc/ice",
       this.requireAuth(this.requireSession((c, f) => handleRTCIce(this.hub, c, f))),
     );
     this.handlers.set(
-      "pool.enter",
+      "pool/enter",
       this.requireAuth((c, f) => handlePoolEnter(this.hub, c, f)),
     );
     this.handlers.set(
-      "pool.leave",
+      "pool/leave",
       this.requireAuth((c, f) => handlePoolLeave(this.hub, c, f)),
     );
     this.handlers.set(
-      "pool.claim",
+      "pool/claim",
       this.requireAuth((c, f) => handlePoolClaim(this.hub, c, f)),
     );
     this.handlers.set(
-      "pool.accept",
+      "pool/accept",
       this.requireAuth((c, f) => handlePoolAccept(this.hub, c, f)),
     );
     this.handlers.set(
-      "pool.reject",
+      "pool/reject",
       this.requireAuth((c, f) => handlePoolReject(this.hub, c, f)),
     );
     this.handlers.set(
-      "pool.assign",
+      "pool/assign",
       this.requireAuth((c, f) => handlePoolAssign(this.hub, c, f)),
     );
     this.handlers.set(
-      "clock.sync",
+      "clock/sync",
       (c, f) => handleClockSync(this.hub, c, f),
     );
     this.handlers.set(
-      "ack",
+      "ack/ack",
       this.requireAuth((c, f) => handleAck(this.hub, c, f)),
     );
     this.handlers.set(
-      "nack",
+      "ack/nack",
       this.requireAuth((c, f) => handleNack(this.hub, c, f)),
     );
   }
 
   dispatch(client: Client, frame: StarfishFrame): void {
-    const handler = this.handlers.get(frame.type);
+    const key = `${frame.header.resource}/${frame.header.method}`;
+    const handler = this.handlers.get(key);
     if (!handler) {
       client.sendFrame(
-        createErrorFrame(this.hub.idGen, frame.id, ERR_PROTOCOL_INVALID_FRAME),
+        createErrorFrame(this.hub.idGen, frame.header.id, ERR_PROTOCOL_INVALID_FRAME, frame.header.resource, frame.header.method),
       );
       return;
     }
@@ -150,7 +151,7 @@ export class Handler {
     return (client: Client, frame: StarfishFrame) => {
       if (!client.authenticated) {
         client.sendFrame(
-          createErrorFrame(this.hub.idGen, frame.id, ERR_AUTH_REQUIRED),
+          createErrorFrame(this.hub.idGen, frame.header.id, ERR_AUTH_REQUIRED, frame.header.resource, frame.header.method),
         );
         return;
       }
@@ -172,11 +173,15 @@ export class Handler {
 
   private handlePing(client: Client, frame: StarfishFrame): void {
     client.sendFrame({
-      v: 1,
-      id: this.hub.idGen.messageId(),
-      type: "pong",
-      ts: Date.now(),
-      replyTo: frame.id,
+      header: {
+        id: this.hub.idGen.messageId(),
+        resource: "heartbeat",
+        method: "pong",
+        kind: "response",
+        ts: Date.now(),
+        replyTo: frame.header.id,
+      },
+      payload: { status: "ok" },
     });
   }
 }

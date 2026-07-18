@@ -106,7 +106,7 @@ export function createTestClient(
     topics: new Map<string, Set<string>>(),
     sent,
     sendFrame(frame: StarfishFrame) {
-      if (this.id && !frame.from) frame.from = this.id;
+      if (this.id && !frame.header.from) frame.header.from = this.id;
       sent.push(structuredClone(frame));
     },
     info(): ClientInfo {
@@ -126,10 +126,13 @@ export function authenticate(
   client: Client & { sent: StarfishFrame[] },
 ): void {
   hub.handler.dispatch(client, {
-    v: 1,
-    id: "hello",
-    type: "client.hello",
-    payload: {},
+    header: {
+      id: "hello",
+      resource: "client",
+      method: "hello",
+      kind: "request",
+    },
+    payload: { versions: [2] },
   });
   client.sent.length = 0;
 }

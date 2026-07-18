@@ -18,9 +18,9 @@ describe("pool.enter", () => {
   it("creates pool with create: true and returns pool.entered", () => {
     enterPool(hub, c1, { pool: "lobby", create: true, mode: "auto", groupSize: 2 });
 
-    const entered = findFrames(c1, "pool.entered");
+    const entered = findFrames(c1, "pool", "enter");
     expect(entered).toHaveLength(1);
-    expect(entered[0].replyTo).toBe("enter-lobby");
+    expect(entered[0].header.replyTo).toBe("enter-lobby");
     const payload = entered[0].payload as Record<string, unknown>;
     expect(payload.pool).toBe("lobby");
     expect(payload.mode).toBe("auto");
@@ -31,8 +31,8 @@ describe("pool.enter", () => {
     enterPool(hub, c1, { pool: "nonexistent" });
 
     expect(c1.sent).toHaveLength(1);
-    expect(c1.sent[0].type).toBe("error");
-    expect(c1.sent[0].error?.code).toBe("pool.not_found");
+    expect((c1.sent[0].payload as any)?.status).toBe("error");
+    expect((c1.sent[0].payload as any)?.error?.code).toBe("pool.not_found");
   });
 
   it("subsequent enters reuse existing pool", () => {
@@ -43,7 +43,7 @@ describe("pool.enter", () => {
     authenticate(hub, c2);
     enterPool(hub, c2, { pool: "lobby", create: true, mode: "auto", groupSize: 4 });
 
-    const entered = findFrames(c2, "pool.entered");
+    const entered = findFrames(c2, "pool", "enter");
     expect(entered).toHaveLength(1);
     const payload = entered[0].payload as Record<string, unknown>;
     expect(payload.mode).toBe("claim");
@@ -58,7 +58,7 @@ describe("pool.enter", () => {
     authenticate(hub, c2);
     enterPool(hub, c2, { pool: "lobby", attributes: { name: "bob" } });
 
-    const entered = findFrames(c2, "pool.entered");
+    const entered = findFrames(c2, "pool", "enter");
     const payload = entered[0].payload as Record<string, unknown>;
     const members = payload.members as { id: string; attributes: Record<string, unknown> }[];
     expect(members).toHaveLength(1);
@@ -69,7 +69,7 @@ describe("pool.enter", () => {
   it("does not include members list in auto mode", () => {
     enterPool(hub, c1, { pool: "lobby", create: true, mode: "auto", groupSize: 2 });
 
-    const entered = findFrames(c1, "pool.entered");
+    const entered = findFrames(c1, "pool", "enter");
     const payload = entered[0].payload as Record<string, unknown>;
     expect(payload.members).toBeUndefined();
   });
@@ -77,10 +77,10 @@ describe("pool.enter", () => {
   it("requires auth", () => {
     const unauth = createTestClient(hub);
     hub.handler.dispatch(unauth, {
-      v: 1, id: "e1", type: "pool.enter",
+      header: { id: "e1", resource: "pool", method: "enter", kind: "request" },
       payload: { pool: "lobby", create: true },
     });
-    expect(unauth.sent[0].error?.code).toBe("auth.required");
+    expect((unauth.sent[0].payload as any)?.error?.code).toBe("auth.required");
   });
 });
 
@@ -103,8 +103,8 @@ describe("auto mode matching", () => {
 
     enterPool(hub, c2, { pool: "game" });
 
-    const c1Matched = findFrames(c1, "pool.matched");
-    const c2Matched = findFrames(c2, "pool.matched");
+    const c1Matched = findFrames(c1, "pool", "matched");
+    const c2Matched = findFrames(c2, "pool", "matched");
     expect(c1Matched).toHaveLength(1);
     expect(c2Matched).toHaveLength(1);
 
@@ -120,7 +120,7 @@ describe("auto mode matching", () => {
 
     enterPool(hub, c2, { pool: "game" });
 
-    expect(findFrames(c1, "pool.member.joined")).toHaveLength(0);
+    expect(findFrames(c1, "pool", "member-joined")).toHaveLength(0);
   });
 
   it("matches with groupSize > 2", () => {
@@ -132,13 +132,13 @@ describe("auto mode matching", () => {
     c1.sent.length = 0;
     c2.sent.length = 0;
 
-    expect(findFrames(c1, "pool.matched")).toHaveLength(0);
+    expect(findFrames(c1, "pool", "matched")).toHaveLength(0);
 
     enterPool(hub, c3, { pool: "trio" });
 
-    expect(findFrames(c1, "pool.matched")).toHaveLength(1);
-    expect(findFrames(c2, "pool.matched")).toHaveLength(1);
-    expect(findFrames(c3, "pool.matched")).toHaveLength(1);
+    expect(findFrames(c1, "pool", "matched")).toHaveLength(1);
+    expect(findFrames(c2, "pool", "matched")).toHaveLength(1);
+    expect(findFrames(c3, "pool", "matched")).toHaveLength(1);
   });
 
   it("matches with compatible filters", () => {
@@ -151,8 +151,8 @@ describe("auto mode matching", () => {
       attributes: { language: "en" }, filter: { language: "@self" },
     });
 
-    expect(findFrames(c1, "pool.matched")).toHaveLength(1);
-    expect(findFrames(c2, "pool.matched")).toHaveLength(1);
+    expect(findFrames(c1, "pool", "matched")).toHaveLength(1);
+    expect(findFrames(c2, "pool", "matched")).toHaveLength(1);
   });
 
   it("does not match when filters are incompatible", () => {
@@ -165,8 +165,8 @@ describe("auto mode matching", () => {
       attributes: { language: "fr" }, filter: { language: "@self" },
     });
 
-    expect(findFrames(c1, "pool.matched")).toHaveLength(0);
-    expect(findFrames(c2, "pool.matched")).toHaveLength(0);
+    expect(findFrames(c1, "pool", "matched")).toHaveLength(0);
+    expect(findFrames(c2, "pool", "matched")).toHaveLength(0);
   });
 
   it("does not match when target missing filter attribute", () => {
@@ -176,7 +176,7 @@ describe("auto mode matching", () => {
     });
     enterPool(hub, c2, { pool: "filtered", attributes: {} });
 
-    expect(findFrames(c1, "pool.matched")).toHaveLength(0);
+    expect(findFrames(c1, "pool", "matched")).toHaveLength(0);
   });
 
   it("matches with literal filter values", () => {
@@ -186,7 +186,7 @@ describe("auto mode matching", () => {
     });
     enterPool(hub, c2, { pool: "filtered", attributes: { rank: "gold" } });
 
-    expect(findFrames(c1, "pool.matched")).toHaveLength(1);
+    expect(findFrames(c1, "pool", "matched")).toHaveLength(1);
   });
 
   it("skips incompatible members and matches compatible ones FIFO", () => {
@@ -202,7 +202,7 @@ describe("auto mode matching", () => {
       attributes: { language: "fr" }, filter: { language: "@self" },
     });
 
-    expect(findFrames(c1, "pool.matched")).toHaveLength(0);
+    expect(findFrames(c1, "pool", "matched")).toHaveLength(0);
     c1.sent.length = 0;
 
     enterPool(hub, c3, {
@@ -210,9 +210,9 @@ describe("auto mode matching", () => {
       attributes: { language: "en" }, filter: { language: "@self" },
     });
 
-    expect(findFrames(c1, "pool.matched")).toHaveLength(1);
-    expect(findFrames(c3, "pool.matched")).toHaveLength(1);
-    expect(findFrames(c2, "pool.matched")).toHaveLength(0);
+    expect(findFrames(c1, "pool", "matched")).toHaveLength(1);
+    expect(findFrames(c3, "pool", "matched")).toHaveLength(1);
+    expect(findFrames(c2, "pool", "matched")).toHaveLength(0);
   });
 });
 
@@ -235,10 +235,16 @@ describe("pool lifecycle", () => {
 
     expect(hub.getPool("lobby")).toBeDefined();
 
-    hub.handler.dispatch(c1, { v: 1, id: "leave1", type: "pool.leave", payload: { pool: "lobby" } });
+    hub.handler.dispatch(c1, {
+      header: { id: "leave1", resource: "pool", method: "leave", kind: "request" },
+      payload: { pool: "lobby" },
+    });
     expect(hub.getPool("lobby")).toBeDefined();
 
-    hub.handler.dispatch(c2, { v: 1, id: "leave2", type: "pool.leave", payload: { pool: "lobby" } });
+    hub.handler.dispatch(c2, {
+      header: { id: "leave2", resource: "pool", method: "leave", kind: "request" },
+      payload: { pool: "lobby" },
+    });
     expect(hub.getPool("lobby")).toBeUndefined();
   });
 
@@ -247,7 +253,7 @@ describe("pool lifecycle", () => {
     enterPool(hub, c2, { pool: "lobby" });
 
     hub.handler.dispatch(c1, {
-      v: 1, id: "claim1", type: "pool.claim",
+      header: { id: "claim1", resource: "pool", method: "claim", kind: "request" },
       payload: { pool: "lobby", target: c2.id },
     });
 
@@ -259,9 +265,12 @@ describe("pool lifecycle", () => {
     enterPool(hub, c2, { pool: "lobby" });
     c2.sent.length = 0;
 
-    hub.handler.dispatch(c1, { v: 1, id: "leave1", type: "pool.leave", payload: { pool: "lobby" } });
+    hub.handler.dispatch(c1, {
+      header: { id: "leave1", resource: "pool", method: "leave", kind: "request" },
+      payload: { pool: "lobby" },
+    });
 
-    const left = findFrames(c2, "pool.member.left");
+    const left = findFrames(c2, "pool", "member-left");
     expect(left).toHaveLength(1);
     const payload = left[0].payload as Record<string, unknown>;
     expect(payload.memberId).toBe(c1.id);
@@ -299,7 +308,7 @@ describe("reconnection", () => {
 
     vi.advanceTimersByTime(hub.config.resumeTimeoutMs + 100);
 
-    const left = findFrames(c2, "pool.member.left");
+    const left = findFrames(c2, "pool", "member-left");
     expect(left).toHaveLength(1);
     const payload = left[0].payload as Record<string, unknown>;
     expect(payload.memberId).toBe(c1.id);

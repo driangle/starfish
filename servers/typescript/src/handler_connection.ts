@@ -2,16 +2,22 @@ import type { StarfishFrame } from "./types.js";
 import type { Client } from "./client.js";
 import type { StarfishServer } from "./starfish_server.js";
 import type { ResumeEntry } from "./resume.js";
-import { createErrorFrame, ERR_PAYLOAD_TOO_LARGE } from "./errors.js";
+import { createErrorFrame, ERR_PAYLOAD_TOO_LARGE, ERR_PROTOCOL_UNSUPPORTED_VERSION } from "./errors.js";
 import { MAX_CLIENT_META_SIZE } from "./limits.js";
 
+const SUPPORTED_VERSIONS = [2];
+
 type HelloPayload = {
+  versions?: number[];
   client?: { name?: string; role?: string; meta?: unknown };
   capabilities?: { rtc?: boolean };
   resumeToken?: string;
+  auth?: { type?: string };
 };
 
 type WelcomePayload = {
+  status: string;
+  version: number;
   clientId: string;
   resumed?: boolean;
   resumeToken: string;
@@ -20,26 +26,39 @@ type WelcomePayload = {
   heartbeatInterval: number;
   sessionRequired: boolean;
   sessions?: string[];
+  pools?: string[];
   rtc?: { iceServers: Array<{ urls: string }> };
 };
+
+function negotiateVersion(clientVersions: number[]): number | undefined {
+  for (const v of clientVersions) {
+    if (SUPPORTED_VERSIONS.includes(v)) return v;
+  }
+  return undefined;
+}
 
 export function handleClientHello(
   hub: StarfishServer,
   client: Client,
   frame: StarfishFrame,
 ): void {
-  let payload: HelloPayload = {};
-  if (frame.payload !== undefined) {
-    payload = frame.payload as HelloPayload;
+  const payload = (frame.payload ?? {}) as HelloPayload;
+
+  const clientVersions = payload.versions ?? [];
+  const negotiated = negotiateVersion(clientVersions);
+  if (negotiated === undefined) {
+    client.sendFrame(
+      createErrorFrame(hub.idGen, frame.header.id, ERR_PROTOCOL_UNSUPPORTED_VERSION, "client", "welcome"),
+    );
+    return;
   }
 
   if (payload.resumeToken) {
-    const resumed = handleResume(hub, client, frame, payload.resumeToken);
+    const resumed = handleResume(hub, client, frame, payload.resumeToken, negotiated);
     if (resumed) return;
-    // Resume failed — fall through to fresh connection
   }
 
-  handleFreshHello(hub, client, frame, payload);
+  handleFreshHello(hub, client, frame, payload, negotiated);
 }
 
 function handleResume(
@@ -47,6 +66,7 @@ function handleResume(
   client: Client,
   frame: StarfishFrame,
   token: string,
+  version: number,
 ): boolean {
   const entry = hub.resumes.restore(token);
   if (!entry) {
@@ -60,11 +80,12 @@ function handleResume(
   const newToken = hub.idGen.resumeToken();
   hub.resumes.registerToken(client, newToken);
 
-  sendWelcome(hub, client, frame, {
+  sendWelcome(hub, client, frame, version, {
     clientId: client.id,
     resumed: true,
     resumeToken: newToken,
     sessions: [...client.sessions],
+    pools: [...client.pools],
   });
 
   return true;
@@ -75,6 +96,7 @@ function handleFreshHello(
   client: Client,
   frame: StarfishFrame,
   payload: HelloPayload,
+  version: number,
 ): void {
   const clientId = hub.idGen.clientId();
   const resumeToken = hub.idGen.resumeToken();
@@ -84,7 +106,7 @@ function handleFreshHello(
     if (payload.client.meta !== undefined) {
       const metaSize = JSON.stringify(payload.client.meta).length;
       if (metaSize > MAX_CLIENT_META_SIZE) {
-        client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_PAYLOAD_TOO_LARGE));
+        client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_PAYLOAD_TOO_LARGE, "client", "welcome"));
         return;
       }
     }
@@ -101,7 +123,7 @@ function handleFreshHello(
   hub.registerClient(client);
   hub.resumes.registerToken(client, resumeToken);
 
-  sendWelcome(hub, client, frame, {
+  sendWelcome(hub, client, frame, version, {
     clientId,
     resumeToken,
     sessionRequired: true,
@@ -109,35 +131,24 @@ function handleFreshHello(
 }
 
 function restoreClient(client: Client, entry: ResumeEntry): void {
-  client.id = entry.clientId;
-  client.name = entry.name;
-  client.role = entry.role;
-  client.meta = entry.meta;
-  client.rtcCapable = entry.rtcCapable;
-  client.sessions = entry.sessions;
-  client.topics = entry.topics;
-  client.authenticated = true;
-  client.lastActivity = Date.now();
+  Object.assign(client, {
+    id: entry.clientId, name: entry.name, role: entry.role, meta: entry.meta,
+    rtcCapable: entry.rtcCapable, sessions: entry.sessions, topics: entry.topics,
+    authenticated: true, lastActivity: Date.now(),
+  });
 }
 
 function rejoinSessions(hub: StarfishServer, client: Client, entry: ResumeEntry): void {
   for (const sessName of client.sessions) {
     const sess = hub.getSession(sessName);
     if (!sess) continue;
-
     sess.addClient(client);
-
     const topicSet = client.topics.get(sessName);
     if (topicSet) {
-      for (const topic of topicSet) {
-        sess.subscribe(topic, client);
-      }
+      for (const topic of topicSet) sess.subscribe(topic, client);
     }
-
     const presenceData = entry.presence.get(sessName);
-    if (presenceData !== undefined) {
-      sess.setPresence(client.id, presenceData);
-    }
+    if (presenceData !== undefined) sess.setPresence(client.id, presenceData);
   }
 }
 
@@ -145,10 +156,13 @@ function sendWelcome(
   hub: StarfishServer,
   client: Client,
   frame: StarfishFrame,
+  version: number,
   extra: Partial<WelcomePayload>,
 ): void {
   const now = Date.now();
-  const welcome: WelcomePayload = {
+  const welcomePayload: WelcomePayload = {
+    status: "ok",
+    version,
     clientId: client.id,
     resumeToken: "",
     resumeTimeout: hub.config.resumeTimeoutMs,
@@ -159,15 +173,19 @@ function sendWelcome(
   };
 
   if (hub.config.iceServers.length > 0) {
-    welcome.rtc = { iceServers: hub.config.iceServers };
+    welcomePayload.rtc = { iceServers: hub.config.iceServers };
   }
 
   client.sendFrame({
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "server.welcome",
-    ts: now,
-    replyTo: frame.id,
-    payload: welcome,
+    header: {
+      v: 2,
+      id: hub.idGen.messageId(),
+      resource: "client",
+      method: "welcome",
+      kind: "response",
+      ts: now,
+      replyTo: frame.header.id,
+    },
+    payload: welcomePayload as unknown as Record<string, unknown>,
   });
 }

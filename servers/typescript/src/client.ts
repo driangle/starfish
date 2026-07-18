@@ -4,7 +4,6 @@ import type { StarfishServer } from "./starfish_server.js";
 import {
   createErrorFrame,
   ERR_PROTOCOL_INVALID_FRAME,
-  ERR_PROTOCOL_UNSUPPORTED_VERSION,
 } from "./errors.js";
 
 export type ClientInfo = {
@@ -29,21 +28,21 @@ export function validateFrame(raw: string): FrameValidation {
   }
 
   const obj = parsed as Record<string, unknown>;
+  const header = obj.header as Record<string, unknown> | undefined;
 
-  if (obj.v !== 1) {
-    return {
-      ok: false,
-      errorCode: ERR_PROTOCOL_UNSUPPORTED_VERSION,
-      replyTo: typeof obj.id === "string" ? obj.id : "",
-    };
+  if (!header || typeof header !== "object") {
+    return { ok: false, errorCode: ERR_PROTOCOL_INVALID_FRAME, replyTo: "" };
   }
 
-  if (typeof obj.id !== "string" || obj.id === "" || typeof obj.type !== "string" || obj.type === "") {
-    return {
-      ok: false,
-      errorCode: ERR_PROTOCOL_INVALID_FRAME,
-      replyTo: typeof obj.id === "string" ? obj.id : "",
-    };
+  const id = typeof header.id === "string" ? header.id : "";
+
+  if (
+    !id ||
+    typeof header.resource !== "string" || header.resource === "" ||
+    typeof header.method !== "string" || header.method === "" ||
+    typeof header.kind !== "string" || header.kind === ""
+  ) {
+    return { ok: false, errorCode: ERR_PROTOCOL_INVALID_FRAME, replyTo: id };
   }
 
   return { ok: true, frame: parsed as StarfishFrame };
@@ -79,8 +78,8 @@ export class Client {
 
   sendFrame(frame: StarfishFrame): void {
     if (this.closed) return;
-    if (this.id && !frame.from) {
-      frame.from = this.id;
+    if (this.id && !frame.header.from) {
+      frame.header.from = this.id;
     }
     const data = JSON.stringify(frame);
     if (this.sendQueue.length >= MAX_SEND_QUEUE) {

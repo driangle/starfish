@@ -8,14 +8,14 @@ export function resolvePool(hub: StarfishServer, client: Client, frame: Starfish
   const payload = frame.payload as { pool?: string } | undefined;
   const pool = payload?.pool ? hub.getPool(payload.pool) : undefined;
   if (!pool) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_NOT_FOUND));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_NOT_FOUND, "pool", frame.header.method));
   }
   return pool;
 }
 
 export function requirePoolMember(pool: Pool, hub: StarfishServer, client: Client, frame: StarfishFrame): boolean {
   if (!pool.hasMember(client.id)) {
-    client.sendFrame(createErrorFrame(hub.idGen, frame.id, ERR_POOL_NOT_MEMBER));
+    client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_NOT_MEMBER, "pool", frame.header.method));
     return false;
   }
   return true;
@@ -28,9 +28,12 @@ export function broadcastMemberJoined(
   attributes: Record<string, unknown>,
 ): void {
   const frame: StarfishFrame = {
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "pool.member.joined",
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "pool",
+      method: "member-joined",
+      kind: "event",
+    },
     payload: { pool: pool.name, member: { id: newMemberId, attributes } },
   };
 
@@ -56,9 +59,12 @@ export function broadcastMemberLeft(
   reason: string,
 ): void {
   const frame: StarfishFrame = {
-    v: 1,
-    id: hub.idGen.messageId(),
-    type: "pool.member.left",
+    header: {
+      id: hub.idGen.messageId(),
+      resource: "pool",
+      method: "member-left",
+      kind: "event",
+    },
     payload: { pool: pool.name, memberId, reason },
   };
 
@@ -84,9 +90,12 @@ export function sendMatchedToGroup(
 ): void {
   for (const peer of result.peers) {
     hub.getClient(peer.id)?.sendFrame({
-      v: 1,
-      id: hub.idGen.messageId(),
-      type: "pool.matched",
+      header: {
+        id: hub.idGen.messageId(),
+        resource: "pool",
+        method: "matched",
+        kind: "event",
+      },
       payload: { pool: poolName, session: result.session, peers: result.peers },
     });
   }
@@ -101,9 +110,12 @@ export function broadcastMatchedMembersLeft(
 
   for (const matchedId of matchedIds) {
     const frame: StarfishFrame = {
-      v: 1,
-      id: hub.idGen.messageId(),
-      type: "pool.member.left",
+      header: {
+        id: hub.idGen.messageId(),
+        resource: "pool",
+        method: "member-left",
+        kind: "event",
+      },
       payload: { pool: pool.name, memberId: matchedId, reason: "matched" },
     };
     for (const member of pool.getMembers()) {
