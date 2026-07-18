@@ -1,14 +1,19 @@
 ---
 title: "Refactor Python server for new protocol envelope"
 id: "01kxrcr2y"
-status: pending
+status: blocked
 priority: high
 type: feature
 tags: ["server", "python", "breaking-change"]
+dependencies: ["01kwyst53"]
 created_at: "2026-07-17"
 ---
 
 # Refactor Python server for new protocol envelope
+
+## Blocked
+
+The Python server (`servers/python/`) has not been implemented yet — the directory only contains a placeholder README. This task requires an existing server implementation to refactor. It should be unblocked once the Python server is built.
 
 ## Objective
 

@@ -215,11 +215,14 @@ describe("StarfishP5", () => {
 
       // Simulate incoming message
       mockClient._topicStreams.get("draw")!.emit({
-        v: 1,
-        id: "msg_1",
-        type: "topic.message",
-        topic: "draw",
-        from: "peer-1",
+        header: {
+          id: "msg_1",
+          resource: "topic",
+          method: "message",
+          kind: "event",
+          topic: "draw",
+          from: "peer-1",
+        },
         payload: { x: 10, y: 20 },
       });
 

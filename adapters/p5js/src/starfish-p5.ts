@@ -117,7 +117,7 @@ export class StarfishP5 {
   ): Promise<void> {
     await this.client.subscribe(topic);
     const unsub = this.client.topic$(topic).subscribe((frame: StarfishFrame) => {
-      cb(frame.payload, frame.from ?? "");
+      cb(frame.payload, frame.header.from ?? "");
     });
     this.subscriptions.push(unsub);
   }
