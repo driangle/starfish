@@ -161,11 +161,14 @@ describe("StarfishThree", () => {
       await vi.waitFor(() => expect(mockClient.subscribe).toHaveBeenCalledWith("moves"));
 
       mockClient._topicStreams.get("moves")!.emit({
-        v: 1,
-        id: "msg_1",
-        type: "topic.message",
-        topic: "moves",
-        from: "peer-1",
+        header: {
+          id: "msg_1",
+          resource: "topic",
+          method: "message",
+          kind: "event",
+          topic: "moves",
+          from: "peer-1",
+        },
         payload: { dx: 1, dy: 0 },
       });
 

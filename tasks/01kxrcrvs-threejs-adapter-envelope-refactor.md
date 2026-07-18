@@ -1,11 +1,12 @@
 ---
 title: "Refactor Three.js adapter for new protocol envelope"
 id: "01kxrcrvs"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["adapter", "threejs", "breaking-change"]
 created_at: "2026-07-17"
+completed_at: 2026-07-18
 ---
 
 # Refactor Three.js adapter for new protocol envelope
@@ -16,11 +17,11 @@ Update the Three.js adapter (`adapters/threejs/`) to work with the new protocol 
 
 ## Tasks
 
-- [ ] Update any direct frame construction to use `header`/`payload` structure
-- [ ] Update any frame inspection/parsing that references `type` to use `method`/`resource`/`kind`
-- [ ] Update any error handling to use structured error format
-- [ ] Update adapter tests
-- [ ] Verify adapter works end-to-end with updated SDK
+- [x] Update any direct frame construction to use `header`/`payload` structure
+- [x] Update any frame inspection/parsing that references `type` to use `method`/`resource`/`kind`
+- [x] Update any error handling to use structured error format
+- [x] Update adapter tests
+- [x] Verify adapter works end-to-end with updated SDK
 
 ## Acceptance Criteria
 
