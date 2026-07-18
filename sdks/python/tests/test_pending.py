@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from starfish.pending import PendingRequests, StarfishRequestError
-from starfish.types import StarfishError, StarfishFrame
+from starfish.types import StarfishFrame, StarfishHeader
 
 
 class TestPendingRequests:
@@ -12,11 +12,14 @@ class TestPendingRequests:
         future = pending.add("msg_1", 5000)
 
         reply = StarfishFrame(
-            v=1,
-            id="srv_1",
-            type="session.joined",
-            reply_to="msg_1",
-            payload={"clientId": "abc"},
+            header=StarfishHeader(
+                id="srv_1",
+                resource="session",
+                method="join",
+                kind="response",
+                reply_to="msg_1",
+            ),
+            payload={"status": "ok", "clientId": "abc"},
         )
 
         assert pending.resolve(reply) is True
@@ -28,14 +31,22 @@ class TestPendingRequests:
         future = pending.add("msg_2", 5000)
 
         error_reply = StarfishFrame(
-            v=1,
-            id="err_1",
-            type="error",
-            reply_to="msg_2",
-            error=StarfishError(
-                code="session.not_found",
-                message="Session does not exist.",
+            header=StarfishHeader(
+                id="err_1",
+                resource="session",
+                method="join",
+                kind="response",
+                reply_to="msg_2",
             ),
+            payload={
+                "status": "error",
+                "error": {
+                    "code": "session.not_found",
+                    "resource": "session",
+                    "message": "Session does not exist.",
+                    "retry": False,
+                },
+            },
         )
 
         pending.resolve(error_reply)
@@ -53,12 +64,27 @@ class TestPendingRequests:
         pending = PendingRequests()
         pending.add("msg_4", 5000)
 
-        unrelated = StarfishFrame(v=1, id="evt_1", type="topic.message", reply_to="unknown_id")
+        unrelated = StarfishFrame(
+            header=StarfishHeader(
+                id="evt_1",
+                resource="topic",
+                method="message",
+                kind="event",
+                reply_to="unknown_id",
+            ),
+        )
 
         assert pending.resolve(unrelated) is False
 
     def test_returns_false_for_frame_without_reply_to(self):
-        frame = StarfishFrame(v=1, id="evt_1", type="topic.message")
+        frame = StarfishFrame(
+            header=StarfishHeader(
+                id="evt_1",
+                resource="topic",
+                method="message",
+                kind="event",
+            ),
+        )
         pending = PendingRequests()
         assert pending.resolve(frame) is False
 

@@ -7,7 +7,7 @@ from .emitter import EventStream
 from .id import next_id
 from .limits import validate_topic_name
 from .session import Session
-from .types import FrameOptions, StarfishFrame
+from .types import HeaderOptions, StarfishFrame, StarfishHeader
 
 
 class Topics:
@@ -24,11 +24,14 @@ class Topics:
 
         session_name = self._require_session()
         frame = StarfishFrame(
-            v=1,
-            id=next_id("sub"),
-            type="topic.subscribe",
-            session=session_name,
-            topic=topic,
+            header=StarfishHeader(
+                id=next_id("sub"),
+                resource="topic",
+                method="subscribe",
+                kind="request",
+                session=session_name,
+                topic=topic,
+            ),
         )
 
         response = await self._connection.send_and_wait(frame)
@@ -42,29 +45,38 @@ class Topics:
     async def unsubscribe(self, topic: str) -> None:
         session_name = self._require_session()
         frame = StarfishFrame(
-            v=1,
-            id=next_id("unsub"),
-            type="topic.unsubscribe",
-            session=session_name,
-            topic=topic,
+            header=StarfishHeader(
+                id=next_id("unsub"),
+                resource="topic",
+                method="unsubscribe",
+                kind="request",
+                session=session_name,
+                topic=topic,
+            ),
         )
 
         await self._connection.send(frame)
         self._subscriptions.discard(topic)
 
-    async def publish(self, topic: str, payload: Any, options: FrameOptions | None = None) -> None:
+    async def publish(self, topic: str, payload: Any, options: HeaderOptions | None = None) -> None:
         validate_topic_name(topic)
 
         session_name = self._require_session()
-        frame = StarfishFrame(
-            v=1,
+        header = StarfishHeader(
             id=next_id("pub"),
-            type="topic.publish",
+            resource="topic",
+            method="publish",
+            kind="request",
             session=session_name,
             topic=topic,
-            payload=payload,
-            options=options,
         )
+        if options:
+            header.delivery = options.delivery
+            header.priority = options.priority
+            header.ttl = options.ttl
+            header.meta = options.meta
+
+        frame = StarfishFrame(header=header, payload=payload)
 
         await self._connection.send(frame)
 
@@ -76,8 +88,12 @@ class Topics:
         return stream
 
     def handle_frame(self, frame: StarfishFrame) -> None:
-        if frame.type == "topic.message" and frame.topic:
-            stream = self._topic_streams.get(frame.topic)
+        if (
+            frame.header.resource == "topic"
+            and frame.header.method == "message"
+            and frame.header.topic
+        ):
+            stream = self._topic_streams.get(frame.header.topic)
             if stream:
                 stream.emit(frame)
 

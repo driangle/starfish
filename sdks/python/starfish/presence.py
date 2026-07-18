@@ -8,7 +8,7 @@ from .emitter import Observable
 from .id import next_id
 from .limits import MAX_PRESENCE_SIZE, validate_payload_size
 from .session import Session
-from .types import StarfishFrame
+from .types import StarfishFrame, StarfishHeader
 
 
 class Presence:
@@ -24,10 +24,13 @@ class Presence:
         validate_payload_size(json.dumps(payload), MAX_PRESENCE_SIZE, "Presence payload")
 
         frame = StarfishFrame(
-            v=1,
-            id=next_id("pres"),
-            type="presence.set",
-            session=session_name,
+            header=StarfishHeader(
+                id=next_id("pres"),
+                resource="presence",
+                method="set",
+                kind="request",
+                session=session_name,
+            ),
             payload=payload,
         )
 
@@ -40,18 +43,25 @@ class Presence:
         validate_payload_size(json.dumps(payload), MAX_PRESENCE_SIZE, "Presence payload")
 
         frame = StarfishFrame(
-            v=1,
-            id=next_id("pres"),
-            type="presence.set",
-            session=session_name,
+            header=StarfishHeader(
+                id=next_id("pres"),
+                resource="presence",
+                method="set",
+                kind="request",
+                session=session_name,
+            ),
             payload=payload,
         )
 
         await self._connection.send(frame)
 
     def handle_frame(self, frame: StarfishFrame) -> None:
-        if frame.type == "presence.updated" and frame.from_:
-            self._presence_map[frame.from_] = frame.payload
+        if (
+            frame.header.resource == "presence"
+            and frame.header.method == "updated"
+            and frame.header.from_
+        ):
+            self._presence_map[frame.header.from_] = frame.payload
             self.presence.set(dict(self._presence_map))
 
     def clear(self) -> None:

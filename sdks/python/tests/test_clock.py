@@ -3,7 +3,7 @@ import time
 from unittest.mock import AsyncMock, MagicMock
 
 from starfish.clock import Clock
-from starfish.types import StarfishFrame
+from starfish.types import StarfishFrame, StarfishHeader
 
 
 def mock_connection():
@@ -38,10 +38,13 @@ class TestClock:
             # Simulate server time being 100ms ahead with ~0ms RTT
             client_time = time.time() * 1000
             return StarfishFrame(
-                v=1,
-                id=f"clock_{call_count}",
-                type="clock.synced",
-                reply_to=f"clock_{call_count}",
+                header=StarfishHeader(
+                    id=f"clock_{call_count}",
+                    resource="clock",
+                    method="sync",
+                    kind="response",
+                    reply_to=f"clock_{call_count}",
+                ),
                 payload={"serverTime": client_time + 100},
             )
 

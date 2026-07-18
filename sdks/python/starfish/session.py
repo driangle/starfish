@@ -6,7 +6,7 @@ from typing import Any
 from .connection import Connection
 from .emitter import Observable
 from .id import next_id
-from .types import StarfishFrame
+from .types import StarfishFrame, StarfishHeader
 
 
 @dataclass
@@ -45,10 +45,13 @@ class Session:
     async def join(self, session: str, options: JoinOptions | None = None) -> StarfishFrame:
         opts = options or JoinOptions()
         frame = StarfishFrame(
-            v=1,
-            id=next_id("join"),
-            type="session.join",
-            session=session,
+            header=StarfishHeader(
+                id=next_id("join"),
+                resource="session",
+                method="join",
+                kind="request",
+                session=session,
+            ),
             payload={
                 "create": opts.create,
                 "name": opts.name or self._connection.client_id or "client",
@@ -79,10 +82,13 @@ class Session:
             return
 
         frame = StarfishFrame(
-            v=1,
-            id=next_id("leave"),
-            type="session.leave",
-            session=self._session,
+            header=StarfishHeader(
+                id=next_id("leave"),
+                resource="session",
+                method="leave",
+                kind="request",
+                session=self._session,
+            ),
         )
 
         await self._connection.send(frame)
@@ -91,10 +97,13 @@ class Session:
         self._update_observables()
 
     def handle_frame(self, frame: StarfishFrame) -> None:
-        if not self._session or frame.session != self._session:
+        if not self._session or frame.header.session != self._session:
             return
 
-        if frame.type == "client.connected":
+        if frame.header.resource != "session" or frame.header.kind != "event":
+            return
+
+        if frame.header.method == "connected":
             client_data = (frame.payload or {}).get("client")
             if client_data:
                 info = ClientInfo(
@@ -106,7 +115,7 @@ class Session:
                 self._clients[info.id] = info
                 self._update_observables()
 
-        elif frame.type == "client.disconnected":
+        elif frame.header.method == "disconnected":
             client_id = (frame.payload or {}).get("clientId")
             if client_id and client_id in self._clients:
                 del self._clients[client_id]

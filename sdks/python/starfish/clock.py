@@ -5,7 +5,7 @@ import time
 from typing import TYPE_CHECKING, Callable
 
 from .id import next_id
-from .types import StarfishFrame
+from .types import StarfishFrame, StarfishHeader
 
 if TYPE_CHECKING:
     from .connection import Connection
@@ -30,7 +30,15 @@ class Clock:
 
         for _ in range(samples):
             t1 = time.time() * 1000
-            frame = StarfishFrame(v=1, id=next_id("clock"), type="clock.sync", ts=int(t1))
+            frame = StarfishFrame(
+                header=StarfishHeader(
+                    id=next_id("clock"),
+                    resource="clock",
+                    method="sync",
+                    kind="request",
+                    ts=int(t1),
+                ),
+            )
             response = await self._connection.send_and_wait(frame)
             t4 = time.time() * 1000
 

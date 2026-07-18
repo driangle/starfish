@@ -7,9 +7,18 @@ from .types import StarfishFrame
 
 
 class StarfishRequestError(Exception):
-    def __init__(self, message: str, code: str | None = None, details: Any = None):
+    def __init__(
+        self,
+        message: str,
+        code: str | None = None,
+        resource: str | None = None,
+        retry: bool = False,
+        details: Any = None,
+    ):
         super().__init__(message)
         self.code = code
+        self.resource = resource
+        self.retry = retry
         self.details = details
 
 
@@ -34,20 +43,29 @@ class PendingRequests:
         return future
 
     def resolve(self, frame: StarfishFrame) -> bool:
-        if not frame.reply_to:
+        reply_to = frame.header.reply_to
+        if not reply_to:
             return False
 
-        entry = self._pending.get(frame.reply_to)
+        entry = self._pending.get(reply_to)
         if entry is None:
             return False
 
         future, timer = entry
-        del self._pending[frame.reply_to]
+        del self._pending[reply_to]
         timer.cancel()
 
-        if frame.type == "error" and frame.error:
+        payload = frame.payload or {}
+        if payload.get("status") == "error":
+            err = payload.get("error", {})
             future.set_exception(
-                StarfishRequestError(frame.error.message, frame.error.code, frame.error.details)
+                StarfishRequestError(
+                    err.get("message", "Unknown error"),
+                    code=err.get("code"),
+                    resource=err.get("resource"),
+                    retry=err.get("retry", False),
+                    details=err.get("details"),
+                )
             )
         else:
             future.set_result(frame)

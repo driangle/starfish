@@ -6,7 +6,7 @@ import pytest
 
 from starfish.connection import Connection
 from starfish.session import JoinOptions, Session
-from starfish.types import StarfishClientOptions, StarfishFrame
+from starfish.types import StarfishClientOptions, StarfishFrame, StarfishHeader
 
 
 def make_connection() -> Connection:
@@ -23,11 +23,14 @@ class TestSession:
     async def test_join_sets_current_session(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="session.joined",
-            session="room-1",
-            payload={"clients": []},
+            header=StarfishHeader(
+                id="resp_1",
+                resource="session",
+                method="join",
+                kind="response",
+                session="room-1",
+            ),
+            payload={"status": "ok", "clients": []},
         )
 
         session = Session(conn)
@@ -39,15 +42,19 @@ class TestSession:
     async def test_join_populates_clients(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="session.joined",
-            session="room-1",
+            header=StarfishHeader(
+                id="resp_1",
+                resource="session",
+                method="join",
+                kind="response",
+                session="room-1",
+            ),
             payload={
+                "status": "ok",
                 "clients": [
                     {"id": "me-123", "name": "me", "role": "default", "meta": {}},
                     {"id": "peer-1", "name": "peer", "role": "viewer", "meta": {}},
-                ]
+                ],
             },
         )
 
@@ -62,15 +69,18 @@ class TestSession:
     async def test_join_sends_correct_frame(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1, id="resp_1", type="session.joined", payload={"clients": []}
+            header=StarfishHeader(id="resp_1", resource="session", method="join", kind="response"),
+            payload={"status": "ok", "clients": []},
         )
 
         session = Session(conn)
         await session.join("room-1", JoinOptions(name="alice", role="admin"))
 
         sent_frame = conn.send_and_wait.call_args[0][0]
-        assert sent_frame.type == "session.join"
-        assert sent_frame.session == "room-1"
+        assert sent_frame.header.resource == "session"
+        assert sent_frame.header.method == "join"
+        assert sent_frame.header.kind == "request"
+        assert sent_frame.header.session == "room-1"
         assert sent_frame.payload["name"] == "alice"
         assert sent_frame.payload["role"] == "admin"
 
@@ -78,7 +88,8 @@ class TestSession:
     async def test_leave_clears_session(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1, id="resp_1", type="session.joined", payload={"clients": []}
+            header=StarfishHeader(id="resp_1", resource="session", method="join", kind="response"),
+            payload={"status": "ok", "clients": []},
         )
 
         session = Session(conn)
@@ -99,7 +110,14 @@ class TestSession:
     async def test_handle_client_connected(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1, id="resp_1", type="session.joined", session="room-1", payload={"clients": []}
+            header=StarfishHeader(
+                id="resp_1",
+                resource="session",
+                method="join",
+                kind="response",
+                session="room-1",
+            ),
+            payload={"status": "ok", "clients": []},
         )
 
         session = Session(conn)
@@ -107,10 +125,13 @@ class TestSession:
 
         session.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="client.connected",
-                session="room-1",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="session",
+                    method="connected",
+                    kind="event",
+                    session="room-1",
+                ),
                 payload={"client": {"id": "new-peer", "name": "bob", "role": "viewer", "meta": {}}},
             )
         )
@@ -122,11 +143,17 @@ class TestSession:
     async def test_handle_client_disconnected(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="session.joined",
-            session="room-1",
-            payload={"clients": [{"id": "peer-1", "name": "bob", "role": "default", "meta": {}}]},
+            header=StarfishHeader(
+                id="resp_1",
+                resource="session",
+                method="join",
+                kind="response",
+                session="room-1",
+            ),
+            payload={
+                "status": "ok",
+                "clients": [{"id": "peer-1", "name": "bob", "role": "default", "meta": {}}],
+            },
         )
 
         session = Session(conn)
@@ -135,10 +162,13 @@ class TestSession:
 
         session.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_2",
-                type="client.disconnected",
-                session="room-1",
+                header=StarfishHeader(
+                    id="evt_2",
+                    resource="session",
+                    method="disconnected",
+                    kind="event",
+                    session="room-1",
+                ),
                 payload={"clientId": "peer-1"},
             )
         )
@@ -149,7 +179,14 @@ class TestSession:
     async def test_ignores_frames_from_other_sessions(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1, id="resp_1", type="session.joined", session="room-1", payload={"clients": []}
+            header=StarfishHeader(
+                id="resp_1",
+                resource="session",
+                method="join",
+                kind="response",
+                session="room-1",
+            ),
+            payload={"status": "ok", "clients": []},
         )
 
         session = Session(conn)
@@ -157,10 +194,13 @@ class TestSession:
 
         session.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="client.connected",
-                session="other-room",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="session",
+                    method="connected",
+                    kind="event",
+                    session="other-room",
+                ),
                 payload={"client": {"id": "x", "name": "x", "role": "x", "meta": {}}},
             )
         )

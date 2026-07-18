@@ -5,7 +5,7 @@ import time
 from typing import TYPE_CHECKING
 
 from .id import next_id
-from .types import StarfishFrame
+from .types import StarfishFrame, StarfishHeader
 
 if TYPE_CHECKING:
     from .connection import Connection
@@ -32,10 +32,13 @@ class Heartbeat:
                 await asyncio.sleep(interval)
                 try:
                     ping = StarfishFrame(
-                        v=1,
-                        id=next_id("ping"),
-                        type="ping",
-                        ts=int(time.time() * 1000),
+                        header=StarfishHeader(
+                            id=next_id("ping"),
+                            resource="heartbeat",
+                            method="ping",
+                            kind="request",
+                            ts=int(time.time() * 1000),
+                        ),
                     )
                     await self._connection.send(ping)
                 except Exception:

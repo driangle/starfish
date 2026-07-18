@@ -9,7 +9,7 @@ from .emitter import EventStream
 from .id import next_id
 from .limits import MAX_DATA_VALUE_SIZE, validate_payload_size
 from .session import Session
-from .types import StarfishFrame
+from .types import StarfishFrame, StarfishHeader
 
 DataOp = Literal[
     "replace",
@@ -55,7 +55,7 @@ class Data:
         self.changed: EventStream[DataResult] = EventStream()
 
     def handle_frame(self, frame: StarfishFrame) -> None:
-        if frame.type == "data.changed" and frame.payload:
+        if frame.header.resource == "data" and frame.header.method == "changed" and frame.payload:
             result = DataResult(
                 key=frame.payload["key"],
                 scope=frame.payload["scope"],
@@ -92,49 +92,59 @@ class Data:
             payload["expectedVersion"] = options.expected_version
 
         frame = StarfishFrame(
-            v=1,
-            id=next_id("dsave"),
-            type="data.save",
-            session=session_name,
+            header=StarfishHeader(
+                id=next_id("dsave"),
+                resource="data",
+                method="save",
+                kind="request",
+                session=session_name,
+            ),
             payload=payload,
         )
 
         response = await self._connection.send_and_wait(frame)
+        resp_payload = response.payload or {}
 
-        if response.error:
-            if response.error.code == "conflict":
-                current_version = (response.error.details or {}).get("currentVersion", 0)
-                raise ConflictError(response.error.message, current_version)
-            raise RuntimeError(f"Data save error: {response.error.message}")
+        if resp_payload.get("status") == "error":
+            err = resp_payload.get("error", {})
+            if err.get("code") == "conflict":
+                current_version = (err.get("details") or {}).get("currentVersion", 0)
+                raise ConflictError(err.get("message", "Version conflict"), current_version)
+            raise RuntimeError(f"Data save error: {err.get('message', 'Unknown error')}")
 
         return DataResult(
-            key=response.payload["key"],
-            scope=response.payload["scope"],
-            data=response.payload.get("data"),
-            version=response.payload["version"],
+            key=resp_payload["key"],
+            scope=resp_payload["scope"],
+            data=resp_payload.get("data"),
+            version=resp_payload["version"],
         )
 
     async def get(self, key: str, scope: Literal["self", "session"] = "session") -> DataResult:
         session_name = self._require_session()
 
         frame = StarfishFrame(
-            v=1,
-            id=next_id("dget"),
-            type="data.get",
-            session=session_name,
+            header=StarfishHeader(
+                id=next_id("dget"),
+                resource="data",
+                method="get",
+                kind="request",
+                session=session_name,
+            ),
             payload={"key": key, "scope": scope},
         )
 
         response = await self._connection.send_and_wait(frame)
+        resp_payload = response.payload or {}
 
-        if response.error:
-            raise RuntimeError(f"Data get error: {response.error.message}")
+        if resp_payload.get("status") == "error":
+            err = resp_payload.get("error", {})
+            raise RuntimeError(f"Data get error: {err.get('message', 'Unknown error')}")
 
         return DataResult(
-            key=response.payload["key"],
-            scope=response.payload["scope"],
-            data=response.payload.get("data"),
-            version=response.payload["version"],
+            key=resp_payload["key"],
+            scope=resp_payload["scope"],
+            data=resp_payload.get("data"),
+            version=resp_payload["version"],
         )
 
     def _require_session(self) -> str:

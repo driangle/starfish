@@ -6,7 +6,7 @@ import pytest
 
 from starfish.connection import Connection
 from starfish.pool import Pool, PoolEnterOptions, PoolMatchResult
-from starfish.types import StarfishClientOptions, StarfishError, StarfishFrame
+from starfish.types import StarfishClientOptions, StarfishFrame, StarfishHeader
 
 
 def make_connection() -> Connection:
@@ -23,10 +23,13 @@ class TestPoolEnter:
     async def test_enter_auto_mode_minimal(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="pool.entered",
-            payload={"pool": "lobby", "mode": "auto", "groupSize": 2},
+            header=StarfishHeader(
+                id="resp_1",
+                resource="pool",
+                method="enter",
+                kind="response",
+            ),
+            payload={"status": "ok", "pool": "lobby", "mode": "auto", "groupSize": 2},
         )
 
         pool = Pool(conn)
@@ -38,7 +41,9 @@ class TestPoolEnter:
         assert result.members == []
 
         sent = conn.send_and_wait.call_args[0][0]
-        assert sent.type == "pool.enter"
+        assert sent.header.resource == "pool"
+        assert sent.header.method == "enter"
+        assert sent.header.kind == "request"
         assert sent.payload["pool"] == "lobby"
         assert sent.payload["create"] is True
         assert sent.payload["groupSize"] == 2
@@ -49,10 +54,14 @@ class TestPoolEnter:
     async def test_enter_claim_mode_with_members(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="pool.entered",
+            header=StarfishHeader(
+                id="resp_1",
+                resource="pool",
+                method="enter",
+                kind="response",
+            ),
             payload={
+                "status": "ok",
                 "pool": "lobby",
                 "mode": "claim",
                 "groupSize": 2,
@@ -80,10 +89,21 @@ class TestPoolEnter:
     async def test_enter_raises_on_not_found(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="pool.entered",
-            error=StarfishError(code="pool.not_found", message="Pool does not exist"),
+            header=StarfishHeader(
+                id="resp_1",
+                resource="pool",
+                method="enter",
+                kind="response",
+            ),
+            payload={
+                "status": "error",
+                "error": {
+                    "code": "pool.not_found",
+                    "resource": "pool",
+                    "message": "Pool does not exist",
+                    "retry": False,
+                },
+            },
         )
 
         pool = Pool(conn)
@@ -94,10 +114,13 @@ class TestPoolEnter:
     async def test_enter_forwards_filter(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="pool.entered",
-            payload={"pool": "lobby", "mode": "auto", "groupSize": 2},
+            header=StarfishHeader(
+                id="resp_1",
+                resource="pool",
+                method="enter",
+                kind="response",
+            ),
+            payload={"status": "ok", "pool": "lobby", "mode": "auto", "groupSize": 2},
         )
 
         pool = Pool(conn)
@@ -123,7 +146,8 @@ class TestPoolLeave:
         await pool.leave("lobby")
 
         sent = conn.send.call_args[0][0]
-        assert sent.type == "pool.leave"
+        assert sent.header.resource == "pool"
+        assert sent.header.method == "leave"
         assert sent.payload == {"pool": "lobby"}
 
 
@@ -136,7 +160,8 @@ class TestPoolClaim:
         await pool.claim("lobby", "client_b")
 
         sent = conn.send.call_args[0][0]
-        assert sent.type == "pool.claim"
+        assert sent.header.resource == "pool"
+        assert sent.header.method == "claim"
         assert sent.payload == {"pool": "lobby", "target": "client_b"}
 
     @pytest.mark.asyncio
@@ -147,7 +172,8 @@ class TestPoolClaim:
         await pool.accept("lobby", "client_a")
 
         sent = conn.send.call_args[0][0]
-        assert sent.type == "pool.accept"
+        assert sent.header.resource == "pool"
+        assert sent.header.method == "accept"
         assert sent.payload == {"pool": "lobby", "from": "client_a"}
 
     @pytest.mark.asyncio
@@ -158,7 +184,8 @@ class TestPoolClaim:
         await pool.reject("lobby", "client_a")
 
         sent = conn.send.call_args[0][0]
-        assert sent.type == "pool.reject"
+        assert sent.header.resource == "pool"
+        assert sent.header.method == "reject"
         assert sent.payload == {"pool": "lobby", "from": "client_a"}
 
 
@@ -167,10 +194,14 @@ class TestPoolAssign:
     async def test_assign_sends_and_returns_response(self):
         conn = make_connection()
         response = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="pool.assigned",
+            header=StarfishHeader(
+                id="resp_1",
+                resource="pool",
+                method="assign",
+                kind="response",
+            ),
             payload={
+                "status": "ok",
                 "pool": "lobby",
                 "matched": [
                     {"group": ["client_a", "client_b"], "session": "s-123"},
@@ -183,7 +214,8 @@ class TestPoolAssign:
         result = await pool.assign("lobby", [["client_a", "client_b"]])
 
         sent = conn.send_and_wait.call_args[0][0]
-        assert sent.type == "pool.assign"
+        assert sent.header.resource == "pool"
+        assert sent.header.method == "assign"
         assert sent.payload == {
             "pool": "lobby",
             "groups": [["client_a", "client_b"]],
@@ -202,9 +234,12 @@ class TestPoolMatched:
 
         pool.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="pool.matched",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="pool",
+                    method="matched",
+                    kind="event",
+                ),
                 payload={
                     "pool": "lobby",
                     "session": "s-abc",
@@ -229,10 +264,14 @@ class TestPoolMembers:
     async def test_members_updates_on_joined(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="pool.entered",
+            header=StarfishHeader(
+                id="resp_1",
+                resource="pool",
+                method="enter",
+                kind="response",
+            ),
             payload={
+                "status": "ok",
                 "pool": "lobby",
                 "mode": "claim",
                 "groupSize": 2,
@@ -248,9 +287,12 @@ class TestPoolMembers:
 
         pool.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="pool.member.joined",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="pool",
+                    method="member.joined",
+                    kind="event",
+                ),
                 payload={
                     "pool": "lobby",
                     "member": {"id": "client_b", "attributes": {"mood": "wild"}},
@@ -266,10 +308,14 @@ class TestPoolMembers:
     async def test_members_updates_on_left(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="pool.entered",
+            header=StarfishHeader(
+                id="resp_1",
+                resource="pool",
+                method="enter",
+                kind="response",
+            ),
             payload={
+                "status": "ok",
                 "pool": "lobby",
                 "mode": "claim",
                 "groupSize": 2,
@@ -288,9 +334,12 @@ class TestPoolMembers:
 
         pool.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="pool.member.left",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="pool",
+                    method="member.left",
+                    kind="event",
+                ),
                 payload={
                     "pool": "lobby",
                     "memberId": "client_a",

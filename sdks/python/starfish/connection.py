@@ -16,6 +16,7 @@ from .types import (
     ReconnectOptions,
     StarfishClientOptions,
     StarfishFrame,
+    StarfishHeader,
     frame_from_dict,
     frame_to_dict,
 )
@@ -92,7 +93,7 @@ class Connection:
     async def send_and_wait(
         self, frame: StarfishFrame, timeout: int = DEFAULT_REQUEST_TIMEOUT
     ) -> StarfishFrame:
-        future = self._pending.add(frame.id, timeout)
+        future = self._pending.add(frame.header.id, timeout)
         await self.send(frame)
         return await future
 
@@ -117,6 +118,7 @@ class Connection:
         else:
             client = self._options.client
             payload = {
+                "versions": [2],
                 "client": {
                     "name": client.name if client else "starfish-client",
                     "role": client.role if client else "default",
@@ -130,13 +132,24 @@ class Connection:
             }
 
         ts = int(time.time() * 1000)
-        hello = StarfishFrame(v=1, id=next_id("hello"), type="client.hello", ts=ts, payload=payload)
+        hello = StarfishFrame(
+            header=StarfishHeader(
+                v=2,
+                id=next_id("hello"),
+                resource="client",
+                method="hello",
+                kind="request",
+                ts=ts,
+            ),
+            payload=payload,
+        )
         welcome = await self.send_and_wait(hello)
 
-        self.client_id = welcome.payload.get("clientId")
-        self.resume_token = welcome.payload.get("resumeToken")
-        self.heartbeat_interval = welcome.payload.get("heartbeatInterval", self.heartbeat_interval)
-        self.server_time = welcome.payload.get("serverTime")
+        welcome_payload = welcome.payload or {}
+        self.client_id = welcome_payload.get("clientId")
+        self.resume_token = welcome_payload.get("resumeToken")
+        self.heartbeat_interval = welcome_payload.get("heartbeatInterval", self.heartbeat_interval)
+        self.server_time = welcome_payload.get("serverTime")
         self._reconnect_attempt = 0
         self.state.set(ConnectionState.CONNECTED)
 

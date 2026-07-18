@@ -7,7 +7,7 @@ import pytest
 from starfish.connection import Connection
 from starfish.data import ConflictError, Data, DataResult, SaveOptions
 from starfish.session import Session
-from starfish.types import StarfishClientOptions, StarfishError, StarfishFrame
+from starfish.types import StarfishClientOptions, StarfishFrame, StarfishHeader
 
 
 def make_connection() -> Connection:
@@ -30,10 +30,19 @@ class TestDataSave:
     async def test_save_replace(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="data.saved",
-            payload={"key": "score", "scope": "session", "data": {"points": 42}, "version": 1},
+            header=StarfishHeader(
+                id="resp_1",
+                resource="data",
+                method="save",
+                kind="response",
+            ),
+            payload={
+                "status": "ok",
+                "key": "score",
+                "scope": "session",
+                "data": {"points": 42},
+                "version": 1,
+            },
         )
 
         session = make_session(conn)
@@ -49,7 +58,8 @@ class TestDataSave:
         assert result.version == 1
 
         frame = conn.send_and_wait.call_args[0][0]
-        assert frame.type == "data.save"
+        assert frame.header.resource == "data"
+        assert frame.header.method == "save"
         assert frame.payload["key"] == "score"
         assert frame.payload["op"] == "replace"
 
@@ -57,10 +67,13 @@ class TestDataSave:
     async def test_save_with_expected_version(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="data.saved",
-            payload={"key": "k", "scope": "session", "data": {}, "version": 2},
+            header=StarfishHeader(
+                id="resp_1",
+                resource="data",
+                method="save",
+                kind="response",
+            ),
+            payload={"status": "ok", "key": "k", "scope": "session", "data": {}, "version": 2},
         )
 
         session = make_session(conn)
@@ -77,15 +90,22 @@ class TestDataSave:
     async def test_save_conflict_raises(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="data.error",
-            payload={"key": "k", "scope": "session", "data": None, "version": 0},
-            error=StarfishError(
-                code="conflict",
-                message="Version conflict",
-                details={"currentVersion": 3},
+            header=StarfishHeader(
+                id="resp_1",
+                resource="data",
+                method="save",
+                kind="response",
             ),
+            payload={
+                "status": "error",
+                "error": {
+                    "code": "conflict",
+                    "resource": "data",
+                    "message": "Version conflict",
+                    "retry": False,
+                    "details": {"currentVersion": 3},
+                },
+            },
         )
 
         session = make_session(conn)
@@ -121,10 +141,19 @@ class TestDataSave:
     async def test_save_without_data(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="data.saved",
-            payload={"key": "k", "scope": "session", "data": None, "version": 0},
+            header=StarfishHeader(
+                id="resp_1",
+                resource="data",
+                method="save",
+                kind="response",
+            ),
+            payload={
+                "status": "ok",
+                "key": "k",
+                "scope": "session",
+                "data": None,
+                "version": 0,
+            },
         )
 
         session = make_session(conn)
@@ -141,10 +170,19 @@ class TestDataGet:
     async def test_get_returns_result(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1,
-            id="resp_1",
-            type="data.result",
-            payload={"key": "config", "scope": "session", "data": {"theme": "dark"}, "version": 5},
+            header=StarfishHeader(
+                id="resp_1",
+                resource="data",
+                method="get",
+                kind="response",
+            ),
+            payload={
+                "status": "ok",
+                "key": "config",
+                "scope": "session",
+                "data": {"theme": "dark"},
+                "version": 5,
+            },
         )
 
         session = make_session(conn)
@@ -157,7 +195,8 @@ class TestDataGet:
         assert result.version == 5
 
         frame = conn.send_and_wait.call_args[0][0]
-        assert frame.type == "data.get"
+        assert frame.header.resource == "data"
+        assert frame.header.method == "get"
         assert frame.payload == {"key": "config", "scope": "session"}
 
     @pytest.mark.asyncio
@@ -181,9 +220,12 @@ class TestDataChanged:
 
         data.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="data.changed",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="data",
+                    method="changed",
+                    kind="event",
+                ),
                 payload={"key": "score", "scope": "session", "data": {"points": 10}, "version": 2},
             )
         )
@@ -203,17 +245,23 @@ class TestDataChanged:
 
         data.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="data.changed",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="data",
+                    method="changed",
+                    kind="event",
+                ),
                 payload={"key": "score", "scope": "session", "data": 100, "version": 1},
             )
         )
         data.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_2",
-                type="data.changed",
+                header=StarfishHeader(
+                    id="evt_2",
+                    resource="data",
+                    method="changed",
+                    kind="event",
+                ),
                 payload={"key": "other", "scope": "session", "data": "x", "version": 1},
             )
         )
@@ -229,7 +277,17 @@ class TestDataChanged:
         received: list[DataResult] = []
         data.changed.subscribe(lambda r: received.append(r))
 
-        data.handle_frame(StarfishFrame(v=1, id="evt_1", type="presence.updated", payload={"x": 1}))
+        data.handle_frame(
+            StarfishFrame(
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="presence",
+                    method="updated",
+                    kind="event",
+                ),
+                payload={"x": 1},
+            )
+        )
 
         assert len(received) == 0
 
@@ -241,6 +299,15 @@ class TestDataChanged:
         received: list[DataResult] = []
         data.changed.subscribe(lambda r: received.append(r))
 
-        data.handle_frame(StarfishFrame(v=1, id="evt_1", type="data.changed"))
+        data.handle_frame(
+            StarfishFrame(
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="data",
+                    method="changed",
+                    kind="event",
+                ),
+            )
+        )
 
         assert len(received) == 0

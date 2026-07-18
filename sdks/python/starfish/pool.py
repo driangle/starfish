@@ -6,7 +6,7 @@ from typing import Any
 from .connection import Connection
 from .emitter import EventStream, Observable
 from .id import next_id
-from .types import StarfishFrame
+from .types import StarfishFrame, StarfishHeader
 
 
 @dataclass
@@ -63,24 +63,27 @@ class Pool:
             payload["filter"] = options.filter
 
         frame = StarfishFrame(
-            v=1,
-            id=next_id("pool"),
-            type="pool.enter",
+            header=StarfishHeader(
+                id=next_id("pool"),
+                resource="pool",
+                method="enter",
+                kind="request",
+            ),
             payload=payload,
         )
 
         response = await self._connection.send_and_wait(frame)
-
-        if response.error:
-            if response.error.code == "pool.not_found":
-                raise RuntimeError(f"Pool not found: {response.error.message}")
-            raise RuntimeError(f"Pool enter error: {response.error.message}")
-
         resp_payload = response.payload or {}
+
+        if resp_payload.get("status") == "error":
+            err = resp_payload.get("error", {})
+            if err.get("code") == "pool.not_found":
+                raise RuntimeError(f"Pool not found: {err.get('message', '')}")
+            raise RuntimeError(f"Pool enter error: {err.get('message', 'Unknown error')}")
+
         members_data: list[dict[str, Any]] = resp_payload.get("members", [])
         members = [PoolMember(id=m["id"], attributes=m.get("attributes", {})) for m in members_data]
 
-        # Initialize the members observable for this pool
         pool_name = resp_payload.get("pool", options.pool)
         obs = self._member_observables.get(pool_name)
         if not obs:
@@ -98,45 +101,60 @@ class Pool:
 
     async def leave(self, pool: str) -> None:
         frame = StarfishFrame(
-            v=1,
-            id=next_id("pool"),
-            type="pool.leave",
+            header=StarfishHeader(
+                id=next_id("pool"),
+                resource="pool",
+                method="leave",
+                kind="request",
+            ),
             payload={"pool": pool},
         )
         await self._connection.send(frame)
 
     async def claim(self, pool: str, target: str) -> None:
         frame = StarfishFrame(
-            v=1,
-            id=next_id("pool"),
-            type="pool.claim",
+            header=StarfishHeader(
+                id=next_id("pool"),
+                resource="pool",
+                method="claim",
+                kind="request",
+            ),
             payload={"pool": pool, "target": target},
         )
         await self._connection.send(frame)
 
     async def accept(self, pool: str, from_: str) -> None:
         frame = StarfishFrame(
-            v=1,
-            id=next_id("pool"),
-            type="pool.accept",
+            header=StarfishHeader(
+                id=next_id("pool"),
+                resource="pool",
+                method="accept",
+                kind="request",
+            ),
             payload={"pool": pool, "from": from_},
         )
         await self._connection.send(frame)
 
     async def reject(self, pool: str, from_: str) -> None:
         frame = StarfishFrame(
-            v=1,
-            id=next_id("pool"),
-            type="pool.reject",
+            header=StarfishHeader(
+                id=next_id("pool"),
+                resource="pool",
+                method="reject",
+                kind="request",
+            ),
             payload={"pool": pool, "from": from_},
         )
         await self._connection.send(frame)
 
     async def assign(self, pool: str, groups: list[list[str]]) -> StarfishFrame:
         frame = StarfishFrame(
-            v=1,
-            id=next_id("pool"),
-            type="pool.assign",
+            header=StarfishHeader(
+                id=next_id("pool"),
+                resource="pool",
+                method="assign",
+                kind="request",
+            ),
             payload={"pool": pool, "groups": groups},
         )
         return await self._connection.send_and_wait(frame)
@@ -149,9 +167,12 @@ class Pool:
         return obs
 
     def handle_frame(self, frame: StarfishFrame) -> None:
+        if frame.header.resource != "pool" or frame.header.kind != "event":
+            return
+
         payload = frame.payload or {}
 
-        if frame.type == "pool.matched":
+        if frame.header.method == "matched":
             peers_data: list[dict[str, Any]] = payload.get("peers", [])
             result = PoolMatchResult(
                 pool=payload["pool"],
@@ -162,7 +183,7 @@ class Pool:
             )
             self.matched.emit(result)
 
-        elif frame.type == "pool.member.joined":
+        elif frame.header.method == "member.joined":
             pool_name = payload.get("pool", "")
             member_data = payload.get("member", {})
             member = PoolMember(
@@ -175,7 +196,7 @@ class Pool:
                 current.append(member)
                 obs.set(current)
 
-        elif frame.type == "pool.member.left":
+        elif frame.header.method == "member.left":
             pool_name = payload.get("pool", "")
             member_id = payload.get("memberId", "")
             obs = self._member_observables.get(pool_name)

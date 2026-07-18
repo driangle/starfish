@@ -7,7 +7,7 @@ import pytest
 from starfish.connection import Connection
 from starfish.session import Session
 from starfish.topics import Topics
-from starfish.types import StarfishClientOptions, StarfishFrame
+from starfish.types import StarfishClientOptions, StarfishFrame, StarfishHeader
 
 
 def make_connection() -> Connection:
@@ -30,7 +30,14 @@ class TestTopics:
     async def test_subscribe_sends_correct_frame(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1, id="resp_1", type="topic.subscribed", topic="chat"
+            header=StarfishHeader(
+                id="resp_1",
+                resource="topic",
+                method="subscribe",
+                kind="response",
+                topic="chat",
+            ),
+            payload={"status": "ok"},
         )
         session = make_session(conn)
         topics = Topics(conn, session)
@@ -38,15 +45,24 @@ class TestTopics:
         await topics.subscribe("chat")
 
         sent_frame = conn.send_and_wait.call_args[0][0]
-        assert sent_frame.type == "topic.subscribe"
-        assert sent_frame.topic == "chat"
-        assert sent_frame.session == "room-1"
+        assert sent_frame.header.resource == "topic"
+        assert sent_frame.header.method == "subscribe"
+        assert sent_frame.header.kind == "request"
+        assert sent_frame.header.topic == "chat"
+        assert sent_frame.header.session == "room-1"
 
     @pytest.mark.asyncio
     async def test_subscribe_registers_callback(self):
         conn = make_connection()
         conn.send_and_wait.return_value = StarfishFrame(
-            v=1, id="resp_1", type="topic.subscribed", topic="chat"
+            header=StarfishHeader(
+                id="resp_1",
+                resource="topic",
+                method="subscribe",
+                kind="response",
+                topic="chat",
+            ),
+            payload={"status": "ok"},
         )
         session = make_session(conn)
         topics = Topics(conn, session)
@@ -55,7 +71,14 @@ class TestTopics:
         await topics.subscribe("chat", lambda f: received.append(f))
 
         msg = StarfishFrame(
-            v=1, id="msg_1", type="topic.message", topic="chat", payload={"text": "hello"}
+            header=StarfishHeader(
+                id="msg_1",
+                resource="topic",
+                method="message",
+                kind="event",
+                topic="chat",
+            ),
+            payload={"text": "hello"},
         )
         topics.handle_frame(msg)
 
@@ -71,8 +94,9 @@ class TestTopics:
         await topics.unsubscribe("chat")
 
         sent_frame = conn.send.call_args[0][0]
-        assert sent_frame.type == "topic.unsubscribe"
-        assert sent_frame.topic == "chat"
+        assert sent_frame.header.resource == "topic"
+        assert sent_frame.header.method == "unsubscribe"
+        assert sent_frame.header.topic == "chat"
 
     @pytest.mark.asyncio
     async def test_publish_sends_frame(self):
@@ -83,8 +107,9 @@ class TestTopics:
         await topics.publish("chat", {"text": "hi"})
 
         sent_frame = conn.send.call_args[0][0]
-        assert sent_frame.type == "topic.publish"
-        assert sent_frame.topic == "chat"
+        assert sent_frame.header.resource == "topic"
+        assert sent_frame.header.method == "publish"
+        assert sent_frame.header.topic == "chat"
         assert sent_frame.payload == {"text": "hi"}
 
     @pytest.mark.asyncio
@@ -115,7 +140,16 @@ class TestTopics:
         topics.topic_stream("updates").subscribe(lambda f: received.append(f))
 
         topics.handle_frame(
-            StarfishFrame(v=1, id="m1", type="topic.message", topic="updates", payload={"v": 1})
+            StarfishFrame(
+                header=StarfishHeader(
+                    id="m1",
+                    resource="topic",
+                    method="message",
+                    kind="event",
+                    topic="updates",
+                ),
+                payload={"v": 1},
+            )
         )
 
         assert len(received) == 1
@@ -128,6 +162,16 @@ class TestTopics:
         received = []
         topics.topic_stream("chat").subscribe(lambda f: received.append(f))
 
-        topics.handle_frame(StarfishFrame(v=1, id="m1", type="client.connected", payload={}))
+        topics.handle_frame(
+            StarfishFrame(
+                header=StarfishHeader(
+                    id="m1",
+                    resource="session",
+                    method="connected",
+                    kind="event",
+                ),
+                payload={},
+            )
+        )
 
         assert len(received) == 0

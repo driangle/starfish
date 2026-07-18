@@ -17,7 +17,7 @@ from .topics import Topics
 from .types import (
     ConnectionState,
     EventFilter,
-    FrameOptions,
+    HeaderOptions,
     StarfishClientOptions,
     StarfishFrame,
 )
@@ -98,7 +98,7 @@ class StarfishClient:
     async def unsubscribe(self, topic: str) -> None:
         await self._topics.unsubscribe(topic)
 
-    async def publish(self, topic: str, payload: Any, options: FrameOptions | None = None) -> None:
+    async def publish(self, topic: str, payload: Any, options: HeaderOptions | None = None) -> None:
         await self._topics.publish(topic, payload, options)
 
     def topic_stream(self, topic: str) -> EventStream[StarfishFrame]:
@@ -107,12 +107,12 @@ class StarfishClient:
     # --- Messaging ---
 
     async def send(
-        self, to: str | list[str], payload: Any, options: FrameOptions | None = None
+        self, to: str | list[str], payload: Any, options: HeaderOptions | None = None
     ) -> None:
         await self._messaging.send(to, payload, options)
 
     async def broadcast(
-        self, payload: Any, *, include_self: bool = False, options: FrameOptions | None = None
+        self, payload: Any, *, include_self: bool = False, options: HeaderOptions | None = None
     ) -> None:
         await self._messaging.broadcast(payload, include_self=include_self, options=options)
 

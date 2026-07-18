@@ -1,11 +1,12 @@
 ---
 title: "Refactor Python SDK for new protocol envelope"
 id: "01kxrcr25"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["sdk", "python", "breaking-change"]
 created_at: "2026-07-17"
+completed_at: 2026-07-18
 ---
 
 # Refactor Python SDK for new protocol envelope
@@ -16,13 +17,13 @@ Update the Python SDK (`sdks/python/`) to use the new protocol envelope: `header
 
 ## Tasks
 
-- [ ] Update `types.py` — replace `StarfishFrame` with new envelope types
-- [ ] Replace `type` field usage with `method`/`resource`/`kind`
-- [ ] Update connection handshake to negotiate version
-- [ ] Update error types to structured format with `retry` field
-- [ ] Add `meta` dict support to header
-- [ ] Update all frame construction/parsing in connection module
-- [ ] Update unit tests
+- [x] Update `types.py` — replace `StarfishFrame` with new envelope types
+- [x] Replace `type` field usage with `method`/`resource`/`kind`
+- [x] Update connection handshake to negotiate version
+- [x] Update error types to structured format with `retry` field
+- [x] Add `meta` dict support to header
+- [x] Update all frame construction/parsing in connection module
+- [x] Update unit tests
 
 ## Acceptance Criteria
 

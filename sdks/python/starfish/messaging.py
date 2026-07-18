@@ -5,7 +5,7 @@ from typing import Any
 from .connection import Connection
 from .id import next_id
 from .session import Session
-from .types import DeliveryOptions, FrameOptions, StarfishFrame
+from .types import DeliveryOptions, HeaderOptions, StarfishFrame, StarfishHeader
 
 
 class Messaging:
@@ -14,42 +14,53 @@ class Messaging:
         self._session = session
 
     async def send(
-        self, to: str | list[str], payload: Any, options: FrameOptions | None = None
+        self, to: str | list[str], payload: Any, options: HeaderOptions | None = None
     ) -> None:
         session_name = self._require_session()
-        frame = StarfishFrame(
-            v=1,
+        header = StarfishHeader(
             id=next_id("send"),
-            type="client.send",
+            resource="message",
+            method="send",
+            kind="request",
             session=session_name,
             to=to,
-            payload=payload,
-            options=options,
         )
+        if options:
+            header.delivery = options.delivery
+            header.priority = options.priority
+            header.ttl = options.ttl
+            header.meta = options.meta
+
+        frame = StarfishFrame(header=header, payload=payload)
 
         await self._connection.send(frame)
 
     async def broadcast(
-        self, payload: Any, *, include_self: bool = False, options: FrameOptions | None = None
+        self, payload: Any, *, include_self: bool = False, options: HeaderOptions | None = None
     ) -> None:
         session_name = self._require_session()
 
-        if include_self:
-            if options is None:
-                options = FrameOptions(delivery=DeliveryOptions(include_self=True))
-            elif options.delivery is None:
-                options.delivery = DeliveryOptions(include_self=True)
-            else:
-                options.delivery.include_self = True
-
-        frame = StarfishFrame(
-            v=1,
+        header = StarfishHeader(
             id=next_id("bcast"),
-            type="session.broadcast",
+            resource="session",
+            method="broadcast",
+            kind="request",
             session=session_name,
-            payload=payload,
-            options=options,
         )
+
+        if options:
+            header.delivery = options.delivery
+            header.priority = options.priority
+            header.ttl = options.ttl
+            header.meta = options.meta
+
+        if include_self:
+            if header.delivery is None:
+                header.delivery = DeliveryOptions(include_self=True)
+            else:
+                header.delivery.include_self = True
+
+        frame = StarfishFrame(header=header, payload=payload)
 
         await self._connection.send(frame)
 

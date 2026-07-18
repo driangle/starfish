@@ -35,10 +35,12 @@ class TestMessaging:
         await messaging.send("peer-1", {"text": "hello"})
 
         sent_frame = conn.send.call_args[0][0]
-        assert sent_frame.type == "client.send"
-        assert sent_frame.to == "peer-1"
+        assert sent_frame.header.resource == "message"
+        assert sent_frame.header.method == "send"
+        assert sent_frame.header.kind == "request"
+        assert sent_frame.header.to == "peer-1"
         assert sent_frame.payload == {"text": "hello"}
-        assert sent_frame.session == "room-1"
+        assert sent_frame.header.session == "room-1"
 
     @pytest.mark.asyncio
     async def test_send_to_multiple_clients(self):
@@ -49,7 +51,7 @@ class TestMessaging:
         await messaging.send(["peer-1", "peer-2"], {"action": "sync"})
 
         sent_frame = conn.send.call_args[0][0]
-        assert sent_frame.to == ["peer-1", "peer-2"]
+        assert sent_frame.header.to == ["peer-1", "peer-2"]
 
     @pytest.mark.asyncio
     async def test_broadcast_sends_correct_frame(self):
@@ -60,9 +62,11 @@ class TestMessaging:
         await messaging.broadcast({"event": "update"})
 
         sent_frame = conn.send.call_args[0][0]
-        assert sent_frame.type == "session.broadcast"
+        assert sent_frame.header.resource == "session"
+        assert sent_frame.header.method == "broadcast"
+        assert sent_frame.header.kind == "request"
         assert sent_frame.payload == {"event": "update"}
-        assert sent_frame.session == "room-1"
+        assert sent_frame.header.session == "room-1"
 
     @pytest.mark.asyncio
     async def test_broadcast_include_self(self):
@@ -73,9 +77,8 @@ class TestMessaging:
         await messaging.broadcast({"event": "ping"}, include_self=True)
 
         sent_frame = conn.send.call_args[0][0]
-        assert sent_frame.options is not None
-        assert sent_frame.options.delivery is not None
-        assert sent_frame.options.delivery.include_self is True
+        assert sent_frame.header.delivery is not None
+        assert sent_frame.header.delivery.include_self is True
 
     @pytest.mark.asyncio
     async def test_broadcast_without_include_self(self):
@@ -86,7 +89,7 @@ class TestMessaging:
         await messaging.broadcast({"event": "ping"})
 
         sent_frame = conn.send.call_args[0][0]
-        assert sent_frame.options is None
+        assert sent_frame.header.delivery is None
 
     @pytest.mark.asyncio
     async def test_requires_session(self):

@@ -7,7 +7,7 @@ import pytest
 from starfish.connection import Connection
 from starfish.presence import Presence
 from starfish.session import Session
-from starfish.types import StarfishClientOptions, StarfishFrame
+from starfish.types import StarfishClientOptions, StarfishFrame, StarfishHeader
 
 
 def make_connection() -> Connection:
@@ -36,8 +36,10 @@ class TestPresence:
 
         conn.send.assert_called_once()
         frame = conn.send.call_args[0][0]
-        assert frame.type == "presence.set"
-        assert frame.session == "room-1"
+        assert frame.header.resource == "presence"
+        assert frame.header.method == "set"
+        assert frame.header.kind == "request"
+        assert frame.header.session == "room-1"
         assert frame.payload == {"cursor": {"x": 10, "y": 20}}
 
     @pytest.mark.asyncio
@@ -67,10 +69,13 @@ class TestPresence:
 
         presence.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="presence.updated",
-                from_="peer-1",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="presence",
+                    method="updated",
+                    kind="event",
+                    from_="peer-1",
+                ),
                 payload={"cursor": {"x": 5, "y": 10}},
             )
         )
@@ -84,19 +89,25 @@ class TestPresence:
 
         presence.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="presence.updated",
-                from_="peer-1",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="presence",
+                    method="updated",
+                    kind="event",
+                    from_="peer-1",
+                ),
                 payload={"status": "active"},
             )
         )
         presence.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_2",
-                type="presence.updated",
-                from_="peer-2",
+                header=StarfishHeader(
+                    id="evt_2",
+                    resource="presence",
+                    method="updated",
+                    kind="event",
+                    from_="peer-2",
+                ),
                 payload={"status": "idle"},
             )
         )
@@ -113,12 +124,26 @@ class TestPresence:
 
         presence.handle_frame(
             StarfishFrame(
-                v=1, id="evt_1", type="presence.updated", from_="peer-1", payload={"v": 1}
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="presence",
+                    method="updated",
+                    kind="event",
+                    from_="peer-1",
+                ),
+                payload={"v": 1},
             )
         )
         presence.handle_frame(
             StarfishFrame(
-                v=1, id="evt_2", type="presence.updated", from_="peer-1", payload={"v": 2}
+                header=StarfishHeader(
+                    id="evt_2",
+                    resource="presence",
+                    method="updated",
+                    kind="event",
+                    from_="peer-1",
+                ),
+                payload={"v": 2},
             )
         )
 
@@ -131,10 +156,13 @@ class TestPresence:
 
         presence.handle_frame(
             StarfishFrame(
-                v=1,
-                id="evt_1",
-                type="message.received",
-                from_="peer-1",
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="message",
+                    method="received",
+                    kind="event",
+                    from_="peer-1",
+                ),
                 payload={"hi": 1},
             )
         )
@@ -147,7 +175,15 @@ class TestPresence:
         presence = Presence(conn, session)
 
         presence.handle_frame(
-            StarfishFrame(v=1, id="evt_1", type="presence.updated", payload={"hi": 1})
+            StarfishFrame(
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="presence",
+                    method="updated",
+                    kind="event",
+                ),
+                payload={"hi": 1},
+            )
         )
 
         assert presence.presence.value == {}
@@ -159,7 +195,14 @@ class TestPresence:
 
         presence.handle_frame(
             StarfishFrame(
-                v=1, id="evt_1", type="presence.updated", from_="peer-1", payload={"v": 1}
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="presence",
+                    method="updated",
+                    kind="event",
+                    from_="peer-1",
+                ),
+                payload={"v": 1},
             )
         )
         presence.clear()
@@ -176,7 +219,14 @@ class TestPresence:
 
         presence.handle_frame(
             StarfishFrame(
-                v=1, id="evt_1", type="presence.updated", from_="peer-1", payload={"x": 1}
+                header=StarfishHeader(
+                    id="evt_1",
+                    resource="presence",
+                    method="updated",
+                    kind="event",
+                    from_="peer-1",
+                ),
+                payload={"x": 1},
             )
         )
 

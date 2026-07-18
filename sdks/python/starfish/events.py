@@ -20,11 +20,13 @@ class Events:
         filtered: EventStream[StarfishFrame] = EventStream()
 
         def handler(frame: StarfishFrame) -> None:
-            if filter.type and frame.type != filter.type:
+            if filter.resource and frame.header.resource != filter.resource:
                 return
-            if filter.topic and frame.topic != filter.topic:
+            if filter.method and frame.header.method != filter.method:
                 return
-            if filter.from_ and frame.from_ != filter.from_:
+            if filter.topic and frame.header.topic != filter.topic:
+                return
+            if filter.from_ and frame.header.from_ != filter.from_:
                 return
             filtered.emit(frame)
 
