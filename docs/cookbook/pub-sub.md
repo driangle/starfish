@@ -21,12 +21,12 @@ await client.join("my-session");
 
 // Subscribe with a callback
 await client.subscribe("chat", (frame) => {
-  console.log(`${frame.from}: ${frame.payload}`);
+  console.log(`${frame.header.from}: ${frame.payload}`);
 });
 
 // Or use the topic stream for reactive patterns
 client.topic$("chat").subscribe((frame) => {
-  console.log(`${frame.from}: ${frame.payload}`);
+  console.log(`${frame.header.from}: ${frame.payload}`);
 });
 
 // Publish a message to all subscribers
@@ -41,11 +41,11 @@ await client.connect()
 await client.join("my-session")
 
 # Subscribe with a callback
-await client.subscribe("chat", lambda frame: print(f"{frame.from_}: {frame.payload}"))
+await client.subscribe("chat", lambda frame: print(f"{frame.header.from_}: {frame.payload}"))
 
 # Or use the topic stream for reactive patterns
 client.topic_stream("chat").subscribe(
-    lambda frame: print(f"{frame.from_}: {frame.payload}")
+    lambda frame: print(f"{frame.header.from_}: {frame.payload}")
 )
 
 # Publish a message to all subscribers
@@ -63,13 +63,13 @@ try await client.join(session: "my-session")
 
 // Subscribe with a callback
 try await client.subscribe(topic: "chat") { frame in
-    print("\(frame.from ?? "?"): \(frame.payload ?? AnyCodable(""))")
+    print("\(frame.header.from ?? "?"): \(frame.payload ?? AnyCodable(""))")
 }
 
 // Or use the topic stream with async iteration
 Task {
     for await frame in client.topicStream("chat") {
-        print("\(frame.from ?? "?"): \(frame.payload ?? AnyCodable(""))")
+        print("\(frame.header.from ?? "?"): \(frame.payload ?? AnyCodable(""))")
     }
 }
 
@@ -120,9 +120,9 @@ client.publish("sensor.data", { temp: 22.5 }, {
 ```
 
 ```python [Python]
-from starfish import FrameOptions, DeliveryOptions
+from starfish import HeaderOptions, DeliveryOptions
 
-await client.publish("sensor.data", {"temp": 22.5}, FrameOptions(
+await client.publish("sensor.data", {"temp": 22.5}, HeaderOptions(
     delivery=DeliveryOptions(reliability="unreliable"),
     ttl=5000,
 ))
@@ -132,7 +132,7 @@ await client.publish("sensor.data", {"temp": 22.5}, FrameOptions(
 try client.publish(
     topic: "sensor.data",
     payload: AnyCodable(["temp": 22.5]),
-    options: FrameOptions(
+    options: HeaderOptions(
         delivery: DeliveryOptions(reliability: .unreliable),
         ttl: 5000
     )

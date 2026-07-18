@@ -1,5 +1,33 @@
 # Troubleshooting
 
+## Structured Error Format
+
+When a request fails, the server responds with a frame whose payload contains a structured error:
+
+```json
+{
+  "header": {
+    "id": "msg_2",
+    "resource": "session",
+    "method": "join",
+    "kind": "response",
+    "replyTo": "msg_1"
+  },
+  "payload": {
+    "status": "error",
+    "error": {
+      "code": "session.not_found",
+      "message": "Session does not exist.",
+      "resource": "session",
+      "retry": false,
+      "details": null
+    }
+  }
+}
+```
+
+The SDK surfaces these as `StarfishError` instances with `code`, `message`, `resource`, `retry`, and `details` fields. The `retry` field indicates whether the client should retry the operation.
+
 ## Error Codes
 
 ### Connection Errors

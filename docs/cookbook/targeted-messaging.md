@@ -48,7 +48,7 @@ client.clients$.subscribe((clients) => {
 ```python [Python]
 from starfish import (
     StarfishClient, StarfishClientOptions, JoinOptions,
-    FrameOptions, DeliveryOptions,
+    HeaderOptions, DeliveryOptions,
 )
 
 client = StarfishClient(StarfishClientOptions(server="ws://localhost:4000"))
@@ -105,7 +105,7 @@ try client.send(to: .multiple(["client-abc", "client-def"]),
 try client.broadcast(payload: AnyCodable(["action": "game-over", "winner": "client-abc"]))
 
 // Broadcast including self
-try client.broadcast(payload: AnyCodable(["action": "reset"]), options: FrameOptions(
+try client.broadcast(payload: AnyCodable(["action": "reset"]), options: HeaderOptions(
     delivery: DeliveryOptions(includeSelf: true)
 ))
 
@@ -131,7 +131,7 @@ Task {
 - **`broadcast(payload, options?)`** — sends to all clients in the session. By default excludes the sender; use `includeSelf: true` to include yourself.
 - **`clients$` / `clients`** — the live list of connected clients, which you can filter by `role`, `name`, or `meta` to build dynamic recipient groups.
 
-Direct messages and broadcasts support the same `FrameOptions` as topic messages — you can set reliability, priority, and TTL.
+Direct messages and broadcasts support the same `HeaderOptions` as topic messages — you can set reliability, priority, and TTL.
 
 ## Variations
 
@@ -147,14 +147,14 @@ client.send("client-abc", { alert: "Server shutting down" }, {
 ```
 
 ```python [Python]
-await client.send("client-abc", {"alert": "Server shutting down"}, FrameOptions(
+await client.send("client-abc", {"alert": "Server shutting down"}, HeaderOptions(
     priority="critical",
     delivery=DeliveryOptions(reliability="reliable"),
 ))
 ```
 
 ```swift [Swift]
-try client.send(to: "client-abc", payload: AnyCodable(["alert": "Server shutting down"]), options: FrameOptions(
+try client.send(to: "client-abc", payload: AnyCodable(["alert": "Server shutting down"]), options: HeaderOptions(
     delivery: DeliveryOptions(reliability: .reliable),
     priority: .critical
 ))

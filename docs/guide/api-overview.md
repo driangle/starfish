@@ -66,7 +66,7 @@
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `events$(filter?)` | `EventStream<StarfishFrame>` | Filtered event stream |
+| `events$(filter?)` | `EventStream<StarfishFrame>` | Filtered event stream (filter by `resource`, `method`, `topic`, `from`) |
 | `on(callback)` | `Unsubscribe` | Listen to all frames |
 
 ### Clock
@@ -168,7 +168,34 @@ for await result in client.dataChanges {
 
 ### StarfishFrame
 
-The protocol message unit. See [Core Concepts](./core-concepts#frames) for the full structure.
+The protocol message unit — an envelope with `header` and `payload`:
+
+```ts
+interface StarfishFrame {
+  header: StarfishHeader;
+  payload?: Record<string, unknown>;
+}
+
+interface StarfishHeader {
+  v?: 2;
+  id: string;
+  resource: string;
+  method: string;
+  kind: "request" | "response" | "event";
+  ts?: number;
+  session?: string;
+  from?: string;
+  to?: string | string[];
+  topic?: string;
+  replyTo?: string;
+  delivery?: DeliveryOptions;
+  priority?: "low" | "normal" | "high" | "critical";
+  ttl?: number;
+  meta?: Record<string, unknown>;
+}
+```
+
+See [Core Concepts](./core-concepts#frames) for details on `kind` semantics and `header.meta` extensibility.
 
 ### ClientInfo
 
@@ -196,8 +223,10 @@ interface DataResult {
 
 ```ts
 class StarfishError extends Error {
-  code: string;      // e.g. "NO_SESSION", "NOT_CONNECTED"
+  code: string;       // e.g. "NO_SESSION", "NOT_CONNECTED"
   message: string;
+  resource?: string;  // the resource that produced the error
+  retry?: boolean;    // whether the client should retry
   details?: unknown;
 }
 ```

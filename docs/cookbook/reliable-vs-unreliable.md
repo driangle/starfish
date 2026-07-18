@@ -40,24 +40,24 @@ client.publish("game.state", { score: 42, level: 3 }, {
 ```
 
 ```python [Python]
-from starfish import StarfishClient, StarfishClientOptions, FrameOptions, DeliveryOptions
+from starfish import StarfishClient, StarfishClientOptions, HeaderOptions, DeliveryOptions
 
 client = StarfishClient(StarfishClientOptions(server="ws://localhost:4000"))
 await client.connect()
 await client.join("my-session")
 
 # Reliable: chat messages must arrive
-await client.publish("chat", {"text": "Hello!"}, FrameOptions(
+await client.publish("chat", {"text": "Hello!"}, HeaderOptions(
     delivery=DeliveryOptions(reliability="reliable"),
 ))
 
 # Unreliable: cursor updates are high-frequency and ephemeral
-await client.publish("cursors", {"x": 120, "y": 340}, FrameOptions(
+await client.publish("cursors", {"x": 120, "y": 340}, HeaderOptions(
     delivery=DeliveryOptions(reliability="unreliable"),
 ))
 
 # Latest: only the most recent game state matters
-await client.publish("game.state", {"score": 42, "level": 3}, FrameOptions(
+await client.publish("game.state", {"score": 42, "level": 3}, HeaderOptions(
     delivery=DeliveryOptions(reliability="latest"),
 ))
 ```
@@ -72,17 +72,17 @@ try await client.connect()
 try await client.join(session: "my-session")
 
 // Reliable: chat messages must arrive
-try client.publish(topic: "chat", payload: AnyCodable(["text": "Hello!"]), options: FrameOptions(
+try client.publish(topic: "chat", payload: AnyCodable(["text": "Hello!"]), options: HeaderOptions(
     delivery: DeliveryOptions(reliability: .reliable)
 ))
 
 // Unreliable: cursor updates are high-frequency and ephemeral
-try client.publish(topic: "cursors", payload: AnyCodable(["x": 120, "y": 340]), options: FrameOptions(
+try client.publish(topic: "cursors", payload: AnyCodable(["x": 120, "y": 340]), options: HeaderOptions(
     delivery: DeliveryOptions(reliability: .unreliable)
 ))
 
 // Latest: only the most recent game state matters
-try client.publish(topic: "game.state", payload: AnyCodable(["score": 42, "level": 3]), options: FrameOptions(
+try client.publish(topic: "game.state", payload: AnyCodable(["score": 42, "level": 3]), options: HeaderOptions(
     delivery: DeliveryOptions(reliability: .latest)
 ))
 ```
@@ -119,7 +119,7 @@ client.publish("positions", { x: 10, y: 20 }, {
 ```
 
 ```python [Python]
-await client.publish("positions", {"x": 10, "y": 20}, FrameOptions(
+await client.publish("positions", {"x": 10, "y": 20}, HeaderOptions(
     delivery=DeliveryOptions(
         reliability="unreliable",
         ordering="unordered",
@@ -128,7 +128,7 @@ await client.publish("positions", {"x": 10, "y": 20}, FrameOptions(
 ```
 
 ```swift [Swift]
-try client.publish(topic: "positions", payload: AnyCodable(["x": 10, "y": 20]), options: FrameOptions(
+try client.publish(topic: "positions", payload: AnyCodable(["x": 10, "y": 20]), options: HeaderOptions(
     delivery: DeliveryOptions(
         reliability: .unreliable,
         ordering: .unordered
@@ -152,14 +152,14 @@ client.send("client-abc", { action: "kick" }, {
 ```
 
 ```python [Python]
-await client.send("client-abc", {"action": "kick"}, FrameOptions(
+await client.send("client-abc", {"action": "kick"}, HeaderOptions(
     delivery=DeliveryOptions(reliability="reliable"),
     priority="high",
 ))
 ```
 
 ```swift [Swift]
-try client.send(to: "client-abc", payload: AnyCodable(["action": "kick"]), options: FrameOptions(
+try client.send(to: "client-abc", payload: AnyCodable(["action": "kick"]), options: HeaderOptions(
     delivery: DeliveryOptions(reliability: .reliable),
     priority: .high
 ))

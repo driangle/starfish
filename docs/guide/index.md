@@ -38,7 +38,7 @@ await client.join("my-session");
 client.publish("cursor", { x: 100, y: 200 });
 
 client.topic$("cursor").subscribe((frame) => {
-  console.log(frame.from, frame.payload);
+  console.log(frame.header.from, frame.payload);
 });
 ```
 
@@ -52,7 +52,7 @@ await client.join("my-session")
 await client.publish("cursor", {"x": 100, "y": 200})
 
 client.topic_stream("cursor").subscribe(
-    lambda frame: print(frame.from_id, frame.payload)
+    lambda frame: print(frame.header.from_id, frame.payload)
 )
 ```
 
@@ -68,7 +68,7 @@ try await client.join(session: "my-session")
 try client.publish(topic: "cursor", payload: ["x": 100, "y": 200])
 
 for await frame in client.topicStream("cursor") {
-    print(frame.from, frame.payload)
+    print(frame.header.from, frame.payload)
 }
 ```
 

@@ -99,7 +99,7 @@ await client.subscribe("cursor");
 
 // Listen for messages
 client.topic$("cursor").subscribe((frame) => {
-  console.log(frame.from, frame.payload);
+  console.log(frame.header.from, frame.payload);
 });
 
 // Publish to a topic
@@ -115,7 +115,7 @@ await client.subscribe("cursor")
 
 # Listen for messages
 client.topic_stream("cursor").subscribe(
-    lambda frame: print(frame.from_id, frame.payload)
+    lambda frame: print(frame.header.from_id, frame.payload)
 )
 
 # Publish to a topic
@@ -132,7 +132,7 @@ try await client.subscribe(topic: "cursor")
 // Listen for messages
 Task {
     for await frame in client.topicStream("cursor") {
-        print(frame.from, frame.payload)
+        print(frame.header.from, frame.payload)
     }
 }
 
@@ -367,20 +367,49 @@ If another client has modified the data since you read it, the save will fail, a
 
 ## Frames
 
-A **frame** is the fundamental message unit in the Starfish protocol. Every message sent between clients and the server is a frame. Frames have a standard structure:
+A **frame** is the fundamental message unit in the Starfish protocol. Every message sent between clients and the server is a frame. Frames use an envelope structure with two top-level fields:
+
+**`header`** — routing and protocol metadata:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `v` | `number` | Protocol version (always `1`) |
+| `v` | `number` | Protocol version (`2`), optional after handshake |
 | `id` | `string` | Unique frame identifier |
-| `type` | `string` | Frame type (e.g. `topic.message`, `presence.updated`) |
+| `resource` | `string` | Target resource (e.g. `topic`, `session`, `data`) |
+| `method` | `string` | Operation (e.g. `publish`, `join`, `save`) |
+| `kind` | `string` | Message role: `"request"`, `"response"`, or `"event"` |
 | `ts` | `number` | Timestamp (optional) |
 | `session` | `string` | Session name (optional) |
 | `from` | `string` | Sender's client ID (optional) |
 | `to` | `string \| string[]` | Recipient(s) (optional) |
 | `topic` | `string` | Topic name (optional) |
-| `payload` | `any` | Message data (optional) |
-| `options` | `FrameOptions` | Delivery and priority options (optional) |
+| `replyTo` | `string` | ID of the request this responds to (optional) |
+| `delivery` | `DeliveryOptions` | Delivery configuration (optional) |
+| `priority` | `string` | `"low"`, `"normal"`, `"high"`, or `"critical"` (optional) |
+| `ttl` | `number` | Time-to-live in ms (optional) |
+| `meta` | `Record<string, unknown>` | Application-specific metadata (optional) |
+
+**`payload`** — the application data (optional).
+
+### Kind Semantics
+
+The `kind` field describes the role of each frame:
+
+| Kind | Description | Examples |
+|------|-------------|----------|
+| `request` | A method invocation that expects a response | `join`, `subscribe`, `save`, `get` |
+| `response` | A reply to a request (matched via `replyTo`) | Join confirmation, get result |
+| `event` | An unsolicited notification — fire-and-forget | `publish`, `presence.set`, `data.changed` |
+
+### `header.meta` Extensibility
+
+The `meta` field allows applications to attach custom metadata to any frame without conflicting with protocol fields:
+
+```ts
+client.publish("updates", { text: "hello" }, {
+  meta: { batchId: "batch_42", priority_level: 5 },
+});
+```
 
 You can listen for all frames using the low-level event API:
 
@@ -389,21 +418,21 @@ You can listen for all frames using the low-level event API:
 ```ts [TypeScript]
 // All frames
 client.on((frame) => {
-  console.log(frame.type, frame.payload);
+  console.log(frame.header.resource, frame.header.method, frame.payload);
 });
 
 // Filtered frames
-client.events$({ type: "topic.message", topic: "cursor" }).subscribe((frame) => {
+client.events$({ resource: "topic", method: "message", topic: "cursor" }).subscribe((frame) => {
   console.log(frame.payload);
 });
 ```
 
 ```python [Python]
 # All frames
-client.on(lambda frame: print(frame.type, frame.payload))
+client.on(lambda frame: print(frame.header.resource, frame.header.method, frame.payload))
 
 # Filtered frames
-client.events(EventFilter(type="topic.message", topic="cursor")).subscribe(
+client.events(EventFilter(resource="topic", method="message", topic="cursor")).subscribe(
     lambda frame: print(frame.payload)
 )
 ```
@@ -411,13 +440,13 @@ client.events(EventFilter(type="topic.message", topic="cursor")).subscribe(
 ```swift [Swift]
 // All frames
 client.on { frame in
-    print(frame.type, frame.payload)
+    print(frame.header.resource, frame.header.method, frame.payload as Any)
 }
 
 // Filtered frames
 Task {
-    for await frame in client.events(filter: EventFilter(type: "topic.message", topic: "cursor")) {
-        print(frame.payload)
+    for await frame in client.events(filter: EventFilter(resource: "topic", method: "message", topic: "cursor")) {
+        print(frame.payload as Any)
     }
 }
 ```
@@ -426,7 +455,7 @@ Task {
 
 ## Delivery Options
 
-When publishing or sending messages, you can control how they are delivered:
+When publishing or sending messages, you can control how they are delivered using `HeaderOptions`:
 
 ```ts
 client.publish("sensor-data", { value: 42 }, {
@@ -439,7 +468,7 @@ client.publish("sensor-data", { value: 42 }, {
   },
   priority: "normal",          // "low" | "normal" | "high" | "critical"
   ttl: 5000,                   // time-to-live in ms
-  requireAck: false,           // require acknowledgment
+  meta: {},                    // application-specific metadata
 });
 ```
 

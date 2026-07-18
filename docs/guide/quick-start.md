@@ -22,7 +22,7 @@ await client.join("my-room");
 
 // 4. Listen for messages on a topic
 client.topic$("chat").subscribe((frame) => {
-  console.log(`${frame.from}: ${frame.payload.text}`);
+  console.log(`${frame.header.from}: ${frame.payload.text}`);
 });
 await client.subscribe("chat");
 
@@ -43,7 +43,7 @@ await client.connect();
 await client.join("my-room");
 
 client.topic$("chat").subscribe((frame) => {
-  console.log(`${frame.from}: ${frame.payload.text}`);
+  console.log(`${frame.header.from}: ${frame.payload.text}`);
 });
 await client.subscribe("chat");
 
@@ -68,7 +68,7 @@ async def main():
 
     # 4. Listen for messages on a topic
     client.topic_stream("chat").subscribe(
-        lambda frame: print(f"{frame.from_id}: {frame.payload['text']}")
+        lambda frame: print(f"{frame.header.from_id}: {frame.payload['text']}")
     )
     await client.subscribe("chat")
 
@@ -96,7 +96,7 @@ try await client.join(session: "my-room")
 Task {
     for await frame in client.topicStream("chat") {
         if let text = frame.payloadString("text") {
-            print("\(frame.from ?? "unknown"): \(text)")
+            print("\(frame.header.from ?? "unknown"): \(text)")
         }
     }
 }

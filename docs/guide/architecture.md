@@ -7,61 +7,114 @@ This page explains how the Starfish client manages connections, communicates wit
 When you call `connect()`, the client:
 
 1. Opens a WebSocket connection to the server URL
-2. Sends a `client.hello` frame with your client identity, auth credentials, and capabilities
-3. Receives a `server.welcome` frame containing your assigned `clientId`, a `resumeToken`, the heartbeat interval, and the server's current time
+2. Sends a hello frame (`resource: "client"`, `method: "hello"`) with your client identity, supported protocol versions, auth credentials, and capabilities
+3. Receives a welcome response (`resource: "client"`, `method: "welcome"`) containing the negotiated protocol version, your assigned `clientId`, a `resumeToken`, the heartbeat interval, and the server's current time
 4. Transitions to the `connected` state and starts the heartbeat
 
 ```
-Client                          Server
-  |                               |
-  |-- WebSocket connect --------->|
-  |                               |
-  |-- client.hello { client,   -->|
-  |     auth, capabilities }      |
-  |                               |
-  |<-- server.welcome { clientId, |
-  |     resumeToken,              |
-  |     heartbeatInterval,     ---|
-  |     serverTime }              |
-  |                               |
-  |   [connected]                 |
+Client                                 Server
+  |                                      |
+  |-- WebSocket connect ---------------->|
+  |                                      |
+  |-- hello { versions: [2],          -->|
+  |     client, auth, capabilities }     |
+  |                                      |
+  |<-- welcome { version: 2,            |
+  |     clientId, resumeToken,           |
+  |     heartbeatInterval,            ---|
+  |     serverTime }                     |
+  |                                      |
+  |   [connected]                        |
 ```
 
 After connecting, the client starts a heartbeat that sends periodic pings to keep the connection alive. The server provides the heartbeat interval (default 15 seconds).
 
-## Frame Protocol
+## Version Negotiation
 
-Every message between client and server is a **frame** — a JSON object with a standard structure:
+During the handshake, the client sends a list of protocol versions it supports in the hello frame's `versions` field. The server selects the highest mutually supported version and includes it in the welcome response's `version` field.
 
 ```json
+// Client hello
 {
-  "v": 1,
-  "id": "pub_42",
-  "type": "topic.publish",
-  "session": "my-session",
-  "topic": "cursor",
-  "payload": { "x": 100, "y": 200 },
-  "options": {
-    "delivery": { "reliability": "unreliable" }
+  "header": {
+    "v": 2,
+    "id": "hello_1",
+    "resource": "client",
+    "method": "hello",
+    "kind": "request"
+  },
+  "payload": {
+    "versions": [2],
+    "client": { "name": "my-app", "role": "player" },
+    "auth": { "type": "none" },
+    "capabilities": { "rtc": true }
+  }
+}
+
+// Server welcome
+{
+  "header": {
+    "id": "welcome_1",
+    "resource": "client",
+    "method": "welcome",
+    "kind": "response",
+    "replyTo": "hello_1"
+  },
+  "payload": {
+    "status": "ok",
+    "version": 2,
+    "clientId": "client_xyz",
+    "resumeToken": "rt_123",
+    "resumeTimeout": 30000,
+    "serverTime": 1700000000000,
+    "heartbeatInterval": 15000
   }
 }
 ```
 
-### Frame Types
+After the handshake completes, the `v` field is implicit (the negotiated version) and may be omitted from subsequent frames.
 
-| Category | Types |
-|----------|-------|
-| **Connection** | `client.hello`, `server.welcome` |
-| **Session** | `session.join`, `session.leave`, `session.broadcast`, `client.connected`, `client.disconnected` |
-| **Topics** | `topic.subscribe`, `topic.unsubscribe`, `topic.publish`, `topic.message`, `topic.peers` |
-| **Presence** | `presence.set`, `presence.updated` |
-| **Data** | `data.save`, `data.get`, `data.changed` |
-| **Clock** | `clock.sync` |
-| **WebRTC** | `rtc.*` (signaling frames) |
+## Frame Protocol
+
+Every message between client and server is a **frame** — a JSON object with a two-level envelope structure. The `header` contains routing and protocol metadata, while the `payload` carries the application data:
+
+```json
+{
+  "header": {
+    "id": "pub_42",
+    "resource": "topic",
+    "method": "publish",
+    "kind": "event",
+    "session": "my-session",
+    "topic": "cursor",
+    "delivery": { "reliability": "unreliable" }
+  },
+  "payload": { "x": 100, "y": 200 }
+}
+```
+
+Instead of a single `type` string (e.g. `"topic.publish"`), frames use three fields to describe their intent:
+
+- **`resource`** — the target resource category (e.g. `"topic"`, `"session"`, `"data"`)
+- **`method`** — the operation to perform (e.g. `"publish"`, `"join"`, `"save"`)
+- **`kind`** — the message role: `"request"`, `"response"`, or `"event"`
+
+### Resources and Methods
+
+| Category | Resource | Methods |
+|----------|----------|---------|
+| **Connection** | `client` | `hello`, `welcome`, `connected`, `disconnected` |
+| **Session** | `session` | `join`, `leave`, `broadcast` |
+| **Topics** | `topic` | `subscribe`, `unsubscribe`, `publish`, `message`, `peers` |
+| **Messaging** | `message` | `send` |
+| **Presence** | `presence` | `set`, `updated` |
+| **Data** | `data` | `save`, `get`, `changed` |
+| **Clock** | `clock` | `sync` |
+| **WebRTC** | `rtc` | `offer`, `answer`, `candidate`, ... |
 
 ### Request/Reply
 
-Some frames use a request/reply pattern. The client sends a frame with an `id` and waits for a response frame with the same `id`. This is used for `join`, `subscribe`, `save`, `get`, and `clock.sync`. Requests time out after 10 seconds by default.
+Frames with `kind: "request"` expect a corresponding `kind: "response"` frame. The response includes a `replyTo` field matching the original request's `id`. This is used for `join`, `subscribe`, `save`, `get`, and `clock.sync`. Requests time out after 10 seconds by default.
 
 ## Transport Selection
 
@@ -72,16 +125,16 @@ The client supports two transports:
 
 ### Auto Selection Rules
 
-When `preferTransport` is `"auto"` (the default), the client picks the transport based on the frame type and delivery options:
+When `preferTransport` is `"auto"` (the default), the client picks the transport based on the resource/method and delivery options:
 
-| Frame Type | Reliability | Transport |
-|------------|-------------|-----------|
-| `data.*`, `session.*`, `presence.*` | any | Always WS |
-| `session.broadcast` | any | Always WS |
-| `topic.publish` | `reliable` | WS |
-| `topic.publish` | `unreliable` / `latest` | RTC if peers connected, else WS |
-| `client.send` | `reliable` | RTC if connected, else WS |
-| `client.send` | `unreliable` / `latest` | RTC preferred, WS fallback |
+| Resource / Method | Reliability | Transport |
+|-------------------|-------------|-----------|
+| `data/*`, `session/*`, `presence/*` | any | Always WS |
+| `session` / `broadcast` | any | Always WS |
+| `topic` / `publish` | `reliable` | WS |
+| `topic` / `publish` | `unreliable` / `latest` | RTC if peers connected, else WS |
+| `message` / `send` | `reliable` | RTC if connected, else WS |
+| `message` / `send` | `unreliable` / `latest` | RTC preferred, WS fallback |
 
 ### Explicit Transport Selection
 

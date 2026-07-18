@@ -2,7 +2,7 @@
 
 ## Problem
 
-You're receiving many events and want to handle only specific ones — messages from a particular client, events on a certain topic, or frames of a specific type.
+You're receiving many events and want to handle only specific ones — messages from a particular client, events on a certain topic, or frames matching a specific resource and method.
 
 ## Solution
 
@@ -29,9 +29,9 @@ client.events$({ from: "client-abc" }).subscribe((frame) => {
   console.log("From client-abc:", frame.payload);
 });
 
-// Filter by event type
-client.events$({ type: "topic.message" }).subscribe((frame) => {
-  console.log("Topic message:", frame.topic, frame.payload);
+// Filter by resource and method
+client.events$({ resource: "topic", method: "message" }).subscribe((frame) => {
+  console.log("Topic message:", frame.header.topic, frame.payload);
 });
 
 // Combine filters
@@ -41,7 +41,7 @@ client.events$({ topic: "chat", from: "client-abc" }).subscribe((frame) => {
 
 // Listen to all events (no filter)
 client.on((frame) => {
-  console.log("Any event:", frame.type, frame.payload);
+  console.log("Any event:", frame.header.resource, frame.header.method, frame.payload);
 });
 ```
 
@@ -62,9 +62,9 @@ client.events(EventFilter(from_="client-abc")).subscribe(
     lambda frame: print("From client-abc:", frame.payload)
 )
 
-# Filter by event type
-client.events(EventFilter(type="topic.message")).subscribe(
-    lambda frame: print("Topic message:", frame.topic, frame.payload)
+# Filter by resource and method
+client.events(EventFilter(resource="topic", method="message")).subscribe(
+    lambda frame: print("Topic message:", frame.header.topic, frame.payload)
 )
 
 # Combine filters
@@ -73,7 +73,7 @@ client.events(EventFilter(topic="chat", from_="client-abc")).subscribe(
 )
 
 # Listen to all events (no filter)
-client.on(lambda frame: print("Any event:", frame.type, frame.payload))
+client.on(lambda frame: print("Any event:", frame.header.resource, frame.header.method, frame.payload))
 ```
 
 ```swift [Swift]
@@ -99,10 +99,10 @@ Task {
     }
 }
 
-// Filter by event type
+// Filter by resource and method
 Task {
-    for await frame in client.events(filter: EventFilter(type: "topic.message")) {
-        print("Topic message:", frame.topic as Any, frame.payload as Any)
+    for await frame in client.events(filter: EventFilter(resource: "topic", method: "message")) {
+        print("Topic message:", frame.header.topic as Any, frame.payload as Any)
     }
 }
 
@@ -115,7 +115,7 @@ Task {
 
 // Listen to all events (no filter)
 client.on { frame in
-    print("Any event:", frame.type as Any, frame.payload as Any)
+    print("Any event:", frame.header.resource, frame.header.method, frame.payload as Any)
 }
 ```
 
@@ -123,11 +123,12 @@ client.on { frame in
 
 ## Explanation
 
-`EventFilter` has three optional fields — all specified fields must match for an event to pass:
+`EventFilter` has four optional fields — all specified fields must match for an event to pass:
 
 | Field | Description |
 |-------|-------------|
-| `type` | Frame type (e.g., `"topic.message"`, `"data.changed"`) |
+| `resource` | Target resource (e.g., `"topic"`, `"data"`) |
+| `method` | Operation (e.g., `"message"`, `"changed"`) |
 | `topic` | Topic name for pub/sub events |
 | `from` | Sender's client ID |
 
