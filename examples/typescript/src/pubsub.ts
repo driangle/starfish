@@ -38,7 +38,7 @@ async function main() {
 
   // Listen for messages on the topic using topic$()
   subscriber.topic$("chat").subscribe((frame) => {
-    console.log(`[${frame.from}] ${frame.payload.text}`);
+    console.log(`[${frame.header.from}] ${frame.payload?.text}`);
   });
 
   // Give the subscription a moment to propagate

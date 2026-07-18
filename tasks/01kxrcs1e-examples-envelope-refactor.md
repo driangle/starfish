@@ -1,11 +1,12 @@
 ---
 title: "Update examples for new protocol envelope"
 id: "01kxrcs1e"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["examples", "breaking-change"]
 created_at: "2026-07-17"
+completed_at: 2026-07-18
 ---
 
 # Update examples for new protocol envelope
@@ -16,11 +17,11 @@ Update all example projects (`examples/`) to use the new protocol envelope via t
 
 ## Tasks
 
-- [ ] Update p5.js examples for new envelope
-- [ ] Update Three.js examples for new envelope
-- [ ] Update TypeScript examples for new envelope
-- [ ] Update Python examples for new envelope
-- [ ] Verify all examples run correctly end-to-end
+- [x] Update p5.js examples for new envelope
+- [x] Update Three.js examples for new envelope
+- [x] Update TypeScript examples for new envelope
+- [x] Update Python examples for new envelope
+- [x] Verify all examples run correctly end-to-end
 
 ## Acceptance Criteria
 

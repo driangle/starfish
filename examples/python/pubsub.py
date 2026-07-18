@@ -39,7 +39,7 @@ async def main():
 
     # Listen for messages on the topic using topic_stream()
     subscriber.topic_stream("chat").subscribe(
-        lambda frame: print(f"[{frame.from_}] {frame.payload['text']}")
+        lambda frame: print(f"[{frame.header.from_}] {frame.payload['text']}")
     )
 
     # Give the subscription a moment to propagate

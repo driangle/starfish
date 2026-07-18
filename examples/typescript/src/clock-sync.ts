@@ -62,11 +62,11 @@ async function main() {
 
   await new Promise<void>((resolve) => {
     let fired = 0;
-    clientA.at(targetTime, () => {
+    clientA.clock.at(targetTime, () => {
       console.log(`  Client-A fired at local time ${Date.now()}`);
       if (++fired === 2) resolve();
     });
-    clientB.at(targetTime, () => {
+    clientB.clock.at(targetTime, () => {
       console.log(`  Client-B fired at local time ${Date.now()}`);
       if (++fired === 2) resolve();
     });
