@@ -1,11 +1,12 @@
 ---
 title: "Refactor Go SDK for new protocol envelope"
 id: "01kxrcr4s"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["sdk", "golang", "breaking-change"]
 created_at: "2026-07-17"
+completed_at: 2026-07-18
 ---
 
 # Refactor Go SDK for new protocol envelope
@@ -16,13 +17,13 @@ Update the Go SDK (`sdks/golang/`) to use the new protocol envelope: `header`/`p
 
 ## Tasks
 
-- [ ] Update frame struct — replace flat struct with `Header`/`Payload` split
-- [ ] Replace `Type` field with `Method`/`Resource`/`Kind`
-- [ ] Update JSON marshaling/unmarshaling for new envelope
-- [ ] Update connection handshake to negotiate version
-- [ ] Update error types to structured format with `Retry` field
-- [ ] Add `Meta` map support to header
-- [ ] Update unit tests
+- [x] Update frame struct — replace flat struct with `Header`/`Payload` split
+- [x] Replace `Type` field with `Method`/`Resource`/`Kind`
+- [x] Update JSON marshaling/unmarshaling for new envelope
+- [x] Update connection handshake to negotiate version
+- [x] Update error types to structured format with `Retry` field
+- [x] Add `Meta` map support to header
+- [x] Update unit tests
 
 ## Acceptance Criteria
 
