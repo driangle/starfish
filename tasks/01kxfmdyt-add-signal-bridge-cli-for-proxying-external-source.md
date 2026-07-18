@@ -84,3 +84,12 @@ bridges/
 - The CLI prints helpful errors when required args are missing or a device/port can't be opened
 - Adding a new source type requires only implementing the `BridgeSource` interface and registering it — no changes to core CLI logic
 - The project builds, lints, and passes validation via Makefile targets
+
+## Sub-tasks
+
+- `01kxtrwnb` — Signal bridge core: project scaffold, BridgeSource interface, CLI, and shared starfish connection
+- `01kxtrwtf` — Signal bridge: MIDI source
+- `01kxtrwtg` — Signal bridge: OSC source
+- `01kxtrwyy` — Signal bridge: MQTT source
+- `01kxtrx3v` — Signal bridge: DMX/Art-Net source
+- `01kxtrxas` — Signal bridge: Serial source
