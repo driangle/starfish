@@ -2,7 +2,7 @@
 title: "Add pool matchmaking tests to Python SDK × TypeScript server integration suite"
 id: "01kxjnt8n"
 status: pending
-priority: high
+priority: medium
 type: feature
 tags: ["pool", "testing", "integration", "python", "typescript"]
 created_at: "2026-07-15"

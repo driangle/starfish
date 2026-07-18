@@ -2,7 +2,7 @@
 title: "Add pool matchmaking tests to Python SDK × Go server integration suite"
 id: "01kxjnt7x"
 status: pending
-priority: high
+priority: medium
 type: feature
 tags: ["pool", "testing", "integration", "python", "golang"]
 created_at: "2026-07-15"

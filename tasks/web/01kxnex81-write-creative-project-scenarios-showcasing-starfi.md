@@ -2,7 +2,7 @@
 title: "Write creative project scenarios showcasing starfish"
 id: "01kxnex81"
 status: pending
-priority: medium
+priority: high
 type: chore
 tags: ["docs", "examples"]
 created_at: "2026-07-16"

@@ -1,7 +1,7 @@
 ---
 title: "Update integration tests for new protocol envelope"
 id: "01kxrcs2y"
-status: pending
+status: in-progress
 priority: high
 type: feature
 tags: ["tests", "breaking-change"]

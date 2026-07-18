@@ -2,7 +2,7 @@
 title: "Implement JVM Server"
 id: "01kxbrjj7"
 status: pending
-priority: high
+priority: low
 type: feature
 tags: ["server", "jvm"]
 created_at: "2026-07-12"

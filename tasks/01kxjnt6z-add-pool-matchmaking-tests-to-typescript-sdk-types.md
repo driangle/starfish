@@ -2,7 +2,7 @@
 title: "Add pool matchmaking tests to TypeScript SDK × TypeScript server integration suite"
 id: "01kxjnt6z"
 status: pending
-priority: high
+priority: medium
 type: feature
 tags: ["pool", "testing", "integration", "typescript"]
 created_at: "2026-07-15"

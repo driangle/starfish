@@ -2,7 +2,7 @@
 title: "Implement JVM SDK"
 id: "01kxbrhex"
 status: pending
-priority: high
+priority: low
 type: feature
 tags: ["sdk", "jvm"]
 created_at: "2026-07-12"
