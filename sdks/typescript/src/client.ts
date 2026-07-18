@@ -8,7 +8,7 @@ import {
   type EventFilter,
   type ClientInfo,
   type ConnectionState,
-  type FrameOptions,
+  type HeaderOptions,
   type RTCPeerInfo,
 } from "./types.js";
 import { Connection } from "./connection.js";
@@ -52,7 +52,7 @@ export class StarfishClient {
     this._pool = new Pool(this.connection, this._session);
 
     this.connection.frames$.subscribe((frame) => {
-      if (frame.type.startsWith("rtc.") && this._rtc) {
+      if (frame.header.resource === "rtc" && this._rtc) {
         this._rtc.handleFrame(frame);
       } else {
         this.dispatchFrame(frame);
@@ -126,7 +126,7 @@ export class StarfishClient {
     return this._topics.unsubscribe(topic);
   }
 
-  publish(topic: string, payload: any, options?: FrameOptions): void {
+  publish(topic: string, payload: any, options?: HeaderOptions): void {
     this._topics.publish(topic, payload, options);
   }
 
@@ -134,7 +134,7 @@ export class StarfishClient {
     return this._topics.topic$(topic);
   }
 
-  send(to: string | string[], payload: any, options?: FrameOptions): void {
+  send(to: string | string[], payload: any, options?: HeaderOptions): void {
     this._messaging.send(to, payload, options);
   }
 
@@ -146,7 +146,7 @@ export class StarfishClient {
     return this._messaging.messagesFrom$(peerId);
   }
 
-  broadcast(payload: any, options?: FrameOptions): void {
+  broadcast(payload: any, options?: HeaderOptions): void {
     this._messaging.broadcast(payload, options);
   }
 

@@ -25,10 +25,13 @@ export class Presence {
     validatePayloadSize(json, MAX_PRESENCE_SIZE, "Presence payload");
 
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("pres"),
-      type: "presence.set",
-      session: sessionName,
+      header: {
+        id: nextId("pres"),
+        resource: "presence",
+        method: "set",
+        kind: "request",
+        session: sessionName,
+      },
       payload,
     };
 
@@ -36,8 +39,12 @@ export class Presence {
   }
 
   handleFrame(frame: StarfishFrame): void {
-    if (frame.type === "presence.updated" && frame.from) {
-      this.presenceMap.set(frame.from, frame.payload);
+    if (
+      frame.header.resource === "presence" &&
+      frame.header.method === "updated" &&
+      frame.header.from
+    ) {
+      this.presenceMap.set(frame.header.from, frame.payload);
       this.presence$.set(new Map(this.presenceMap));
     }
   }

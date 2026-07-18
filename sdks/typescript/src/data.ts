@@ -19,12 +19,12 @@ export class Data {
   }
 
   handleFrame(frame: StarfishFrame): void {
-    if (frame.type === "data.changed" && frame.payload) {
+    if (frame.header.resource === "data" && frame.header.method === "changed" && frame.payload) {
       const result: DataResult = {
-        key: frame.payload.key,
-        scope: frame.payload.scope,
+        key: frame.payload.key as string,
+        scope: frame.payload.scope as "self" | "session",
         data: frame.payload.data,
-        version: frame.payload.version,
+        version: frame.payload.version as number,
       };
       this.changed$.emit(result);
 
@@ -62,38 +62,44 @@ export class Data {
     if (options.expectedVersion !== undefined) payload.expectedVersion = options.expectedVersion;
 
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("dsave"),
-      type: "data.save",
-      session: sessionName,
+      header: {
+        id: nextId("dsave"),
+        resource: "data",
+        method: "save",
+        kind: "request",
+        session: sessionName,
+      },
       payload,
     };
 
     const response = await this.connection.sendAndWait(frame);
     return {
-      key: response.payload.key,
-      scope: response.payload.scope,
-      data: response.payload.data,
-      version: response.payload.version,
+      key: response.payload!.key as string,
+      scope: response.payload!.scope as "self" | "session",
+      data: response.payload!.data,
+      version: response.payload!.version as number,
     };
   }
 
   async get(options: { key: string; scope: "self" | "session" }): Promise<DataResult> {
     const sessionName = this.requireSession();
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("dget"),
-      type: "data.get",
-      session: sessionName,
+      header: {
+        id: nextId("dget"),
+        resource: "data",
+        method: "get",
+        kind: "request",
+        session: sessionName,
+      },
       payload: { key: options.key, scope: options.scope },
     };
 
     const response = await this.connection.sendAndWait(frame);
     return {
-      key: response.payload.key,
-      scope: response.payload.scope,
-      data: response.payload.data,
-      version: response.payload.version,
+      key: response.payload!.key as string,
+      scope: response.payload!.scope as "self" | "session",
+      data: response.payload!.data,
+      version: response.payload!.version as number,
     };
   }
 

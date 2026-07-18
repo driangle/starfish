@@ -22,10 +22,12 @@ describe("SDK: session", () => {
 
     const response = await client.join(session);
 
-    expect(response.type).toBe("session.joined");
-    expect(response.session).toBe(session);
-    expect(response.payload.clients).toHaveLength(1);
-    expect(response.payload.clients[0].id).toBe(client.clientId);
+    expect(response.header.resource).toBe("session");
+    expect(response.header.method).toBe("join");
+    expect(response.header.kind).toBe("response");
+    expect(response.header.session).toBe(session);
+    expect((response.payload as any).clients).toHaveLength(1);
+    expect((response.payload as any).clients[0].id).toBe(client.clientId);
   });
 
   it("clients$ includes all session members", async () => {

@@ -18,10 +18,13 @@ describe("PendingRequests", () => {
     const promise = pending.add("msg_1", 5000);
 
     const reply: StarfishFrame = {
-      v: 1,
-      id: "srv_1",
-      type: "session.joined",
-      replyTo: "msg_1",
+      header: {
+        id: "srv_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "msg_1",
+      },
       payload: { clientId: "abc" },
     };
 
@@ -33,13 +36,21 @@ describe("PendingRequests", () => {
     const promise = pending.add("msg_2", 5000);
 
     const errorReply: StarfishFrame = {
-      v: 1,
-      id: "err_1",
-      type: "error",
-      replyTo: "msg_2",
-      error: {
-        code: "session.not_found",
-        message: "Session does not exist.",
+      header: {
+        id: "err_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "msg_2",
+      },
+      payload: {
+        status: "error",
+        error: {
+          code: "session.not_found",
+          resource: "session",
+          message: "Session does not exist.",
+          retry: false,
+        },
       },
     };
 
@@ -47,11 +58,40 @@ describe("PendingRequests", () => {
     await expect(promise).rejects.toThrow("Session does not exist.");
     await expect(promise).rejects.toBeInstanceOf(StarfishError);
     await promise.catch((err) => {
-      expect(err.code).toBe("SERVER_ERROR");
-      expect(err.details).toEqual({
-        code: "session.not_found",
-        details: undefined,
-      });
+      expect(err.code).toBe("session.not_found");
+      expect(err.message).toBe("Session does not exist.");
+      expect(err.resource).toBe("session");
+      expect(err.retry).toBe(false);
+      expect(err.details).toEqual(undefined);
+    });
+  });
+
+  it("rejects on error frame with details in payload", async () => {
+    const promise = pending.add("msg_2b", 5000);
+
+    const errorReply: StarfishFrame = {
+      header: {
+        id: "err_2",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "msg_2b",
+      },
+      payload: {
+        status: "error",
+        error: {
+          code: "session.not_found",
+          resource: "session",
+          message: "Session does not exist.",
+          retry: false,
+        },
+        details: { id: "abc" },
+      },
+    };
+
+    pending.resolve(errorReply);
+    await promise.catch((err) => {
+      expect(err.details).toEqual({ id: "abc" });
     });
   });
 
@@ -71,9 +111,12 @@ describe("PendingRequests", () => {
     pending.add("msg_4", 5000);
 
     const unrelated: StarfishFrame = {
-      v: 1,
-      id: "evt_1",
-      type: "topic.message",
+      header: {
+        id: "evt_1",
+        resource: "topic",
+        method: "message",
+        kind: "event",
+      },
     };
 
     expect(pending.resolve(unrelated)).toBe(false);
@@ -81,9 +124,12 @@ describe("PendingRequests", () => {
 
   it("returns false for frame without replyTo", () => {
     const frame: StarfishFrame = {
-      v: 1,
-      id: "evt_1",
-      type: "topic.message",
+      header: {
+        id: "evt_1",
+        resource: "topic",
+        method: "message",
+        kind: "event",
+      },
     };
 
     expect(pending.resolve(frame)).toBe(false);

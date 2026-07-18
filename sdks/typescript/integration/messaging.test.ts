@@ -28,14 +28,15 @@ describe("SDK: messaging", () => {
 
     const received = new Promise<StarfishFrame>((resolve) => {
       receiver.on((frame) => {
-        if (frame.type === "client.message") resolve(frame);
+        if (frame.header.resource === "message" && frame.header.method === "message")
+          resolve(frame);
       });
     });
 
     sender.send(receiver.clientId!, { gesture: "wave" });
 
     const message = await received;
-    expect(message.from).toBe(sender.clientId);
+    expect(message.header.from).toBe(sender.clientId);
     expect(message.payload).toEqual({ gesture: "wave" });
   });
 
@@ -56,12 +57,12 @@ describe("SDK: messaging", () => {
 
     const p1 = new Promise<StarfishFrame>((resolve) => {
       recv1.on((f) => {
-        if (f.type === "client.message") resolve(f);
+        if (f.header.resource === "message" && f.header.method === "message") resolve(f);
       });
     });
     const p2 = new Promise<StarfishFrame>((resolve) => {
       recv2.on((f) => {
-        if (f.type === "client.message") resolve(f);
+        if (f.header.resource === "message" && f.header.method === "message") resolve(f);
       });
     });
 
@@ -85,14 +86,15 @@ describe("SDK: messaging", () => {
 
     const received = new Promise<StarfishFrame>((resolve) => {
       listener.on((frame) => {
-        if (frame.type === "session.broadcast") resolve(frame);
+        if (frame.header.resource === "session" && frame.header.method === "broadcast")
+          resolve(frame);
       });
     });
 
     broadcaster.broadcast({ alert: "go" });
 
     const message = await received;
-    expect(message.from).toBe(broadcaster.clientId);
+    expect(message.header.from).toBe(broadcaster.clientId);
     expect(message.payload).toEqual({ alert: "go" });
   });
 
@@ -105,7 +107,8 @@ describe("SDK: messaging", () => {
 
     const received = new Promise<StarfishFrame>((resolve) => {
       client.on((frame) => {
-        if (frame.type === "session.broadcast") resolve(frame);
+        if (frame.header.resource === "session" && frame.header.method === "broadcast")
+          resolve(frame);
       });
     });
 

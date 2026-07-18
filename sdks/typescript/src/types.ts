@@ -1,9 +1,9 @@
-// --- Protocol types ---
-
 export class StarfishError extends Error {
   constructor(
     public readonly code: string,
     message: string,
+    public readonly resource?: string,
+    public readonly retry?: boolean,
     public readonly details?: unknown,
   ) {
     super(message);
@@ -17,33 +17,38 @@ export interface DeliveryOptions {
   preferTransport?: "ws" | "rtc" | "auto";
   fallback?: boolean;
   includeSelf?: boolean;
-}
-
-export interface FrameOptions {
-  delivery?: DeliveryOptions;
-  priority?: "low" | "normal" | "high" | "critical";
-  ttl?: number;
   requireAck?: boolean;
 }
 
-export interface StarfishFrame {
-  v: number;
+export interface HeaderOptions {
+  delivery?: DeliveryOptions;
+  priority?: "low" | "normal" | "high" | "critical";
+  ttl?: number;
+  meta?: Record<string, unknown>;
+}
+
+export interface StarfishHeader {
+  v?: 2;
   id: string;
-  type: string;
+  resource: string;
+  method: string;
+  kind: "request" | "response" | "event";
   ts?: number;
   session?: string;
   from?: string;
   to?: string | string[];
   topic?: string;
-  ack?: boolean;
   replyTo?: string;
-  transport?: "ws" | "rtc";
-  options?: FrameOptions;
-  payload?: any;
-  error?: StarfishError;
+  delivery?: DeliveryOptions;
+  priority?: "low" | "normal" | "high" | "critical";
+  ttl?: number;
+  meta?: Record<string, unknown>;
 }
 
-// --- Client configuration ---
+export interface StarfishFrame {
+  header: StarfishHeader;
+  payload?: Record<string, unknown>;
+}
 
 export interface WebSocketLike {
   readonly readyState: number;
@@ -79,8 +84,6 @@ export interface StarfishClientOptions {
   rtc?: RTCOptions;
 }
 
-// --- Data types ---
-
 export type DataOp =
   | "replace"
   | "merge"
@@ -106,8 +109,6 @@ export interface DataResult {
   version: number;
 }
 
-// --- Session types ---
-
 export interface JoinOptions {
   name?: string;
   role?: string;
@@ -122,19 +123,14 @@ export interface ClientInfo {
   meta?: Record<string, unknown>;
 }
 
-// --- Event filtering ---
-
 export interface EventFilter {
-  type?: string;
+  resource?: string;
+  method?: string;
   topic?: string;
   from?: string;
 }
 
-// --- Connection state ---
-
 export type ConnectionState = "disconnected" | "connecting" | "connected" | "reconnecting";
-
-// --- WebRTC types ---
 
 export interface RTCDataChannelLike {
   readonly label: string;

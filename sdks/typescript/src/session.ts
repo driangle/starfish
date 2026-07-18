@@ -32,10 +32,13 @@ export class Session {
 
   async join(session: string, options?: JoinOptions): Promise<StarfishFrame> {
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("join"),
-      type: "session.join",
-      session,
+      header: {
+        id: nextId("join"),
+        resource: "session",
+        method: "join",
+        kind: "request",
+        session,
+      },
       payload: {
         create: options?.create ?? true,
         name: options?.name ?? this.connection.clientId ?? "client",
@@ -47,7 +50,7 @@ export class Session {
     const response = await this.connection.sendAndWait(frame);
     this._session = session;
 
-    const clients: ClientInfo[] = response.payload?.clients ?? [];
+    const clients: ClientInfo[] = (response.payload?.clients as ClientInfo[]) ?? [];
     this._clients.clear();
     for (const c of clients) {
       this._clients.set(c.id, c);
@@ -61,10 +64,13 @@ export class Session {
     if (!this._session) return;
 
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("leave"),
-      type: "session.leave",
-      session: this._session,
+      header: {
+        id: nextId("leave"),
+        resource: "session",
+        method: "leave",
+        kind: "request",
+        session: this._session,
+      },
     };
 
     this.connection.send(frame);
@@ -74,10 +80,11 @@ export class Session {
   }
 
   handleFrame(frame: StarfishFrame): void {
-    if (!this._session || frame.session !== this._session) return;
+    if (!this._session || frame.header.session !== this._session) return;
+    if (frame.header.resource !== "session") return;
 
-    switch (frame.type) {
-      case "client.connected": {
+    switch (frame.header.method) {
+      case "connected": {
         const client = frame.payload?.client as ClientInfo | undefined;
         if (client) {
           this._clients.set(client.id, client);
@@ -85,7 +92,7 @@ export class Session {
         }
         break;
       }
-      case "client.disconnected": {
+      case "disconnected": {
         const clientId = frame.payload?.clientId as string | undefined;
         if (clientId) {
           this._clients.delete(clientId);

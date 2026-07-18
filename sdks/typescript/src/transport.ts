@@ -53,29 +53,30 @@ function selectAuto(
   delivery: DeliveryOptions | undefined,
   rtcState: RTCState | null,
 ): TransportDecision {
-  const type = frame.type;
+  const { resource, method } = frame.header;
 
-  // data.*, session.*, presence.* → always WS
-  if (type.startsWith("data.") || type.startsWith("session.") || type.startsWith("presence.")) {
+  // data, session, presence → always WS
+  if (resource === "data" || resource === "session" || resource === "presence") {
     return { transport: "ws" };
   }
 
-  // topic.publish
-  if (type === "topic.publish") {
+  // topic publish
+  if (resource === "topic" && method === "publish") {
     const reliability = delivery?.reliability ?? "reliable";
     if (reliability === "reliable") {
       return { transport: "ws" };
     }
     // unreliable/latest → RTC if peer path exists
-    const peers = frame.topic ? (rtcState?.getTopicPeers(frame.topic) ?? []) : [];
+    const topic = frame.header.topic;
+    const peers = topic ? (rtcState?.getTopicPeers(topic) ?? []) : [];
     const connectedPeers = peers.filter((p) => rtcState?.isPeerConnected(p) ?? false);
     return connectedPeers.length > 0
       ? { transport: "rtc", peers: connectedPeers }
       : { transport: "ws" };
   }
 
-  // client.send
-  if (type === "client.send") {
+  // message send
+  if (resource === "message" && method === "send") {
     const reliability = delivery?.reliability ?? "reliable";
     const peers = resolveAvailablePeers(frame, rtcState);
 
@@ -88,22 +89,27 @@ function selectAuto(
     return peers.length > 0 ? { transport: "rtc", peers } : { transport: "ws" };
   }
 
-  // Everything else (session.broadcast, etc.) → WS
+  // Everything else → WS
   return { transport: "ws" };
 }
 
-/** Resolve peers from frame.to (direct messaging) or topic peers (topic publishing) */
+/** Resolve peers from frame.header.to (direct messaging) or topic peers (topic publishing) */
 function resolveAvailablePeers(frame: StarfishFrame, rtcState: RTCState | null): string[] {
   if (!rtcState) return [];
 
-  // For topic.publish, resolve peers from the topic subscription map
-  if (frame.type === "topic.publish" && frame.topic) {
-    const topicPeers = rtcState.getTopicPeers(frame.topic);
+  // For topic publish, resolve peers from the topic subscription map
+  if (
+    frame.header.resource === "topic" &&
+    frame.header.method === "publish" &&
+    frame.header.topic
+  ) {
+    const topicPeers = rtcState.getTopicPeers(frame.header.topic);
     return topicPeers.filter((peerId) => rtcState.isPeerConnected(peerId));
   }
 
-  // For direct messages, resolve from frame.to
-  const targets = Array.isArray(frame.to) ? frame.to : frame.to ? [frame.to] : [];
+  // For direct messages, resolve from frame.header.to
+  const to = frame.header.to;
+  const targets = Array.isArray(to) ? to : to ? [to] : [];
 
   return targets.filter((peerId) => rtcState.isPeerConnected(peerId));
 }

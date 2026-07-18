@@ -34,10 +34,13 @@ describe("Session", () => {
 
     const clients = [clientInfo("me"), clientInfo("alice")];
     vi.mocked(conn.sendAndWait).mockResolvedValue({
-      v: 1,
-      id: "resp_1",
-      type: "session.joined",
-      replyTo: "join_1",
+      header: {
+        id: "resp_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "join_1",
+      },
       payload: { clients },
     });
 
@@ -45,13 +48,17 @@ describe("Session", () => {
 
     expect(conn.sendAndWait).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "session.join",
-        session: "room-1",
+        header: expect.objectContaining({
+          resource: "session",
+          method: "join",
+          session: "room-1",
+        }),
         payload: expect.objectContaining({ create: true }),
       }),
     );
     expect(session.current).toBe("room-1");
-    expect(response.type).toBe("session.joined");
+    expect(response.header.method).toBe("join");
+    expect(response.header.kind).toBe("response");
   });
 
   it("join() populates clients$ with all clients from response", async () => {
@@ -60,10 +67,13 @@ describe("Session", () => {
 
     const clients = [clientInfo("me"), clientInfo("alice"), clientInfo("bob")];
     vi.mocked(conn.sendAndWait).mockResolvedValue({
-      v: 1,
-      id: "resp_1",
-      type: "session.joined",
-      replyTo: "join_1",
+      header: {
+        id: "resp_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "join_1",
+      },
       payload: { clients },
     });
 
@@ -79,10 +89,13 @@ describe("Session", () => {
 
     const clients = [clientInfo("me"), clientInfo("alice"), clientInfo("bob")];
     vi.mocked(conn.sendAndWait).mockResolvedValue({
-      v: 1,
-      id: "resp_1",
-      type: "session.joined",
-      replyTo: "join_1",
+      header: {
+        id: "resp_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "join_1",
+      },
       payload: { clients },
     });
 
@@ -97,10 +110,13 @@ describe("Session", () => {
     const session = new Session(conn);
 
     vi.mocked(conn.sendAndWait).mockResolvedValue({
-      v: 1,
-      id: "resp_1",
-      type: "session.joined",
-      replyTo: "join_1",
+      header: {
+        id: "resp_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "join_1",
+      },
       payload: { clients: [] },
     });
 
@@ -128,10 +144,13 @@ describe("Session", () => {
     const session = new Session(conn);
 
     vi.mocked(conn.sendAndWait).mockResolvedValue({
-      v: 1,
-      id: "resp_1",
-      type: "session.joined",
-      replyTo: "join_1",
+      header: {
+        id: "resp_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "join_1",
+      },
       payload: { clients: [clientInfo("me")] },
     });
 
@@ -142,7 +161,13 @@ describe("Session", () => {
     expect(session.clients$.value).toEqual([]);
     expect(session.peers$.value).toEqual([]);
     expect(conn.send).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "session.leave", session: "room-1" }),
+      expect.objectContaining({
+        header: expect.objectContaining({
+          resource: "session",
+          method: "leave",
+          session: "room-1",
+        }),
+      }),
     );
   });
 
@@ -160,19 +185,25 @@ describe("Session", () => {
     const session = new Session(conn);
 
     vi.mocked(conn.sendAndWait).mockResolvedValue({
-      v: 1,
-      id: "resp_1",
-      type: "session.joined",
-      replyTo: "join_1",
+      header: {
+        id: "resp_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "join_1",
+      },
       payload: { clients: [clientInfo("me")] },
     });
     await session.join("room-1");
 
     session.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "client.connected",
-      session: "room-1",
+      header: {
+        id: "evt_1",
+        resource: "session",
+        method: "connected",
+        kind: "event",
+        session: "room-1",
+      },
       payload: { client: clientInfo("alice", "Alice") },
     });
 
@@ -186,19 +217,25 @@ describe("Session", () => {
     const session = new Session(conn);
 
     vi.mocked(conn.sendAndWait).mockResolvedValue({
-      v: 1,
-      id: "resp_1",
-      type: "session.joined",
-      replyTo: "join_1",
+      header: {
+        id: "resp_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "join_1",
+      },
       payload: { clients: [clientInfo("me"), clientInfo("alice")] },
     });
     await session.join("room-1");
 
     session.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "client.disconnected",
-      session: "room-1",
+      header: {
+        id: "evt_1",
+        resource: "session",
+        method: "disconnected",
+        kind: "event",
+        session: "room-1",
+      },
       payload: { clientId: "alice" },
     });
 
@@ -213,17 +250,23 @@ describe("Session", () => {
 
     vi.mocked(conn.sendAndWait)
       .mockResolvedValueOnce({
-        v: 1,
-        id: "resp_1",
-        type: "session.joined",
-        replyTo: "join_1",
+        header: {
+          id: "resp_1",
+          resource: "session",
+          method: "join",
+          kind: "response",
+          replyTo: "join_1",
+        },
         payload: { clients: [clientInfo("me"), clientInfo("alice")] },
       })
       .mockResolvedValueOnce({
-        v: 1,
-        id: "resp_2",
-        type: "session.joined",
-        replyTo: "join_2",
+        header: {
+          id: "resp_2",
+          resource: "session",
+          method: "join",
+          kind: "response",
+          replyTo: "join_2",
+        },
         payload: { clients: [clientInfo("me"), clientInfo("bob")] },
       });
 
@@ -240,10 +283,13 @@ describe("Session", () => {
     const session = new Session(conn);
 
     vi.mocked(conn.sendAndWait).mockResolvedValue({
-      v: 1,
-      id: "resp_1",
-      type: "session.joined",
-      replyTo: "join_1",
+      header: {
+        id: "resp_1",
+        resource: "session",
+        method: "join",
+        kind: "response",
+        replyTo: "join_1",
+      },
       payload: { clients: [clientInfo("me")] },
     });
 
@@ -255,10 +301,13 @@ describe("Session", () => {
     await session.join("room-1");
 
     session.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "client.connected",
-      session: "room-1",
+      header: {
+        id: "evt_1",
+        resource: "session",
+        method: "connected",
+        kind: "event",
+        session: "room-1",
+      },
       payload: { client: clientInfo("alice") },
     });
 

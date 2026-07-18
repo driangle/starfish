@@ -29,9 +29,12 @@ export class Pool {
     this.requireSession();
 
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("pool"),
-      type: "pool.enter",
+      header: {
+        id: nextId("pool"),
+        resource: "pool",
+        method: "enter",
+        kind: "request",
+      },
       payload: {
         pool: poolName,
         groupSize: options.groupSize,
@@ -60,9 +63,12 @@ export class Pool {
     this.requireSession();
 
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("pool"),
-      type: "pool.leave",
+      header: {
+        id: nextId("pool"),
+        resource: "pool",
+        method: "leave",
+        kind: "request",
+      },
       payload: { pool: poolName },
     };
 
@@ -74,51 +80,27 @@ export class Pool {
   }
 
   claim(poolName: string, targetId: string): void {
-    this.requireSession();
-
-    const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("pool"),
-      type: "pool.claim",
-      payload: { pool: poolName, target: targetId },
-    };
-
-    this.connection.send(frame);
+    this.sendPoolRequest("claim", { pool: poolName, target: targetId });
   }
 
   accept(poolName: string, fromId: string): void {
-    this.requireSession();
-
-    const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("pool"),
-      type: "pool.accept",
-      payload: { pool: poolName, from: fromId },
-    };
-
-    this.connection.send(frame);
+    this.sendPoolRequest("accept", { pool: poolName, from: fromId });
   }
 
   reject(poolName: string, fromId: string): void {
-    this.requireSession();
-
-    const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("pool"),
-      type: "pool.reject",
-      payload: { pool: poolName, from: fromId },
-    };
-
-    this.connection.send(frame);
+    this.sendPoolRequest("reject", { pool: poolName, from: fromId });
   }
 
   async assign(poolName: string, groups: string[][]): Promise<StarfishFrame> {
     this.requireSession();
 
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("pool"),
-      type: "pool.assign",
+      header: {
+        id: nextId("pool"),
+        resource: "pool",
+        method: "assign",
+        kind: "request",
+      },
       payload: { pool: poolName, groups },
     };
 
@@ -126,41 +108,43 @@ export class Pool {
   }
 
   handleFrame(frame: StarfishFrame): void {
+    if (frame.header.resource !== "pool") return;
+
     const pool = frame.payload?.pool as string | undefined;
     if (!pool || pool !== this.currentPool) return;
 
-    switch (frame.type) {
-      case "pool.member.joined": {
-        const member = frame.payload.member as PoolMember;
+    switch (frame.header.method) {
+      case "member-joined": {
+        const member = frame.payload!.member as PoolMember;
         this.membersMap.set(member.id, member);
         this.members$.set([...this.membersMap.values()]);
         break;
       }
-      case "pool.member.left": {
-        const memberId = frame.payload.memberId as string;
+      case "member-left": {
+        const memberId = frame.payload!.memberId as string;
         this.membersMap.delete(memberId);
         this.members$.set([...this.membersMap.values()]);
         break;
       }
-      case "pool.matched":
+      case "matched":
         this.matched$.emit({
           pool,
-          session: frame.payload.session as string,
-          peers: frame.payload.peers as PoolMember[],
+          session: frame.payload!.session as string,
+          peers: frame.payload!.peers as PoolMember[],
         });
         this.clearState();
         break;
-      case "pool.proposal":
+      case "proposal":
         this.proposal$.emit({
           pool,
-          from: frame.payload.from as string,
-          attributes: frame.payload.attributes as Record<string, unknown> | undefined,
+          from: frame.payload!.from as string,
+          attributes: frame.payload!.attributes as Record<string, unknown> | undefined,
         });
         break;
-      case "pool.claim.rejected":
+      case "claim-rejected":
         this.claimRejected$.emit({
           pool,
-          target: frame.payload.target as string,
+          target: frame.payload!.target as string,
         });
         break;
     }
@@ -168,6 +152,14 @@ export class Pool {
 
   clear(): void {
     this.clearState();
+  }
+
+  private sendPoolRequest(method: string, payload: Record<string, unknown>): void {
+    this.requireSession();
+    this.connection.send({
+      header: { id: nextId("pool"), resource: "pool", method, kind: "request" },
+      payload,
+    });
   }
 
   private clearState(): void {

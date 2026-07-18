@@ -14,9 +14,10 @@ export class Events {
     const filtered = new EventStream<StarfishFrame>();
 
     this.stream.subscribe((frame) => {
-      if (filter.type && frame.type !== filter.type) return;
-      if (filter.topic && frame.topic !== filter.topic) return;
-      if (filter.from && frame.from !== filter.from) return;
+      if (filter.resource && frame.header.resource !== filter.resource) return;
+      if (filter.method && frame.header.method !== filter.method) return;
+      if (filter.topic && frame.header.topic !== filter.topic) return;
+      if (filter.from && frame.header.from !== filter.from) return;
       filtered.emit(frame);
     });
 

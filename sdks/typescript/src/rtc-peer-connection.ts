@@ -47,11 +47,14 @@ export function createPeerConnection(opts: {
     if (!sessionName) return;
 
     connection.send({
-      v: 1,
-      id: nextId("rtc"),
-      type: "rtc.ice",
-      session: sessionName,
-      to: peerId,
+      header: {
+        id: nextId("rtc"),
+        resource: "rtc",
+        method: "ice",
+        kind: "event",
+        session: sessionName,
+        to: peerId,
+      },
       payload: { candidate: ev.candidate },
     });
   };
@@ -67,11 +70,14 @@ export function createPeerConnection(opts: {
       const sessionName = session.current;
       if (sessionName) {
         connection.send({
-          v: 1,
-          id: nextId("rtc"),
-          type: "rtc.connected",
-          session: sessionName,
-          to: peerId,
+          header: {
+            id: nextId("rtc"),
+            resource: "rtc",
+            method: "connected",
+            kind: "event",
+            session: sessionName,
+            to: peerId,
+          },
         });
       }
     } else if (state === "failed") {
@@ -80,11 +86,14 @@ export function createPeerConnection(opts: {
       const sessionName = session.current;
       if (sessionName) {
         connection.send({
-          v: 1,
-          id: nextId("rtc"),
-          type: "rtc.disconnected",
-          session: sessionName,
-          to: peerId,
+          header: {
+            id: nextId("rtc"),
+            resource: "rtc",
+            method: "disconnected",
+            kind: "event",
+            session: sessionName,
+            to: peerId,
+          },
           payload: { reason: "ice_failed" },
         });
       }
@@ -116,7 +125,6 @@ export function setupDataChannel(opts: {
     if (size > limit) return;
 
     const frame: StarfishFrame = JSON.parse(data);
-    frame.transport = "rtc";
     frames$.emit(frame);
   };
 

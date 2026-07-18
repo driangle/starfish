@@ -3,8 +3,9 @@ export { StarfishError } from "./types.js";
 
 export type {
   StarfishFrame,
+  StarfishHeader,
   DeliveryOptions,
-  FrameOptions,
+  HeaderOptions,
   StarfishClientOptions,
   ReconnectOptions,
   ClientIdentity,

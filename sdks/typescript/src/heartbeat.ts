@@ -14,10 +14,13 @@ export class Heartbeat {
     this.timer = setInterval(() => {
       try {
         this.connection.send({
-          v: 1,
-          id: nextId("ping"),
-          type: "ping",
-          ts: Date.now(),
+          header: {
+            id: nextId("ping"),
+            resource: "heartbeat",
+            method: "ping",
+            kind: "request",
+            ts: Date.now(),
+          },
         });
       } catch {
         // connection may be closed — heartbeat will be restarted on reconnect

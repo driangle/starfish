@@ -5,19 +5,13 @@ import {
   type WebSocketLike,
   type ConnectionState,
 } from "./types.js";
-import { nextId, resetIdCounter } from "./id.js";
+import { nextId } from "./id.js";
 import { Observable, EventStream } from "./emitter.js";
 import { PendingRequests } from "./pending.js";
 import { validateSerializable } from "./validate.js";
+import { computeReconnectDelay } from "./reconnect.js";
 
 const DEFAULT_REQUEST_TIMEOUT = 10_000;
-
-const RECONNECT_DEFAULTS = {
-  enabled: true,
-  maxRetries: Infinity,
-  baseDelay: 1000,
-  maxDelay: 30_000,
-};
 
 export class Connection {
   private options: StarfishClientOptions;
@@ -26,13 +20,10 @@ export class Connection {
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private intentionalClose = false;
-
-  // State from server.welcome
   clientId: string | null = null;
   resumeToken: string | null = null;
   heartbeatInterval = 15_000;
   serverTime: number | null = null;
-
   readonly state$ = new Observable<ConnectionState>("disconnected");
   readonly frames$ = new EventStream<StarfishFrame>();
 
@@ -103,7 +94,7 @@ export class Connection {
   }
 
   sendAndWait(frame: StarfishFrame, timeout = DEFAULT_REQUEST_TIMEOUT): Promise<StarfishFrame> {
-    const promise = this.pending.add(frame.id, timeout);
+    const promise = this.pending.add(frame.header.id, timeout);
     this.send(frame);
     return promise;
   }
@@ -112,7 +103,6 @@ export class Connection {
     if (this.options.ws) {
       return this.options.ws(this.options.server);
     }
-
     const WS = typeof globalThis !== "undefined" ? (globalThis as any).WebSocket : undefined;
     if (!WS) {
       throw new StarfishError(
@@ -124,70 +114,66 @@ export class Connection {
   }
 
   private async doHandshake(): Promise<StarfishFrame> {
-    const capabilities = { rtc: !!this.options.rtc };
-    const payload: any = this.resumeToken
-      ? { resumeToken: this.resumeToken, capabilities }
-      : {
-          client: {
-            name: this.options.client?.name ?? "starfish-client",
-            role: this.options.client?.role ?? "default",
-            meta: this.options.client?.meta ?? {},
-          },
-          capabilities,
-          auth: this.options.auth ?? { type: "none" },
-        };
-
     const welcome = await this.sendAndWait({
-      v: 1,
-      id: nextId("hello"),
-      type: "client.hello",
-      ts: Date.now(),
-      payload,
+      header: {
+        v: 2,
+        id: nextId("hello"),
+        resource: "client",
+        method: "hello",
+        kind: "request",
+        ts: Date.now(),
+      },
+      payload: this.buildHelloPayload(),
     });
 
-    this.clientId = welcome.payload.clientId;
-    this.resumeToken = welcome.payload.resumeToken;
-    this.heartbeatInterval = welcome.payload.heartbeatInterval ?? this.heartbeatInterval;
-    this.serverTime = welcome.payload.serverTime ?? null;
+    this.clientId = welcome.payload!.clientId as string;
+    this.resumeToken = welcome.payload!.resumeToken as string;
+    this.heartbeatInterval =
+      (welcome.payload!.heartbeatInterval as number) ?? this.heartbeatInterval;
+    this.serverTime = (welcome.payload!.serverTime as number) ?? null;
     this.reconnectAttempt = 0;
     this.state$.set("connected");
-
     return welcome;
+  }
+
+  private buildHelloPayload(): any {
+    const capabilities = { rtc: !!this.options.rtc };
+    if (this.resumeToken) return { versions: [2], resumeToken: this.resumeToken, capabilities };
+    return {
+      versions: [2],
+      client: {
+        name: this.options.client?.name ?? "starfish-client",
+        role: this.options.client?.role ?? "default",
+        meta: this.options.client?.meta ?? {},
+      },
+      capabilities,
+      auth: this.options.auth ?? { type: "none" },
+    };
   }
 
   private handleClose(): void {
     this.ws = null;
-
     if (this.intentionalClose) {
       this.state$.set("disconnected");
       return;
     }
-
     this.pending.rejectAll(new StarfishError("CONNECTION_LOST", "Connection lost"));
     this.scheduleReconnect();
   }
 
   private scheduleReconnect(): void {
-    const opts = { ...RECONNECT_DEFAULTS, ...this.options.reconnect };
-
-    if (!opts.enabled || this.reconnectAttempt >= opts.maxRetries) {
+    const delay = computeReconnectDelay(this.reconnectAttempt, this.options.reconnect);
+    if (delay === null) {
       this.state$.set("disconnected");
       return;
     }
 
     this.state$.set("reconnecting");
-
-    const delay = Math.min(
-      opts.baseDelay * Math.pow(2, this.reconnectAttempt) + Math.random() * opts.baseDelay,
-      opts.maxDelay,
-    );
     this.reconnectAttempt++;
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      this.connect().catch(() => {
-        // reconnect failed — handleClose will schedule the next attempt
-      });
+      this.connect().catch(() => {});
     }, delay);
   }
 

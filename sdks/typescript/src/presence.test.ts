@@ -34,8 +34,11 @@ describe("Presence", () => {
 
     expect(conn.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "presence.set",
-        session: "room-1",
+        header: expect.objectContaining({
+          resource: "presence",
+          method: "set",
+          session: "room-1",
+        }),
         payload: { status: "online", color: "blue" },
       }),
     );
@@ -58,10 +61,13 @@ describe("Presence", () => {
     const presence = new Presence(mockConnection(), mockSession());
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "presence.updated",
-      from: "alice",
+      header: {
+        id: "evt_1",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+        from: "alice",
+      },
       payload: { status: "away" },
     });
 
@@ -72,18 +78,24 @@ describe("Presence", () => {
     const presence = new Presence(mockConnection(), mockSession());
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "presence.updated",
-      from: "alice",
+      header: {
+        id: "evt_1",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+        from: "alice",
+      },
       payload: { status: "online" },
     });
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_2",
-      type: "presence.updated",
-      from: "alice",
+      header: {
+        id: "evt_2",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+        from: "alice",
+      },
       payload: { status: "away" },
     });
 
@@ -94,18 +106,24 @@ describe("Presence", () => {
     const presence = new Presence(mockConnection(), mockSession());
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "presence.updated",
-      from: "alice",
+      header: {
+        id: "evt_1",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+        from: "alice",
+      },
       payload: { status: "online" },
     });
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_2",
-      type: "presence.updated",
-      from: "bob",
+      header: {
+        id: "evt_2",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+        from: "bob",
+      },
       payload: { status: "busy" },
     });
 
@@ -117,9 +135,12 @@ describe("Presence", () => {
     const presence = new Presence(mockConnection(), mockSession());
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "presence.updated",
+      header: {
+        id: "evt_1",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+      },
       payload: { status: "online" },
     });
 
@@ -130,10 +151,13 @@ describe("Presence", () => {
     const presence = new Presence(mockConnection(), mockSession());
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "client.connected",
-      from: "alice",
+      header: {
+        id: "evt_1",
+        resource: "session",
+        method: "connected",
+        kind: "event",
+        from: "alice",
+      },
       payload: {},
     });
 
@@ -146,10 +170,13 @@ describe("Presence", () => {
     presence.presence$.subscribe((v) => updates.push(v));
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "presence.updated",
-      from: "alice",
+      header: {
+        id: "evt_1",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+        from: "alice",
+      },
       payload: { status: "online" },
     });
 
@@ -163,18 +190,24 @@ describe("Presence", () => {
     presence.presence$.subscribe((v) => maps.push(v));
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "presence.updated",
-      from: "alice",
+      header: {
+        id: "evt_1",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+        from: "alice",
+      },
       payload: { status: "online" },
     });
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_2",
-      type: "presence.updated",
-      from: "bob",
+      header: {
+        id: "evt_2",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+        from: "bob",
+      },
       payload: { status: "away" },
     });
 
@@ -186,10 +219,13 @@ describe("Presence", () => {
     const presence = new Presence(mockConnection(), mockSession());
 
     presence.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "presence.updated",
-      from: "alice",
+      header: {
+        id: "evt_1",
+        resource: "presence",
+        method: "updated",
+        kind: "event",
+        from: "alice",
+      },
       payload: { status: "online" },
     });
 

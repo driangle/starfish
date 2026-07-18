@@ -24,13 +24,15 @@ export class Clock {
 
     for (let i = 0; i < samples; i++) {
       const t1 = Date.now();
-      const frame = {
-        v: 1 as const,
-        id: nextId("clock"),
-        type: "clock.sync",
-        ts: t1,
-      };
-      const response = await this.connection.sendAndWait(frame);
+      const response = await this.connection.sendAndWait({
+        header: {
+          id: nextId("clock"),
+          resource: "clock",
+          method: "sync",
+          kind: "request",
+          ts: t1,
+        },
+      });
       const t4 = Date.now();
 
       const serverTime = response.payload?.serverTime as number;

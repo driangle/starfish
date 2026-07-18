@@ -23,20 +23,24 @@ export class PendingRequests {
   }
 
   resolve(frame: StarfishFrame): boolean {
-    if (!frame.replyTo) return false;
+    if (!frame.header.replyTo) return false;
 
-    const entry = this.pending.get(frame.replyTo);
+    const entry = this.pending.get(frame.header.replyTo);
     if (!entry) return false;
 
-    this.pending.delete(frame.replyTo);
+    this.pending.delete(frame.header.replyTo);
     clearTimeout(entry.timer);
 
-    if (frame.type === "error" && frame.error) {
+    const error = (frame.payload as any)?.error;
+    if ((frame.payload as any)?.status === "error" && error) {
       entry.reject(
-        new StarfishError("SERVER_ERROR", frame.error.message, {
-          code: frame.error.code,
-          details: frame.error.details,
-        }),
+        new StarfishError(
+          error.code,
+          error.message,
+          error.resource,
+          error.retry,
+          (frame.payload as any).details,
+        ),
       );
     } else {
       entry.resolve(frame);

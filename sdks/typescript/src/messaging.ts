@@ -1,4 +1,4 @@
-import { StarfishError, type StarfishFrame, type FrameOptions } from "./types.js";
+import { StarfishError, type StarfishFrame, type HeaderOptions } from "./types.js";
 import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 import type { RTC } from "./rtc.js";
@@ -20,7 +20,7 @@ export class Messaging {
   }
 
   handleFrame(frame: StarfishFrame): void {
-    if (frame.type === "client.message") {
+    if (frame.header.resource === "message" && frame.header.method === "message") {
       this.messages$.emit(frame);
     }
   }
@@ -28,23 +28,29 @@ export class Messaging {
   messagesFrom$(peerId: string): EventStream<StarfishFrame> {
     const filtered = new EventStream<StarfishFrame>();
     this.messages$.subscribe((frame) => {
-      if (frame.from === peerId) {
+      if (frame.header.from === peerId) {
         filtered.emit(frame);
       }
     });
     return filtered;
   }
 
-  send(to: string | string[], payload: any, options?: FrameOptions): void {
+  send(to: string | string[], payload: any, options?: HeaderOptions): void {
     const sessionName = this.requireSession();
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("send"),
-      type: "client.send",
-      session: sessionName,
-      to,
+      header: {
+        id: nextId("send"),
+        resource: "message",
+        method: "send",
+        kind: "request",
+        session: sessionName,
+        to,
+        ...(options?.delivery && { delivery: options.delivery }),
+        ...(options?.priority && { priority: options.priority }),
+        ...(options?.ttl && { ttl: options.ttl }),
+        ...(options?.meta && { meta: options.meta }),
+      },
       payload,
-      ...(options && { options }),
     };
 
     const decision = selectTransport(frame, options?.delivery, this.rtcState());
@@ -59,15 +65,21 @@ export class Messaging {
     }
   }
 
-  broadcast(payload: any, options?: FrameOptions): void {
+  broadcast(payload: any, options?: HeaderOptions): void {
     const sessionName = this.requireSession();
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("bcast"),
-      type: "session.broadcast",
-      session: sessionName,
+      header: {
+        id: nextId("bcast"),
+        resource: "session",
+        method: "broadcast",
+        kind: "request",
+        session: sessionName,
+        ...(options?.delivery && { delivery: options.delivery }),
+        ...(options?.priority && { priority: options.priority }),
+        ...(options?.ttl && { ttl: options.ttl }),
+        ...(options?.meta && { meta: options.meta }),
+      },
       payload,
-      ...(options && { options }),
     };
 
     // Broadcast always goes via WS (spec: unless RTC mesh enabled, which we don't support yet)

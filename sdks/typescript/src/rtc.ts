@@ -18,15 +18,7 @@ import {
   createPeerConnection,
   setupDataChannel,
 } from "./rtc-peer-connection.js";
-import {
-  handleConnect,
-  handleOffer,
-  handleAnswer,
-  handleIce,
-  handleConnected,
-  handleDisconnected,
-  type SignalingContext,
-} from "./rtc-signaling.js";
+import { SIGNALING_HANDLERS, type SignalingContext } from "./rtc-signaling.js";
 
 const DEFAULT_CHANNELS = ["control", "stream", "state"];
 
@@ -84,11 +76,11 @@ export class RTC {
       }
     }
 
-    this.sendSignal("rtc.connect", sessionName, peerId, { channels });
+    this.sendSignal("connect", "request", sessionName, peerId, { channels });
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    this.sendSignal("rtc.offer", sessionName, peerId, { sdp: offer.sdp });
+    this.sendSignal("offer", "event", sessionName, peerId, { sdp: offer.sdp });
   }
 
   disconnect(peerId: string): void {
@@ -101,23 +93,24 @@ export class RTC {
 
     const sessionName = this.session.current;
     if (sessionName) {
-      this.sendSignal("rtc.disconnected", sessionName, peerId, {
+      this.sendSignal("disconnected", "event", sessionName, peerId, {
         reason: "local_close",
       });
     }
   }
 
   send(peerId: string, channel: string, payload: any): void {
-    const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("rtc"),
-      type: "client.send",
-      session: this.session.current ?? undefined,
-      to: peerId,
-      transport: "rtc",
+    this.sendToPeer(peerId, channel, {
+      header: {
+        id: nextId("rtc"),
+        resource: "message",
+        method: "send",
+        kind: "request",
+        session: this.session.current ?? undefined,
+        to: peerId,
+      },
       payload,
-    };
-    this.sendToPeer(peerId, channel, frame);
+    });
   }
 
   sendToPeer(peerId: string, channel: string, frame: StarfishFrame): void {
@@ -142,20 +135,8 @@ export class RTC {
     dc.send(json);
   }
 
-  private static readonly SIGNALING_HANDLERS: Record<
-    string,
-    (ctx: SignalingContext, frame: StarfishFrame) => void
-  > = {
-    "rtc.connect": handleConnect,
-    "rtc.offer": handleOffer,
-    "rtc.answer": handleAnswer,
-    "rtc.ice": handleIce,
-    "rtc.connected": handleConnected,
-    "rtc.disconnected": handleDisconnected,
-  };
-
   handleFrame(frame: StarfishFrame): void {
-    RTC.SIGNALING_HANDLERS[frame.type]?.(this.signalingCtx, frame);
+    SIGNALING_HANDLERS[frame.header.method]?.(this.signalingCtx, frame);
   }
 
   closeAll(): void {
@@ -175,12 +156,22 @@ export class RTC {
   isPeerConnected(peerId: string): boolean {
     return this.peers.get(peerId)?.state === "connected";
   }
+
   getConnectedPeerIds(): string[] {
     return [...this.peers].filter(([, e]) => e.state === "connected").map(([id]) => id);
   }
 
-  private sendSignal(type: string, session: string, to: string, payload?: any): void {
-    this.connection.send({ v: 1, id: nextId("rtc"), type, session, to, payload });
+  private sendSignal(
+    method: string,
+    kind: "request" | "event",
+    session: string,
+    to: string,
+    payload?: any,
+  ): void {
+    this.connection.send({
+      header: { id: nextId("rtc"), resource: "rtc", method, kind, session, to },
+      payload,
+    });
   }
 
   private updateObservable(): void {

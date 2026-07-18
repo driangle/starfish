@@ -23,7 +23,9 @@ describe("SDK: topics", () => {
 
     const response = await client.subscribe("lights");
 
-    expect(response.type).toBe("topic.subscribed");
+    expect(response.header.resource).toBe("topic");
+    expect(response.header.method).toBe("subscribe");
+    expect(response.header.kind).toBe("response");
   });
 
   it("topic$() receives published messages", async () => {
@@ -45,9 +47,9 @@ describe("SDK: topics", () => {
     publisher.publish("lights", { cue: "blackout" });
 
     const message = await received;
-    expect(message.topic).toBe("lights");
+    expect(message.header.topic).toBe("lights");
     expect(message.payload).toEqual({ cue: "blackout" });
-    expect(message.from).toBe(publisher.clientId);
+    expect(message.header.from).toBe(publisher.clientId);
   });
 
   it("subscribe() with callback receives messages", async () => {

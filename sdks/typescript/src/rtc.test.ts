@@ -33,15 +33,19 @@ describe("RTC", () => {
         iceServers: [{ urls: "stun:stun.example.com" }],
       });
 
-      const connectFrame = connection.sentFrames.find((f) => f.type === "rtc.connect");
+      const connectFrame = connection.sentFrames.find(
+        (f) => f.header.method === "connect" && f.header.resource === "rtc",
+      );
       expect(connectFrame).toBeDefined();
-      expect(connectFrame!.to).toBe("peer_1");
-      expect(connectFrame!.payload.channels).toEqual(["control", "stream", "state"]);
+      expect(connectFrame!.header.to).toBe("peer_1");
+      expect(connectFrame!.payload!.channels).toEqual(["control", "stream", "state"]);
 
-      const offerFrame = connection.sentFrames.find((f) => f.type === "rtc.offer");
+      const offerFrame = connection.sentFrames.find(
+        (f) => f.header.method === "offer" && f.header.resource === "rtc",
+      );
       expect(offerFrame).toBeDefined();
-      expect(offerFrame!.to).toBe("peer_1");
-      expect(offerFrame!.payload.sdp).toBe("mock-offer-sdp");
+      expect(offerFrame!.header.to).toBe("peer_1");
+      expect(offerFrame!.payload!.sdp).toBe("mock-offer-sdp");
     });
 
     it("creates all 3 DataChannels as initiator", async () => {
@@ -78,11 +82,14 @@ describe("RTC", () => {
   describe("incoming signaling", () => {
     it("handles rtc.connect by creating peer connection as responder", () => {
       rtc.handleFrame({
-        v: 1,
-        id: "rtc_001",
-        type: "rtc.connect",
-        from: "peer_1",
-        session: "test-session",
+        header: {
+          id: "rtc_001",
+          resource: "rtc",
+          method: "connect",
+          kind: "request",
+          from: "peer_1",
+          session: "test-session",
+        },
         payload: { channels: ["control", "stream", "state"] },
       });
 
@@ -93,27 +100,35 @@ describe("RTC", () => {
     it("handles rtc.offer by setting remote description and sending answer", async () => {
       // First receive connect
       rtc.handleFrame({
-        v: 1,
-        id: "rtc_001",
-        type: "rtc.connect",
-        from: "peer_1",
-        session: "test-session",
+        header: {
+          id: "rtc_001",
+          resource: "rtc",
+          method: "connect",
+          kind: "request",
+          from: "peer_1",
+          session: "test-session",
+        },
         payload: { channels: ["control"] },
       });
 
       // Then receive offer
       rtc.handleFrame({
-        v: 1,
-        id: "rtc_002",
-        type: "rtc.offer",
-        from: "peer_1",
-        session: "test-session",
+        header: {
+          id: "rtc_002",
+          resource: "rtc",
+          method: "offer",
+          kind: "event",
+          from: "peer_1",
+          session: "test-session",
+        },
         payload: { sdp: "remote-offer-sdp" },
       });
 
       // Wait for async processing
       await vi.waitFor(() => {
-        const answerFrame = connection.sentFrames.find((f) => f.type === "rtc.answer");
+        const answerFrame = connection.sentFrames.find(
+          (f) => f.header.method === "answer" && f.header.resource === "rtc",
+        );
         expect(answerFrame).toBeDefined();
       });
 
@@ -122,20 +137,25 @@ describe("RTC", () => {
         sdp: "remote-offer-sdp",
       });
 
-      const answerFrame = connection.sentFrames.find((f) => f.type === "rtc.answer");
-      expect(answerFrame!.payload.sdp).toBe("mock-answer-sdp");
-      expect(answerFrame!.to).toBe("peer_1");
+      const answerFrame = connection.sentFrames.find(
+        (f) => f.header.method === "answer" && f.header.resource === "rtc",
+      );
+      expect(answerFrame!.payload!.sdp).toBe("mock-answer-sdp");
+      expect(answerFrame!.header.to).toBe("peer_1");
     });
 
     it("handles rtc.answer by setting remote description", async () => {
       await rtc.connect("peer_1");
 
       rtc.handleFrame({
-        v: 1,
-        id: "rtc_003",
-        type: "rtc.answer",
-        from: "peer_1",
-        session: "test-session",
+        header: {
+          id: "rtc_003",
+          resource: "rtc",
+          method: "answer",
+          kind: "event",
+          from: "peer_1",
+          session: "test-session",
+        },
         payload: { sdp: "remote-answer-sdp" },
       });
 
@@ -157,11 +177,14 @@ describe("RTC", () => {
       };
 
       rtc.handleFrame({
-        v: 1,
-        id: "rtc_004",
-        type: "rtc.ice",
-        from: "peer_1",
-        session: "test-session",
+        header: {
+          id: "rtc_004",
+          resource: "rtc",
+          method: "ice",
+          kind: "event",
+          from: "peer_1",
+          session: "test-session",
+        },
         payload: { candidate },
       });
 
@@ -182,10 +205,12 @@ describe("RTC", () => {
       };
       mockPc._triggerIceCandidate(candidate);
 
-      const iceFrame = connection.sentFrames.find((f) => f.type === "rtc.ice");
+      const iceFrame = connection.sentFrames.find(
+        (f) => f.header.method === "ice" && f.header.resource === "rtc",
+      );
       expect(iceFrame).toBeDefined();
-      expect(iceFrame!.to).toBe("peer_1");
-      expect(iceFrame!.payload.candidate).toEqual(candidate);
+      expect(iceFrame!.header.to).toBe("peer_1");
+      expect(iceFrame!.payload!.candidate).toEqual(candidate);
     });
 
     it("does not send when candidate is null (gathering complete)", async () => {
@@ -196,7 +221,7 @@ describe("RTC", () => {
 
       const iceFrames = connection.sentFrames
         .slice(framesBefore)
-        .filter((f) => f.type === "rtc.ice");
+        .filter((f) => f.header.method === "ice" && f.header.resource === "rtc");
       expect(iceFrames).toHaveLength(0);
     });
   });
@@ -209,9 +234,11 @@ describe("RTC", () => {
 
       expect(rtc.getPeerState("peer_1")).toBe("connected");
 
-      const connectedFrame = connection.sentFrames.find((f) => f.type === "rtc.connected");
+      const connectedFrame = connection.sentFrames.find(
+        (f) => f.header.method === "connected" && f.header.resource === "rtc",
+      );
       expect(connectedFrame).toBeDefined();
-      expect(connectedFrame!.to).toBe("peer_1");
+      expect(connectedFrame!.header.to).toBe("peer_1");
     });
 
     it("cleans up on failed and sends rtc.disconnected", async () => {
@@ -221,20 +248,25 @@ describe("RTC", () => {
 
       expect(rtc.hasPeer("peer_1")).toBe(false);
 
-      const disconnectedFrame = connection.sentFrames.find((f) => f.type === "rtc.disconnected");
+      const disconnectedFrame = connection.sentFrames.find(
+        (f) => f.header.method === "disconnected" && f.header.resource === "rtc",
+      );
       expect(disconnectedFrame).toBeDefined();
-      expect(disconnectedFrame!.payload.reason).toBe("ice_failed");
+      expect(disconnectedFrame!.payload!.reason).toBe("ice_failed");
     });
 
     it("handles incoming rtc.disconnected by cleaning up peer", async () => {
       await rtc.connect("peer_1");
 
       rtc.handleFrame({
-        v: 1,
-        id: "evt_071",
-        type: "rtc.disconnected",
-        from: "peer_1",
-        session: "test-session",
+        header: {
+          id: "evt_071",
+          resource: "rtc",
+          method: "disconnected",
+          kind: "event",
+          from: "peer_1",
+          session: "test-session",
+        },
         payload: { reason: "ice_failed" },
       });
 
@@ -251,10 +283,13 @@ describe("RTC", () => {
       dc._triggerOpen();
 
       const frame: StarfishFrame = {
-        v: 1,
-        id: "msg_001",
-        type: "client.send",
-        to: "peer_1",
+        header: {
+          id: "msg_001",
+          resource: "message",
+          method: "send",
+          kind: "request",
+          to: "peer_1",
+        },
         payload: { hello: "world" },
       };
 
@@ -273,25 +308,30 @@ describe("RTC", () => {
       rtc.frames$.subscribe((f) => received.push(f));
 
       const incomingFrame: StarfishFrame = {
-        v: 1,
-        id: "msg_002",
-        type: "client.send",
-        from: "peer_1",
+        header: {
+          id: "msg_002",
+          resource: "message",
+          method: "send",
+          kind: "request",
+          from: "peer_1",
+        },
         payload: { data: "test" },
       };
       dc._triggerMessage(JSON.stringify(incomingFrame));
 
       expect(received).toHaveLength(1);
       expect(received[0].payload).toEqual({ data: "test" });
-      expect(received[0].transport).toBe("rtc");
     });
 
     it("throws when sending to non-existent peer", () => {
       expect(() =>
         rtc.sendToPeer("unknown", "starfish.control", {
-          v: 1,
-          id: "x",
-          type: "test",
+          header: {
+            id: "x",
+            resource: "test",
+            method: "test",
+            kind: "request",
+          },
         }),
       ).toThrow("No RTC connection to peer: unknown");
     });
@@ -302,9 +342,12 @@ describe("RTC", () => {
       // Channel is still in "connecting" state
       expect(() =>
         rtc.sendToPeer("peer_1", "starfish.control", {
-          v: 1,
-          id: "x",
-          type: "test",
+          header: {
+            id: "x",
+            resource: "test",
+            method: "test",
+            kind: "request",
+          },
         }),
       ).toThrow("DataChannel starfish.control not open");
     });
@@ -320,9 +363,12 @@ describe("RTC", () => {
       const largePayload = "x".repeat(65 * 1024);
       expect(() =>
         rtc.sendToPeer("peer_1", "starfish.control", {
-          v: 1,
-          id: "x",
-          type: "test",
+          header: {
+            id: "x",
+            resource: "test",
+            method: "test",
+            kind: "request",
+          },
           payload: largePayload,
         }),
       ).toThrow("exceeds size limit");
@@ -338,9 +384,12 @@ describe("RTC", () => {
       rtc.frames$.subscribe((f) => received.push(f));
 
       const largeData = JSON.stringify({
-        v: 1,
-        id: "x",
-        type: "test",
+        header: {
+          id: "x",
+          resource: "test",
+          method: "test",
+          kind: "request",
+        },
         payload: "x".repeat(17 * 1024),
       });
       dc._triggerMessage(largeData);
@@ -365,9 +414,11 @@ describe("RTC", () => {
 
       rtc.disconnect("peer_1");
 
-      const disconnectedFrame = connection.sentFrames.find((f) => f.type === "rtc.disconnected");
+      const disconnectedFrame = connection.sentFrames.find(
+        (f) => f.header.method === "disconnected" && f.header.resource === "rtc",
+      );
       expect(disconnectedFrame).toBeDefined();
-      expect(disconnectedFrame!.payload.reason).toBe("local_close");
+      expect(disconnectedFrame!.payload!.reason).toBe("local_close");
     });
 
     it("is a no-op for unknown peer", () => {

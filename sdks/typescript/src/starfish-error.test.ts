@@ -15,15 +15,25 @@ describe("StarfishError", () => {
     expect(err.name).toBe("StarfishError");
   });
 
-  it("carries optional details", () => {
-    const details = { code: "session.not_found", details: { id: "abc" } };
-    const err = new StarfishError("SERVER_ERROR", "Session not found", details);
-    expect(err.details).toEqual(details);
+  it("carries optional resource and retry fields", () => {
+    const err = new StarfishError("SESSION_NOT_FOUND", "Session not found", "session", false);
+    expect(err.resource).toBe("session");
+    expect(err.retry).toBe(false);
   });
 
-  it("has no details when omitted", () => {
+  it("carries optional details as 5th argument", () => {
+    const details = { id: "abc" };
+    const err = new StarfishError("SERVER_ERROR", "Session not found", "session", true, details);
+    expect(err.details).toEqual(details);
+    expect(err.resource).toBe("session");
+    expect(err.retry).toBe(true);
+  });
+
+  it("has no details, resource, or retry when omitted", () => {
     const err = new StarfishError("NO_SESSION", "Not in a session");
     expect(err.details).toBeUndefined();
+    expect(err.resource).toBeUndefined();
+    expect(err.retry).toBeUndefined();
   });
 
   it("has a stack trace", () => {

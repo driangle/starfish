@@ -1,4 +1,4 @@
-import { StarfishError, type StarfishFrame, type FrameOptions } from "./types.js";
+import { StarfishError, type StarfishFrame, type HeaderOptions } from "./types.js";
 import type { Connection } from "./connection.js";
 import type { Session } from "./session.js";
 import type { RTC } from "./rtc.js";
@@ -29,11 +29,14 @@ export class Topics {
 
     const sessionName = this.requireSession();
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("sub"),
-      type: "topic.subscribe",
-      session: sessionName,
-      topic,
+      header: {
+        id: nextId("sub"),
+        resource: "topic",
+        method: "subscribe",
+        kind: "request",
+        session: sessionName,
+        topic,
+      },
     };
 
     const response = await this.connection.sendAndWait(frame);
@@ -49,11 +52,14 @@ export class Topics {
   async unsubscribe(topic: string): Promise<void> {
     const sessionName = this.requireSession();
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("unsub"),
-      type: "topic.unsubscribe",
-      session: sessionName,
-      topic,
+      header: {
+        id: nextId("unsub"),
+        resource: "topic",
+        method: "unsubscribe",
+        kind: "request",
+        session: sessionName,
+        topic,
+      },
     };
 
     this.connection.send(frame);
@@ -61,18 +67,24 @@ export class Topics {
     this.topicPeers.delete(topic);
   }
 
-  publish(topic: string, payload: any, options?: FrameOptions): void {
+  publish(topic: string, payload: any, options?: HeaderOptions): void {
     validateTopicName(topic);
 
     const sessionName = this.requireSession();
     const frame: StarfishFrame = {
-      v: 1,
-      id: nextId("pub"),
-      type: "topic.publish",
-      session: sessionName,
-      topic,
+      header: {
+        id: nextId("pub"),
+        resource: "topic",
+        method: "publish",
+        kind: "request",
+        session: sessionName,
+        topic,
+        ...(options?.delivery && { delivery: options.delivery }),
+        ...(options?.priority && { priority: options.priority }),
+        ...(options?.ttl && { ttl: options.ttl }),
+        ...(options?.meta && { meta: options.meta }),
+      },
       payload,
-      ...(options && { options }),
     };
 
     const decision = selectTransport(frame, options?.delivery, this.rtcState());
@@ -102,19 +114,24 @@ export class Topics {
   }
 
   handleFrame(frame: StarfishFrame): void {
-    if (frame.type === "topic.peers" && frame.topic) {
-      const subscribers: string[] = frame.payload?.subscribers ?? [];
-      this.topicPeers.set(frame.topic, new Set(subscribers));
+    if (frame.header.resource !== "topic") return;
+
+    if (frame.header.method === "peers" && frame.header.topic) {
+      const subscribers: string[] = (frame.payload?.subscribers as string[]) ?? [];
+      this.topicPeers.set(frame.header.topic, new Set(subscribers));
       return;
     }
 
-    if (frame.type === "topic.message" && frame.topic) {
+    if (frame.header.method === "message" && frame.header.topic) {
       // Receiver-side validation: drop RTC messages for unsubscribed topics
-      if (frame.transport === "rtc" && !this.subscriptions.has(frame.topic)) {
+      if (
+        (frame.header as any).transport === "rtc" &&
+        !this.subscriptions.has(frame.header.topic)
+      ) {
         return;
       }
 
-      const stream = this.topicStreams.get(frame.topic);
+      const stream = this.topicStreams.get(frame.header.topic);
       if (stream) {
         stream.emit(frame);
       }

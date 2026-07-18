@@ -1,11 +1,12 @@
 ---
 title: "Refactor TypeScript SDK for new protocol envelope"
 id: "01kxrcqxj"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["sdk", "typescript", "breaking-change"]
 created_at: "2026-07-17"
+completed_at: 2026-07-17
 ---
 
 # Refactor TypeScript SDK for new protocol envelope
@@ -16,16 +17,16 @@ Update the TypeScript SDK (`sdks/typescript/`) to use the new protocol envelope:
 
 ## Tasks
 
-- [ ] Replace `StarfishFrame` type with new envelope type (`header` + `payload`)
-- [ ] Replace `type` field usage with `method`/`resource`/`kind`
-- [ ] Update `FrameOptions` — move delivery/priority/ttl into header
-- [ ] Update connection handshake to send supported versions array and handle negotiation
-- [ ] Update `StarfishError` to use structured error format with `retry` field
-- [ ] Add `meta` support to header for extensible metadata
-- [ ] Update all frame construction/parsing in `connection.ts`
-- [ ] Update message routing logic that currently switches on `type` strings
-- [ ] Update unit tests for new envelope format
-- [ ] Ensure backward-incompatible changes are clearly documented in changelog
+- [x] Replace `StarfishFrame` type with new envelope type (`header` + `payload`)
+- [x] Replace `type` field usage with `method`/`resource`/`kind`
+- [x] Update `FrameOptions` — move delivery/priority/ttl into header
+- [x] Update connection handshake to send supported versions array and handle negotiation
+- [x] Update `StarfishError` to use structured error format with `retry` field
+- [x] Add `meta` support to header for extensible metadata
+- [x] Update all frame construction/parsing in `connection.ts`
+- [x] Update message routing logic that currently switches on `type` strings
+- [x] Update unit tests for new envelope format
+- [x] Ensure backward-incompatible changes are clearly documented in changelog
 
 ## Acceptance Criteria
 

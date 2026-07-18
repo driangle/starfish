@@ -19,11 +19,15 @@ function mockSession(current: string | null = "room-1"): Session {
 
 function saveResponse(overrides: Partial<DataResult> = {}): StarfishFrame {
   return {
-    v: 1,
-    id: "resp_1",
-    type: "data.saved",
-    replyTo: "dsave_1",
+    header: {
+      id: "resp_1",
+      resource: "data",
+      method: "save",
+      kind: "response",
+      replyTo: "dsave_1",
+    },
     payload: {
+      status: "ok",
       key: "score",
       scope: "session",
       data: { value: 42 },
@@ -55,8 +59,11 @@ describe("Data", () => {
 
     expect(conn.sendAndWait).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "data.save",
-        session: "room-1",
+        header: expect.objectContaining({
+          resource: "data",
+          method: "save",
+          session: "room-1",
+        }),
         payload: expect.objectContaining({
           key: "score",
           scope: "session",
@@ -141,11 +148,15 @@ describe("Data", () => {
     const data = new Data(conn, mockSession());
 
     vi.mocked(conn.sendAndWait).mockResolvedValue({
-      v: 1,
-      id: "resp_1",
-      type: "data.result",
-      replyTo: "dget_1",
+      header: {
+        id: "resp_1",
+        resource: "data",
+        method: "get",
+        kind: "response",
+        replyTo: "dget_1",
+      },
       payload: {
+        status: "ok",
         key: "score",
         scope: "session",
         data: { value: 42 },
@@ -157,8 +168,11 @@ describe("Data", () => {
 
     expect(conn.sendAndWait).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "data.get",
-        session: "room-1",
+        header: expect.objectContaining({
+          resource: "data",
+          method: "get",
+          session: "room-1",
+        }),
         payload: { key: "score", scope: "session" },
       }),
     );
@@ -184,9 +198,12 @@ describe("Data", () => {
     data.changed$.subscribe(cb);
 
     data.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "data.changed",
+      header: {
+        id: "evt_1",
+        resource: "data",
+        method: "changed",
+        kind: "event",
+      },
       payload: {
         key: "score",
         scope: "session",
@@ -211,9 +228,12 @@ describe("Data", () => {
     data.key$("health").subscribe(healthCb);
 
     data.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "data.changed",
+      header: {
+        id: "evt_1",
+        resource: "data",
+        method: "changed",
+        kind: "event",
+      },
       payload: { key: "score", scope: "session", data: 100, version: 2 },
     });
 
@@ -227,9 +247,12 @@ describe("Data", () => {
     data.changed$.subscribe(cb);
 
     data.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "client.connected",
+      header: {
+        id: "evt_1",
+        resource: "session",
+        method: "connected",
+        kind: "event",
+      },
       payload: { key: "score" },
     });
 
@@ -242,9 +265,12 @@ describe("Data", () => {
     data.changed$.subscribe(cb);
 
     data.handleFrame({
-      v: 1,
-      id: "evt_1",
-      type: "data.changed",
+      header: {
+        id: "evt_1",
+        resource: "data",
+        method: "changed",
+        kind: "event",
+      },
     });
 
     expect(cb).not.toHaveBeenCalled();

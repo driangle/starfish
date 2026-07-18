@@ -39,9 +39,12 @@ describe("Messaging", () => {
 
     expect(conn.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "client.send",
-        session: "room-1",
-        to: "alice",
+        header: expect.objectContaining({
+          resource: "message",
+          method: "send",
+          session: "room-1",
+          to: "alice",
+        }),
         payload: { text: "hi" },
       }),
     );
@@ -55,8 +58,11 @@ describe("Messaging", () => {
 
     expect(conn.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "client.send",
-        to: ["alice", "bob"],
+        header: expect.objectContaining({
+          resource: "message",
+          method: "send",
+          to: ["alice", "bob"],
+        }),
         payload: { text: "hi all" },
       }),
     );
@@ -77,8 +83,11 @@ describe("Messaging", () => {
 
     expect(conn.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "session.broadcast",
-        session: "room-1",
+        header: expect.objectContaining({
+          resource: "session",
+          method: "broadcast",
+          session: "room-1",
+        }),
         payload: { text: "hello everyone" },
       }),
     );
@@ -92,8 +101,11 @@ describe("Messaging", () => {
 
     expect(conn.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "session.broadcast",
-        options: { delivery: { includeSelf: true } },
+        header: expect.objectContaining({
+          resource: "session",
+          method: "broadcast",
+          delivery: { includeSelf: true },
+        }),
       }),
     );
   });
@@ -105,7 +117,7 @@ describe("Messaging", () => {
     messaging.broadcast({ text: "hi" });
 
     const sentFrame = vi.mocked(conn.send).mock.calls[0][0];
-    expect(sentFrame.options).toBeUndefined();
+    expect(sentFrame.header.delivery).toBeUndefined();
   });
 
   it("broadcast() throws when not in a session", () => {
@@ -150,8 +162,11 @@ describe("Messaging", () => {
         "alice",
         "starfish.control",
         expect.objectContaining({
-          type: "client.send",
-          to: "alice",
+          header: expect.objectContaining({
+            resource: "message",
+            method: "send",
+            to: "alice",
+          }),
         }),
       );
       expect(conn.send).not.toHaveBeenCalled();
@@ -220,9 +235,9 @@ describe("Messaging", () => {
 
       expect(conn.send).toHaveBeenCalledWith(
         expect.objectContaining({
-          options: {
+          header: expect.objectContaining({
             delivery: { preferTransport: "ws", reliability: "unreliable" },
-          },
+          }),
         }),
       );
     });

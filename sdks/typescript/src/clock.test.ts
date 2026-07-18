@@ -41,10 +41,13 @@ describe("Clock", () => {
       // Simulate server time being 100ms ahead with 10ms RTT
       const clientTime = Date.now();
       return {
-        v: 1,
-        id: `clock_${callCount}`,
-        type: "clock.synced",
-        replyTo: `clock_${callCount}`,
+        header: {
+          id: `clock_${callCount}`,
+          resource: "clock",
+          method: "sync",
+          kind: "response" as const,
+          replyTo: `clock_${callCount}`,
+        },
         payload: { serverTime: clientTime + 100 },
       };
     });
