@@ -1,13 +1,14 @@
 ---
 id: "01kx1wjfc"
 title: "Integration tests: Go SDK × Python server"
-status: pending
+status: completed
 priority: medium
 effort: small
 dependencies: ["01kwyst3n", "01kwyst53"]
 tags: ["sdk", "go", "testing", "integration"]
 created_at: 2026-07-09
 phase: v0.2
+completed_at: 2026-07-19
 ---
 
 # Integration tests: Go SDK × Python server
@@ -18,9 +19,9 @@ Run the Go SDK integration test suite against the Python server, verifying that 
 
 ## Tasks
 
-- [ ] Add `python` server starter to `scripts/run-sdk-integration-tests.sh` (if not already present)
-- [ ] Add `test-sdk-golang-python` target to `Makefile`
-- [ ] Verify all integration tests pass against the Python server
+- [x] Add `python` server starter to `scripts/run-sdk-integration-tests.sh` (if not already present)
+- [x] Add `test-sdk-golang-python` target to `Makefile`
+- [x] Verify all integration tests pass against the Python server
 
 ## Acceptance Criteria
 
