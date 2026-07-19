@@ -20,6 +20,7 @@ jobs:
       adapter-p5js: ${{ steps.filter.outputs.adapter-p5js }}
       adapter-threejs: ${{ steps.filter.outputs.adapter-threejs }}
       integration: ${{ steps.filter.outputs.integration }}
+      integration-run: ${{ steps.filter.outputs.integration-run }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +42,16 @@ jobs:
               - 'adapters/threejs/**'
             integration:
               - 'tests/integration/**'
+            # Broad trigger for the integration test matrix: any server, SDK,
+            # test harness, or build glue can affect end-to-end behavior.
+            integration-run:
+              - 'servers/**'
+              - 'sdks/**'
+              - 'tests/integration/**'
+              - 'scripts/run-integration-tests.sh'
+              - 'scripts/run-sdk-integration-tests.sh'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
 
   check-sdk-typescript:
     needs: changes
@@ -151,3 +162,50 @@ jobs:
           cache-dependency-path: tests/integration/package-lock.json
 
       - run: make lint-integration check-integration
+
+  # Full integration matrix: every test suite against every server implementation.
+  # Each make target self-manages the server lifecycle (build, start, wait, teardown)
+  # via scripts/run-integration-tests.sh and scripts/run-sdk-integration-tests.sh.
+  integration:
+    needs: changes
+    if: needs.changes.outputs.integration-run == 'true'
+    runs-on: ubuntu-latest
+    name: "integration / ${{ matrix.name }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "protocol × go", target: test-golang }
+          - { name: "protocol × ts", target: test-typescript }
+          - { name: "protocol × python", target: test-python }
+          - { name: "ts-sdk × go", target: test-sdk-typescript-golang }
+          - { name: "ts-sdk × ts", target: test-sdk-typescript-typescript }
+          - { name: "ts-sdk × python", target: test-sdk-typescript-python }
+          - { name: "python-sdk × go", target: test-sdk-python-golang }
+          - { name: "python-sdk × ts", target: test-sdk-python-typescript }
+          - { name: "python-sdk × python", target: test-sdk-python-python }
+          - { name: "go-sdk × go", target: test-sdk-golang-golang }
+          - { name: "go-sdk × ts", target: test-sdk-golang-typescript }
+          - { name: "go-sdk × python", target: test-sdk-golang-python }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: "**/go.sum"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: "**/package-lock.json"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: "**/pyproject.toml"
+
+      - name: Run ${{ matrix.name }}
+        run: make ${{ matrix.target }}
