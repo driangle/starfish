@@ -1,12 +1,13 @@
 ---
 title: "Implement Go SDK"
 id: "01kwyst3n"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["sdk", "golang"]
 created_at: "2026-07-07"
 phase: v0.2
+completed_at: 2026-07-19
 ---
 
 # Implement Go SDK
@@ -17,26 +18,26 @@ Implement the Go client SDK for the Starfish protocol (v0.1) as defined in `prot
 
 ## Tasks
 
-- [ ] Set up Go module (go.mod, package structure)
-- [ ] Define core types: `Frame`, `Error`, `Options`, `Delivery`
-- [ ] Implement `Client` struct with gorilla/nhooyr WebSocket connection lifecycle
-- [ ] Implement `client.hello` / `server.welcome` handshake
-- [ ] Implement reconnection with `resumeToken` support
-- [ ] Implement session management (`Join`, `Leave`)
-- [ ] Implement topic pub/sub (`Subscribe`, `Unsubscribe`, `Publish`)
-- [ ] Implement direct messaging (`Send`)
-- [ ] Implement broadcast (`Broadcast` with `IncludeSelf` option)
-- [ ] Implement presence (`SetPresence`, presence channel)
-- [ ] Implement shared data operations (`Save`, `Get` with all ops and optimistic concurrency)
-- [ ] Implement heartbeat (application-level `ping`/`pong`)
-- [ ] Implement clock sync (`ClockSync`, `ClockNow`, `ClockOffset`)
-- [ ] Implement event filtering (channel-based or callback)
-- [ ] Implement message ID generation and `ReplyTo` correlation
-- [ ] Implement transport selection logic
-- [ ] Add payload size validation per protocol limits
-- [ ] Write unit tests for message framing
-- [ ] Write integration tests for session lifecycle and pub/sub
-- [ ] Write integration tests for data operations
+- [x] Set up Go module (go.mod, package structure)
+- [x] Define core types: `Frame`, `Error`, `Options`, `Delivery`
+- [x] Implement `Client` struct with gorilla/nhooyr WebSocket connection lifecycle
+- [x] Implement `client.hello` / `server.welcome` handshake
+- [x] Implement reconnection with `resumeToken` support
+- [x] Implement session management (`Join`, `Leave`)
+- [x] Implement topic pub/sub (`Subscribe`, `Unsubscribe`, `Publish`)
+- [x] Implement direct messaging (`Send`)
+- [x] Implement broadcast (`Broadcast` with `IncludeSelf` option)
+- [x] Implement presence (`SetPresence`, presence channel)
+- [x] Implement shared data operations (`Save`, `Get` with all ops and optimistic concurrency)
+- [x] Implement heartbeat (application-level `ping`/`pong`)
+- [x] Implement clock sync (`ClockSync`, `ClockNow`, `ClockOffset`)
+- [x] Implement event filtering (channel-based or callback)
+- [x] Implement message ID generation and `ReplyTo` correlation
+- [x] Implement transport selection logic
+- [x] Add payload size validation per protocol limits
+- [x] Write unit tests for message framing
+- [x] Write integration tests for session lifecycle and pub/sub
+- [x] Write integration tests for data operations
 
 ## Acceptance Criteria
 
