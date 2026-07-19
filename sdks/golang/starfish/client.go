@@ -207,7 +207,7 @@ func (c *Client) On(filter EventFilter, handler Handler) Unsubscribe {
 
 // OnMessage registers a handler for incoming direct messages.
 func (c *Client) OnMessage(handler Handler) Unsubscribe {
-	return c.bus.on(EventFilter{Resource: "client", Method: "message"}, handler)
+	return c.bus.on(EventFilter{Resource: "message", Method: "message"}, handler)
 }
 
 // OnPresence registers a handler for presence updates.

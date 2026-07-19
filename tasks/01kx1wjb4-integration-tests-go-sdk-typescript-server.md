@@ -1,13 +1,14 @@
 ---
 id: "01kx1wjb4"
 title: "Integration tests: Go SDK × TypeScript server"
-status: pending
+status: completed
 priority: medium
 effort: small
 dependencies: ["01kwyst3n", "01kwyst4k"]
 tags: ["sdk", "go", "testing", "integration"]
 created_at: 2026-07-09
 phase: v0.2
+completed_at: 2026-07-19
 ---
 
 # Integration tests: Go SDK × TypeScript server
@@ -18,9 +19,9 @@ Run the Go SDK integration test suite against the TypeScript server, verifying t
 
 ## Tasks
 
-- [ ] Add `typescript` server starter to `scripts/run-sdk-integration-tests.sh` (if not already present)
-- [ ] Add `test-sdk-golang-typescript` target to `Makefile`
-- [ ] Verify all integration tests pass against the TypeScript server
+- [x] Add `typescript` server starter to `scripts/run-sdk-integration-tests.sh` (if not already present)
+- [x] Add `test-sdk-golang-typescript` target to `Makefile`
+- [x] Verify all integration tests pass against the TypeScript server
 
 ## Acceptance Criteria
 

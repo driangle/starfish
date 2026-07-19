@@ -34,7 +34,7 @@ func (m *messagingManager) send(ctx context.Context, to string, payload map[stri
 		Header: Header{
 			V:        2,
 			ID:       m.idg.Next("send"),
-			Resource: "client",
+			Resource: "message",
 			Method:   "send",
 			Kind:     "request",
 			Session:  m.session(),
@@ -60,7 +60,7 @@ func (m *messagingManager) sendMulti(ctx context.Context, to []string, payload m
 		Header: Header{
 			V:        2,
 			ID:       m.idg.Next("send"),
-			Resource: "client",
+			Resource: "message",
 			Method:   "send",
 			Kind:     "request",
 			Session:  m.session(),

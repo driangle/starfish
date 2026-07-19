@@ -100,6 +100,14 @@ run_sdk_python() {
   STARFISH_SERVER_URL="ws://localhost:$port/starfish" pytest integration/ -v
 }
 
+run_sdk_golang() {
+  local port=$1
+  echo "Running Go SDK integration tests..."
+  cd "$ROOT_DIR/sdks/golang"
+
+  STARFISH_SERVER_URL="ws://localhost:$port/starfish" go test -run TestIntegration -count=1 -v ./starfish/
+}
+
 # --- Main ---
 
 if [[ "$PORT" -eq 0 ]]; then
@@ -134,9 +142,12 @@ case "$SDK_TYPE" in
   python)
     run_sdk_python "$PORT"
     ;;
+  golang)
+    run_sdk_golang "$PORT"
+    ;;
   *)
     echo "Unknown SDK type: $SDK_TYPE" >&2
-    echo "Supported SDK types: typescript, python" >&2
+    echo "Supported SDK types: typescript, python, golang" >&2
     exit 1
     ;;
 esac
