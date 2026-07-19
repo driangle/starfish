@@ -105,7 +105,7 @@ run_sdk_golang() {
   echo "Running Go SDK integration tests..."
   cd "$ROOT_DIR/sdks/golang"
 
-  STARFISH_SERVER_URL="ws://localhost:$port/starfish" go test -run TestIntegration -count=1 -v ./starfish/
+  STARFISH_SERVER_URL="ws://localhost:$port/starfish" go test -count=1 -v ./integration/
 }
 
 # --- Main ---

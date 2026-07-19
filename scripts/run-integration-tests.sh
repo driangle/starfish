@@ -5,7 +5,7 @@
 # Usage:
 #   ./scripts/run-integration-tests.sh <server-type>
 #
-# Supported server types: golang, typescript
+# Supported server types: golang, typescript, python
 #
 # The script builds the server, starts it on a random port, runs the
 # integration tests, and tears everything down regardless of outcome.
@@ -63,6 +63,16 @@ start_typescript() {
   wait_for_server "$port"
 }
 
+start_python() {
+  local port=$1
+  echo "Installing Python server..."
+  (cd "$ROOT_DIR/servers/python" && pip install -e . --quiet 2>/dev/null)
+  echo "Starting Python server on port $port..."
+  python3 -m starfish_server --port "$port" &
+  SERVER_PID=$!
+  wait_for_server "$port"
+}
+
 # --- Main ---
 
 if [[ "$PORT" -eq 0 ]]; then
@@ -78,9 +88,12 @@ case "$SERVER_TYPE" in
   typescript)
     start_typescript "$PORT"
     ;;
+  python)
+    start_python "$PORT"
+    ;;
   *)
     echo "Unknown server type: $SERVER_TYPE" >&2
-    echo "Supported types: golang, typescript" >&2
+    echo "Supported types: golang, typescript, python" >&2
     exit 1
     ;;
 esac
