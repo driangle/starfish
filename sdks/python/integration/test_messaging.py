@@ -28,15 +28,19 @@ class TestMessaging:
 
         received: asyncio.Future[StarfishFrame] = asyncio.get_event_loop().create_future()
         receiver.on(
-            lambda f: received.set_result(f)
-            if f.type == "client.message" and not received.done()
-            else None
+            lambda f: (
+                received.set_result(f)
+                if f.header.resource == "message"
+                and f.header.method == "message"
+                and not received.done()
+                else None
+            )
         )
 
         await sender.send(receiver.client_id, {"gesture": "wave"})
 
         message = await asyncio.wait_for(received, timeout=5.0)
-        assert message.from_ == sender.client_id
+        assert message.header.from_ == sender.client_id
         assert message.payload == {"gesture": "wave"}
 
     async def test_send_to_multiple_recipients(self, clients: list[StarfishClient]):
@@ -60,10 +64,18 @@ class TestMessaging:
         f1: asyncio.Future[StarfishFrame] = asyncio.get_event_loop().create_future()
         f2: asyncio.Future[StarfishFrame] = asyncio.get_event_loop().create_future()
         recv1.on(
-            lambda f: f1.set_result(f) if f.type == "client.message" and not f1.done() else None
+            lambda f: (
+                f1.set_result(f)
+                if f.header.resource == "message" and f.header.method == "message" and not f1.done()
+                else None
+            )
         )
         recv2.on(
-            lambda f: f2.set_result(f) if f.type == "client.message" and not f2.done() else None
+            lambda f: (
+                f2.set_result(f)
+                if f.header.resource == "message" and f.header.method == "message" and not f2.done()
+                else None
+            )
         )
 
         await sender.send([recv1.client_id, recv2.client_id], {"command": "stop"})
@@ -87,15 +99,19 @@ class TestMessaging:
 
         received: asyncio.Future[StarfishFrame] = asyncio.get_event_loop().create_future()
         listener.on(
-            lambda f: received.set_result(f)
-            if f.type == "session.broadcast" and not received.done()
-            else None
+            lambda f: (
+                received.set_result(f)
+                if f.header.resource == "session"
+                and f.header.method == "broadcast"
+                and not received.done()
+                else None
+            )
         )
 
         await broadcaster.broadcast({"alert": "go"})
 
         message = await asyncio.wait_for(received, timeout=5.0)
-        assert message.from_ == broadcaster.client_id
+        assert message.header.from_ == broadcaster.client_id
         assert message.payload == {"alert": "go"}
 
     async def test_broadcast_with_include_self(self, clients: list[StarfishClient]):
@@ -108,9 +124,13 @@ class TestMessaging:
 
         received: asyncio.Future[StarfishFrame] = asyncio.get_event_loop().create_future()
         client.on(
-            lambda f: received.set_result(f)
-            if f.type == "session.broadcast" and not received.done()
-            else None
+            lambda f: (
+                received.set_result(f)
+                if f.header.resource == "session"
+                and f.header.method == "broadcast"
+                and not received.done()
+                else None
+            )
         )
 
         await client.broadcast({"echo": True}, include_self=True)

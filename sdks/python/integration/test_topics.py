@@ -22,7 +22,9 @@ class TestTopics:
 
         response = await client.subscribe("lights")
 
-        assert response.type == "topic.subscribed"
+        assert response.header.resource == "topic"
+        assert response.header.method == "subscribe"
+        assert response.header.kind == "response"
 
     async def test_topic_stream_receives_published_messages(self, clients: list[StarfishClient]):
         session = unique_session()
@@ -46,9 +48,9 @@ class TestTopics:
         await publisher.publish("lights", {"cue": "blackout"})
 
         message = await asyncio.wait_for(received, timeout=5.0)
-        assert message.topic == "lights"
+        assert message.header.topic == "lights"
         assert message.payload == {"cue": "blackout"}
-        assert message.from_ == publisher.client_id
+        assert message.header.from_ == publisher.client_id
 
     async def test_subscribe_with_callback(self, clients: list[StarfishClient]):
         session = unique_session()
@@ -118,12 +120,8 @@ class TestTopics:
 
         f1: asyncio.Future[StarfishFrame] = asyncio.get_event_loop().create_future()
         f2: asyncio.Future[StarfishFrame] = asyncio.get_event_loop().create_future()
-        sub1.topic_stream("events").subscribe(
-            lambda f: f1.set_result(f) if not f1.done() else None
-        )
-        sub2.topic_stream("events").subscribe(
-            lambda f: f2.set_result(f) if not f2.done() else None
-        )
+        sub1.topic_stream("events").subscribe(lambda f: f1.set_result(f) if not f1.done() else None)
+        sub2.topic_stream("events").subscribe(lambda f: f2.set_result(f) if not f2.done() else None)
 
         await publisher.publish("events", {"action": "go"})
 

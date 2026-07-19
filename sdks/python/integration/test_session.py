@@ -21,8 +21,10 @@ class TestSession:
         session = unique_session()
         response = await client.join(session)
 
-        assert response.type == "session.joined"
-        assert response.session == session
+        assert response.header.resource == "session"
+        assert response.header.method == "join"
+        assert response.header.kind == "response"
+        assert response.header.session == session
         assert len(response.payload["clients"]) == 1
         assert response.payload["clients"][0]["id"] == client.client_id
 
