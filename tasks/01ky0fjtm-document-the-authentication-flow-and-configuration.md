@@ -13,7 +13,7 @@ created_at: 2026-07-20
 ## Objective
 
 Document the authentication flow and configuration options introduced by
-protocol spec `protocol/spec/starfish-v0.2.md` §3.4, once the servers and SDKs
+protocol spec `protocol/spec/starfish-v0.1.md` §3.4, once the servers and SDKs
 implement it.
 
 ## Tasks

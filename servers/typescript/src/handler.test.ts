@@ -178,7 +178,7 @@ describe("client.hello handler", () => {
   it("produces welcome response with unique clientId", () => {
     hub.handler.dispatch(client, {
       header: { id: "m1", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2], client: { name: "Alice" } },
+      payload: { versions: [1], client: { name: "Alice" } },
     });
 
     expect(client.authenticated).toBe(true);
@@ -204,7 +204,7 @@ describe("client.hello handler", () => {
     hub.handler.dispatch(client, {
       header: { id: "m1", resource: "client", method: "hello", kind: "request" },
       payload: {
-        versions: [2],
+        versions: [1],
         client: { name: "Bob", role: "editor", meta: { color: "blue" } },
         capabilities: { rtc: true },
       },
@@ -219,7 +219,7 @@ describe("client.hello handler", () => {
   it("works with minimal payload", () => {
     hub.handler.dispatch(client, {
       header: { id: "m1", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2] },
+      payload: { versions: [1] },
     });
 
     expect(client.authenticated).toBe(true);
@@ -233,7 +233,7 @@ describe("client.hello handler", () => {
   it("registers client in hub", () => {
     hub.handler.dispatch(client, {
       header: { id: "m1", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2] },
+      payload: { versions: [1] },
     });
 
     expect(hub.getClient(client.id)).toBe(client);
@@ -242,7 +242,7 @@ describe("client.hello handler", () => {
   it("includes ICE servers in welcome when configured", () => {
     hub.handler.dispatch(client, {
       header: { id: "m1", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2] },
+      payload: { versions: [1] },
     });
 
     const payload = client.sent[0].payload as Record<string, unknown>;
@@ -281,7 +281,7 @@ describe("from field overwrite", () => {
 
     hub.handler.dispatch(client, {
       header: { id: "m1", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2] },
+      payload: { versions: [1] },
     });
 
     const welcomeFrame = client.sent[0];

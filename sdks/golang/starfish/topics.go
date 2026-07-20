@@ -29,7 +29,7 @@ func (t *topicManager) subscribe(ctx context.Context, topic string) error {
 	ts := time.Now().UnixMilli()
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       t.idg.Next("topic"),
 			Resource: "topic",
 			Method:   "subscribe",
@@ -49,7 +49,7 @@ func (t *topicManager) unsubscribe(ctx context.Context, topic string) error {
 	ts := time.Now().UnixMilli()
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       t.idg.Next("topic"),
 			Resource: "topic",
 			Method:   "unsubscribe",
@@ -79,7 +79,7 @@ func (t *topicManager) publish(ctx context.Context, topic string, payload map[st
 	ts := time.Now().UnixMilli()
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       t.idg.Next("topic"),
 			Resource: "topic",
 			Method:   "publish",

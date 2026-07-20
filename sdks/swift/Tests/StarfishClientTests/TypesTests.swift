@@ -63,7 +63,7 @@ final class TypesTests: XCTestCase {
     func testFrameRoundTrip() throws {
         let frame = StarfishFrame(
             header: StarfishHeader(
-                v: 2,
+                v: 1,
                 id: "test_1",
                 resource: "client",
                 method: "hello",

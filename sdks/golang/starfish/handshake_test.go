@@ -13,8 +13,8 @@ func TestNewHelloFrame(t *testing.T) {
 
 	f := NewHelloFrame(&gen, opts)
 
-	if f.Header.V != 2 {
-		t.Errorf("V = %d, want 2", f.Header.V)
+	if f.Header.V != 1 {
+		t.Errorf("V = %d, want 1", f.Header.V)
 	}
 	if f.Header.Resource != "client" {
 		t.Errorf("Resource = %v, want client", f.Header.Resource)
@@ -33,8 +33,8 @@ func TestNewHelloFrame(t *testing.T) {
 	}
 
 	versions, ok := f.Payload["versions"].([]int)
-	if !ok || len(versions) != 1 || versions[0] != 2 {
-		t.Errorf("Payload.versions = %v, want [2]", f.Payload["versions"])
+	if !ok || len(versions) != 1 || versions[0] != 1 {
+		t.Errorf("Payload.versions = %v, want [1]", f.Payload["versions"])
 	}
 
 	client := f.Payload["client"].(map[string]any)
@@ -70,8 +70,8 @@ func TestNewResumeFrame(t *testing.T) {
 	var gen IDGenerator
 	f := NewResumeFrame(&gen, "rt_abc123")
 
-	if f.Header.V != 2 {
-		t.Errorf("V = %d, want 2", f.Header.V)
+	if f.Header.V != 1 {
+		t.Errorf("V = %d, want 1", f.Header.V)
 	}
 	if f.Header.Resource != "client" {
 		t.Errorf("Resource = %v, want client", f.Header.Resource)
@@ -88,7 +88,7 @@ func TestNewResumeFrame(t *testing.T) {
 func TestParseWelcome_Success(t *testing.T) {
 	f := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       "msg_1",
 			Resource: "client",
 			Method:   "welcome",
@@ -97,7 +97,7 @@ func TestParseWelcome_Success(t *testing.T) {
 		},
 		Payload: map[string]any{
 			"status":            "ok",
-			"version":           float64(2),
+			"version":           float64(1),
 			"clientId":          "client_xyz",
 			"resumeToken":       "rt_123",
 			"resumeTimeout":     float64(30000),
@@ -115,8 +115,8 @@ func TestParseWelcome_Success(t *testing.T) {
 	if w.Status != "ok" {
 		t.Errorf("Status = %v, want ok", w.Status)
 	}
-	if w.Version != 2 {
-		t.Errorf("Version = %d, want 2", w.Version)
+	if w.Version != 1 {
+		t.Errorf("Version = %d, want 1", w.Version)
 	}
 	if w.ClientID != "client_xyz" {
 		t.Errorf("ClientID = %v, want client_xyz", w.ClientID)

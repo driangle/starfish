@@ -20,7 +20,7 @@ describe("error handling", () => {
     const client = await track();
     const frame = {
       header: {
-        v: 2,
+        v: 1,
         id: uniqueId("hello"),
         resource: "client",
         method: "hello",

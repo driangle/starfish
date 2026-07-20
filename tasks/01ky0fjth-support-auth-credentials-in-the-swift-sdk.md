@@ -13,7 +13,7 @@ created_at: 2026-07-20
 ## Objective
 
 Ensure the Swift SDK (`sdks/swift/`) supports the auth handshake from protocol
-spec `protocol/spec/starfish-v0.2.md` §3.4: send credentials in `client.hello`
+spec `protocol/spec/starfish-v0.1.md` §3.4: send credentials in `client.hello`
 and surface `auth.required`/`auth.failed` rejections clearly. **Requires a bug
 fix** — Swift currently detects errors differently from the other SDKs.
 

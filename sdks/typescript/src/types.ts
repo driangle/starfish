@@ -28,7 +28,7 @@ export interface HeaderOptions {
 }
 
 export interface StarfishHeader {
-  v?: 2;
+  v?: 1;
   id: string;
   resource: string;
   method: string;

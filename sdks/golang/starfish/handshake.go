@@ -49,7 +49,7 @@ func NewHelloFrame(gen *IDGenerator, opts *ClientOptions) *Frame {
 	}
 
 	payload := map[string]any{
-		"versions": []int{2},
+		"versions": []int{1},
 		"client": map[string]any{
 			"name": identity.Name,
 			"role": identity.Role,
@@ -63,7 +63,7 @@ func NewHelloFrame(gen *IDGenerator, opts *ClientOptions) *Frame {
 
 	return &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       gen.Next("hello"),
 			Resource: "client",
 			Method:   "hello",
@@ -79,7 +79,7 @@ func NewResumeFrame(gen *IDGenerator, resumeToken string) *Frame {
 	ts := time.Now().UnixMilli()
 	return &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       gen.Next("hello"),
 			Resource: "client",
 			Method:   "hello",
@@ -87,7 +87,7 @@ func NewResumeFrame(gen *IDGenerator, resumeToken string) *Frame {
 			Ts:       &ts,
 		},
 		Payload: map[string]any{
-			"versions":    []int{2},
+			"versions":    []int{1},
 			"resumeToken": resumeToken,
 		},
 	}

@@ -38,7 +38,7 @@ func (p *presenceManager) set(ctx context.Context, payload map[string]any) error
 	ts := time.Now().UnixMilli()
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       p.idg.Next("pres"),
 			Resource: "presence",
 			Method:   "set",

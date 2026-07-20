@@ -6,7 +6,7 @@ priority: low
 type: chore
 tags: ["docker", "ci", "deployment", "bridge"]
 dependencies: ["01kxfmdyt"]
-phase: "v0.3"
+phase: "v0.2"
 created_at: "2026-07-14"
 ---
 

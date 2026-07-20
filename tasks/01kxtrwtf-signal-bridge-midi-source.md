@@ -1,5 +1,5 @@
 ---
-title: "Signal bridge: MIDI source"
+title: "Signal bridge: MIDI connector"
 id: "01kxtrwtf"
 status: pending
 priority: medium
@@ -8,29 +8,38 @@ tags: ["bridge", "midi"]
 created_at: "2026-07-18"
 ---
 
-# Signal bridge: MIDI source
+# Signal bridge: MIDI connector
 
 ## Objective
 
-Implement the MIDI `BridgeSource` for the signal bridge CLI. The source lists available MIDI devices, opens a selected device, and forwards incoming MIDI messages (note on/off, CC, pitch bend, etc.) to a starfish topic. Optionally supports output direction for sending starfish messages back to a MIDI device.
+Implement the MIDI `BridgeConnector` for the signal bridge CLI. Supports all three directions (relative to starfish): `in` forwards incoming MIDI messages (note on/off, CC, pitch bend, etc.) from a device to a starfish topic; `out` sends topic messages back to the device; `both` runs both on the same device. See the core task (`01kxtrwnb`) for the shared `--direction` convention.
 
 ### CLI Usage
 
 ```bash
-starfish-bridge midi --server ws://localhost:8080/starfish --session jam --topic midi-in --device "Launchpad Pro"
+# in (default): device → topic
+starfish-bridge midi --server ws://localhost:8080/starfish --session jam --topic midi --device "Launchpad Pro"
+
+# out: topic → device
+starfish-bridge midi --server ws://localhost:8080/starfish --session jam --topic midi --device "Launchpad Pro" --direction out
+
+# both: bidirectional
+starfish-bridge midi --server ws://localhost:8080/starfish --session jam --topic midi --device "Launchpad Pro" --direction both
 ```
 
 ## Tasks
 
-- [ ] Implement MIDI source in `sources/midi.ts` conforming to `BridgeSource` interface
-- [ ] Add device listing/selection (--device flag, list available devices if omitted)
-- [ ] Parse incoming MIDI messages into structured payloads (type, channel, note, velocity, cc, value)
-- [ ] Support output direction: subscribe to starfish topic and send MIDI messages to the device
-- [ ] Add tests with mocked MIDI input
+- [ ] Implement MIDI connector in `connectors/midi.ts` conforming to `BridgeConnector` interface, advertising support for `in`, `out`, and `both`
+- [ ] Add device listing/selection (--device flag, list available devices if omitted); open the input port for `in`, the output port for `out`, both for `both`
+- [ ] `in`: parse incoming MIDI messages into structured payloads (type, channel, note, velocity, cc, value) and publish to the topic
+- [ ] `out`: subscribe to the starfish topic and translate structured payloads back into MIDI messages sent to the device
+- [ ] Add tests with mocked MIDI input and output
 
 ## Acceptance Criteria
 
-- Running `starfish-bridge midi --server ... --session ... --topic ... --device "..."` opens the MIDI device and publishes incoming MIDI messages to the specified starfish topic
+- Running `starfish-bridge midi ... --device "..."` (default `--direction in`) opens the device input and publishes incoming MIDI to the topic
 - MIDI messages are published as structured JSON payloads (e.g. `{ type: "noteOn", channel: 0, note: 60, velocity: 127 }`)
 - Running without `--device` lists available MIDI devices and exits
-- The source cleans up the MIDI device on shutdown
+- Running with `--direction out` subscribes to the topic and translates structured payloads back into valid MIDI messages sent to the device
+- Running with `--direction both` does both simultaneously on the same device
+- The connector cleans up the MIDI device on shutdown

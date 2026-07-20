@@ -6,7 +6,7 @@ priority: high
 type: feature
 tags: ["sdk", "golang"]
 created_at: "2026-07-07"
-phase: v0.2
+phase: v0.1
 completed_at: 2026-07-19
 ---
 

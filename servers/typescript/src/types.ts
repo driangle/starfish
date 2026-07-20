@@ -8,7 +8,7 @@ export type DeliveryOptions = {
 };
 
 export type StarfishHeader = {
-  v?: 2;
+  v?: 1;
   id: string;
   resource: string;
   method: string;

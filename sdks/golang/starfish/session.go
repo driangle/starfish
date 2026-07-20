@@ -57,7 +57,7 @@ func (s *sessionManager) join(ctx context.Context, session string, opts *JoinOpt
 
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       s.idg.Next("session"),
 			Resource: "session",
 			Method:   "join",
@@ -119,7 +119,7 @@ func (s *sessionManager) leave(ctx context.Context) error {
 	ts := time.Now().UnixMilli()
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       s.idg.Next("session"),
 			Resource: "session",
 			Method:   "leave",

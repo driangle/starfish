@@ -22,7 +22,7 @@ describe("connection lifecycle", () => {
 
     expect(welcome.header.resource).toBe("client");
     expect(welcome.header.method).toBe("welcome");
-    expect(welcome.header.v).toBe(2);
+    expect(welcome.header.v).toBe(1);
     expect(welcome.header.replyTo).toBeDefined();
     expect(welcome.payload?.clientId).toBeDefined();
     expect(typeof welcome.payload?.clientId).toBe("string");
@@ -96,10 +96,10 @@ describe("connection lifecycle", () => {
 
   it("unsupported protocol version returns error", async () => {
     const client = await track();
-    // Send a proper v0.2 envelope with unsupported version in payload
+    // Send a proper v0.1 envelope with unsupported version in payload
     const frame = {
       header: {
-        v: 2,
+        v: 1,
         id: uniqueId("hello"),
         resource: "client",
         method: "hello",
@@ -122,10 +122,10 @@ describe("connection lifecycle", () => {
 
   it("version negotiation succeeds when client offers supported version", async () => {
     const client = await track();
-    // Client offers versions [1, 2] — server should accept version 2
+    // Client offers versions [2, 1] — server supports only 1 and should negotiate down to 1
     const frame = {
       header: {
-        v: 2,
+        v: 1,
         id: uniqueId("hello"),
         resource: "client",
         method: "hello",
@@ -133,7 +133,7 @@ describe("connection lifecycle", () => {
         ts: Date.now(),
       },
       payload: {
-        versions: [1, 2],
+        versions: [2, 1],
         client: { name: "multi-version", role: "test", meta: {} },
         capabilities: { rtc: false },
         auth: { type: "none" },
@@ -144,7 +144,7 @@ describe("connection lifecycle", () => {
     const welcome = await client.waitForReply(frame.header.id);
     expect(welcome.header.resource).toBe("client");
     expect(welcome.header.method).toBe("welcome");
-    expect(welcome.payload?.version).toBe(2);
+    expect(welcome.payload?.version).toBe(1);
   });
 
   it("header.meta is accepted without error", async () => {

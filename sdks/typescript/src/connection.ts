@@ -116,7 +116,7 @@ export class Connection {
   private async doHandshake(): Promise<StarfishFrame> {
     const welcome = await this.sendAndWait({
       header: {
-        v: 2,
+        v: 1,
         id: nextId("hello"),
         resource: "client",
         method: "hello",
@@ -138,9 +138,9 @@ export class Connection {
 
   private buildHelloPayload(): any {
     const capabilities = { rtc: !!this.options.rtc };
-    if (this.resumeToken) return { versions: [2], resumeToken: this.resumeToken, capabilities };
+    if (this.resumeToken) return { versions: [1], resumeToken: this.resumeToken, capabilities };
     return {
-      versions: [2],
+      versions: [1],
       client: {
         name: this.options.client?.name ?? "starfish-client",
         role: this.options.client?.role ?? "default",

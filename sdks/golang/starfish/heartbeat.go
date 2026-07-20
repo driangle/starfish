@@ -43,7 +43,7 @@ func (h *heartbeat) loop(ctx context.Context) {
 			ts := time.Now().UnixMilli()
 			frame := &Frame{
 				Header: Header{
-					V:        2,
+					V:        1,
 					ID:       h.idg.Next("ping"),
 					Resource: "heartbeat",
 					Method:   "ping",

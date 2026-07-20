@@ -7,7 +7,7 @@ type: feature
 tags: ["adapter", "touchdesigner", "python", "tox"]
 created_at: "2026-07-07"
 dependencies: ["01kwyst2r"]
-phase: v0.3
+phase: v0.2
 ---
 
 # Build starfishClient TOX Component

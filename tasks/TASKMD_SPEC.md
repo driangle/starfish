@@ -32,7 +32,7 @@ Description and subtasks go here.
 | `tags` | No | Lowercase, hyphen-separated (e.g., `[core, api]`) |
 | `group` | No | Logical grouping (derived from directory if omitted) |
 | `owner` | No | Free-form assignee |
-| `phase` | No | Phase identifier (e.g., `"v0.2"`) — see Configuration below |
+| `phase` | No | Phase identifier (e.g., `"v0.1"`) — see Configuration below |
 | `touches` | No | Scope identifiers for conflict detection (e.g., `["cli/graph"]`) |
 | `context` | No | File paths relevant to the task (e.g., `["docs/api-design.md"]`) |
 | `parent` | No | Parent task ID — organizational only, no blocking |

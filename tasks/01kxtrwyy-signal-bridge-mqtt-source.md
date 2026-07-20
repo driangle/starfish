@@ -1,5 +1,5 @@
 ---
-title: "Signal bridge: MQTT source"
+title: "Signal bridge: MQTT connector"
 id: "01kxtrwyy"
 status: pending
 priority: medium
@@ -8,31 +8,38 @@ tags: ["bridge", "mqtt"]
 created_at: "2026-07-18"
 ---
 
-# Signal bridge: MQTT source
+# Signal bridge: MQTT connector
 
 ## Objective
 
-Implement the MQTT `BridgeSource` for the signal bridge CLI. The source connects to an MQTT broker, subscribes to configurable topic patterns, and forwards messages bidirectionally between MQTT and a starfish topic.
+Implement the MQTT `BridgeConnector` for the signal bridge CLI. Connects to an MQTT broker and bridges with a starfish topic: `in` subscribes to broker topic patterns (`--subscribe`) and forwards to starfish; `out` subscribes to the starfish topic and publishes to a broker topic (`--publish-to`); `both` does both. See the core task (`01kxtrwnb`) for the shared `--direction` convention.
 
 ### CLI Usage
 
 ```bash
-starfish-bridge mqtt --server ws://localhost:8080/starfish --session install --topic iot-in --broker mqtt://localhost:1883 --subscribe "sensors/#"
+# in (default): broker --subscribe patterns → starfish topic
+starfish-bridge mqtt --server ws://localhost:8080/starfish --session install --topic iot --broker mqtt://localhost:1883 --direction in --subscribe "sensors/#"
+
+# out: starfish topic → broker --publish-to topic
+starfish-bridge mqtt --server ws://localhost:8080/starfish --session install --topic iot --broker mqtt://localhost:1883 --direction out --publish-to "commands/lights"
+
+# both
+starfish-bridge mqtt --server ws://localhost:8080/starfish --session install --topic iot --broker mqtt://localhost:1883 --direction both --subscribe "sensors/#" --publish-to "commands/lights"
 ```
 
 ## Tasks
 
-- [ ] Implement MQTT source in `sources/mqtt.ts` conforming to `BridgeSource` interface
+- [ ] Implement MQTT connector in `connectors/mqtt.ts` conforming to `BridgeConnector` interface, advertising support for `in`, `out`, and `both`
 - [ ] Connect to configurable MQTT broker (--broker flag, support mqtt:// and mqtts://)
-- [ ] Subscribe to one or more MQTT topic patterns (--subscribe flag, supports wildcards)
-- [ ] Forward incoming MQTT messages to starfish topic with metadata (original MQTT topic, QoS, retain flag)
-- [ ] Support bidirectional mode: subscribe to starfish topic and publish back to MQTT (--publish-to flag)
+- [ ] `in`: subscribe to one or more MQTT topic patterns (--subscribe, supports wildcards) and forward to the starfish topic with metadata (original MQTT topic, QoS, retain flag)
+- [ ] `out`: subscribe to the starfish topic and publish messages to the MQTT broker (--publish-to)
 - [ ] Handle MQTT reconnection and clean session options
 - [ ] Add tests with mocked MQTT broker
 
 ## Acceptance Criteria
 
-- Running `starfish-bridge mqtt --server ... --session ... --topic ... --broker mqtt://... --subscribe "sensors/#"` subscribes to MQTT topics and publishes matching messages to the starfish topic
+- Running `starfish-bridge mqtt ... --direction in --subscribe "sensors/#"` subscribes to MQTT topics and publishes matching messages to the starfish topic
 - MQTT messages include the original MQTT topic in the payload (e.g. `{ mqttTopic: "sensors/temp/1", payload: ... }`)
-- Bidirectional mode forwards starfish messages back to MQTT when --publish-to is specified
-- The source reconnects to the MQTT broker after connection drops
+- Running with `--direction out --publish-to ...` subscribes to the starfish topic and publishes those messages to the broker
+- Running with `--direction both` bridges in both directions simultaneously
+- The connector reconnects to the MQTT broker after connection drops

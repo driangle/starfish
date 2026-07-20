@@ -6,7 +6,7 @@ priority: low
 type: feature
 tags: ["server", "jvm"]
 created_at: "2026-07-12"
-phase: v0.3
+phase: v0.2
 ---
 
 # Implement JVM Server

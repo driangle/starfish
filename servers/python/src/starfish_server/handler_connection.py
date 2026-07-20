@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .resume import ResumeEntry
     from .server import StarfishServer
 
-SUPPORTED_VERSIONS = [2]
+SUPPORTED_VERSIONS = [1]
 
 
 def handle_client_hello(hub: StarfishServer, client: Client, frame: StarfishFrame) -> None:
@@ -170,7 +170,7 @@ def _send_welcome(
 
     client.send_frame({
         "header": {
-            "v": 2,
+            "v": 1,
             "id": hub.id_gen.message_id(),
             "resource": "client",
             "method": "welcome",

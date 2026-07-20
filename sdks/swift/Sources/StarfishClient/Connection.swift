@@ -117,7 +117,7 @@ public final class Connection: @unchecked Sendable {
     private func doHandshake() async throws -> StarfishFrame {
         let hello = StarfishFrame(
             header: StarfishHeader(
-                v: 2,
+                v: 1,
                 id: idGen.nextId(prefix: "hello"),
                 resource: "client",
                 method: "hello",
@@ -146,14 +146,14 @@ public final class Connection: @unchecked Sendable {
 
         if let token = resumeToken {
             return [
-                "versions": AnyCodable([2]),
+                "versions": AnyCodable([1]),
                 "resumeToken": AnyCodable(token),
                 "capabilities": AnyCodable(capabilities),
             ]
         }
 
         var payload: [String: AnyCodable] = [
-            "versions": AnyCodable([2]),
+            "versions": AnyCodable([1]),
             "client": AnyCodable([
                 "name": options.client?.name ?? "starfish-client",
                 "role": options.client?.role ?? "default",

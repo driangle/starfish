@@ -132,7 +132,7 @@ export function authenticate(
       method: "hello",
       kind: "request",
     },
-    payload: { versions: [2] },
+    payload: { versions: [1] },
   });
   client.sent.length = 0;
 }

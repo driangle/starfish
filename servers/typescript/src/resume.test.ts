@@ -44,7 +44,7 @@ describe("resume", () => {
     const c = createTestClient(hub);
     hub.handler.dispatch(c, {
       header: { id: "hello", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2] },
+      payload: { versions: [1] },
     });
 
     const welcome = getWelcome(c);
@@ -79,7 +79,7 @@ describe("resume", () => {
     const c1 = createTestClient(hub);
     hub.handler.dispatch(c1, {
       header: { id: "hello", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2], client: { name: "alice", role: "editor" } },
+      payload: { versions: [1], client: { name: "alice", role: "editor" } },
     });
     const token = getWelcome(c1).resumeToken;
     const originalId = c1.id;
@@ -100,7 +100,7 @@ describe("resume", () => {
     const c2 = createTestClient(hub);
     hub.handler.dispatch(c2, {
       header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2], resumeToken: token },
+      payload: { versions: [1], resumeToken: token },
     });
 
     const welcome = getWelcome(c2);
@@ -122,7 +122,7 @@ describe("resume", () => {
     const c1 = createTestClient(hub);
     hub.handler.dispatch(c1, {
       header: { id: "hello", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2] },
+      payload: { versions: [1] },
     });
     const oldToken = getWelcome(c1).resumeToken;
     c1.sent.length = 0;
@@ -135,7 +135,7 @@ describe("resume", () => {
     const c2 = createTestClient(hub);
     hub.handler.dispatch(c2, {
       header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2], resumeToken: oldToken },
+      payload: { versions: [1], resumeToken: oldToken },
     });
     const newToken = getWelcome(c2).resumeToken;
     expect(newToken).not.toBe(oldToken);
@@ -144,7 +144,7 @@ describe("resume", () => {
     const c3 = createTestClient(hub);
     hub.handler.dispatch(c3, {
       header: { id: "hello3", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2], resumeToken: oldToken },
+      payload: { versions: [1], resumeToken: oldToken },
     });
     expect(c3.sent[0].header.resource).toBe("client");
     expect(c3.sent[0].header.method).toBe("welcome");
@@ -157,7 +157,7 @@ describe("resume", () => {
     const c = createTestClient(hub);
     hub.handler.dispatch(c, {
       header: { id: "hello", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2], resumeToken: "rt_bogus" },
+      payload: { versions: [1], resumeToken: "rt_bogus" },
     });
 
     expect(c.sent[0].header.resource).toBe("client");
@@ -170,7 +170,7 @@ describe("resume", () => {
     const c1 = createTestClient(hub);
     hub.handler.dispatch(c1, {
       header: { id: "hello", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2] },
+      payload: { versions: [1] },
     });
     const token = getWelcome(c1).resumeToken;
     c1.sent.length = 0;
@@ -186,7 +186,7 @@ describe("resume", () => {
     const c2 = createTestClient(hub);
     hub.handler.dispatch(c2, {
       header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2], resumeToken: token },
+      payload: { versions: [1], resumeToken: token },
     });
     expect(c2.sent[0].header.resource).toBe("client");
     expect(c2.sent[0].header.method).toBe("welcome");
@@ -198,7 +198,7 @@ describe("resume", () => {
     const c1 = createTestClient(hub);
     hub.handler.dispatch(c1, {
       header: { id: "hello", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2] },
+      payload: { versions: [1] },
     });
     const token = getWelcome(c1).resumeToken;
     c1.sent.length = 0;
@@ -216,7 +216,7 @@ describe("resume", () => {
     const c2 = createTestClient(hub);
     hub.handler.dispatch(c2, {
       header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2], resumeToken: token },
+      payload: { versions: [1], resumeToken: token },
     });
 
     const sess = hub.getSession("room1");
@@ -238,7 +238,7 @@ describe("resume", () => {
     const c1b = createTestClient(hub);
     hub.handler.dispatch(c1b, {
       header: { id: "hello", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2] },
+      payload: { versions: [1] },
     });
     const token = getWelcome(c1b).resumeToken;
     c1b.sent.length = 0;
@@ -252,7 +252,7 @@ describe("resume", () => {
     const c1c = createTestClient(hub);
     hub.handler.dispatch(c1c, {
       header: { id: "hello2", resource: "client", method: "hello", kind: "request" },
-      payload: { versions: [2], resumeToken: token },
+      payload: { versions: [1], resumeToken: token },
     });
 
     // Advance past timeout — should NOT broadcast disconnect

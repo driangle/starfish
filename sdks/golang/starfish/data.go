@@ -96,7 +96,7 @@ func (d *dataManager) save(ctx context.Context, opts *SaveOptions) (*DataResult,
 
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       d.idg.Next("data"),
 			Resource: "data",
 			Method:   "save",
@@ -120,7 +120,7 @@ func (d *dataManager) get(ctx context.Context, opts *GetOptions) (*DataResult, e
 	ts := time.Now().UnixMilli()
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       d.idg.Next("data"),
 			Resource: "data",
 			Method:   "get",

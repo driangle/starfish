@@ -73,15 +73,20 @@ Client connects to:
 wss://<server>/starfish
 ```
 
-After connection, the client sends `client.hello`:
+After connection, the client sends a hello request:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_001",
-  "type": "client.hello",
-  "ts": 1783440000000,
+  "header": {
+    "v": 1,
+    "id": "msg_001",
+    "resource": "client",
+    "method": "hello",
+    "kind": "request",
+    "ts": 1783440000000
+  },
   "payload": {
+    "versions": [1],
     "client": {
       "name": "projector-left",
       "role": "visuals",
@@ -97,22 +102,31 @@ After connection, the client sends `client.hello`:
 }
 ```
 
-Server replies with `server.welcome`:
+Server replies with a welcome response:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_002",
-  "type": "server.welcome",
-  "ts": 1783440000010,
-  "replyTo": "msg_001",
+  "header": {
+    "v": 1,
+    "id": "msg_002",
+    "resource": "client",
+    "method": "welcome",
+    "kind": "response",
+    "ts": 1783440000010,
+    "replyTo": "msg_001"
+  },
   "payload": {
+    "status": "ok",
+    "version": 1,
     "clientId": "client_a7f3",
     "resumeToken": "rt_8f2a1b3c4d5e",
     "resumeTimeout": 30000,
     "serverTime": 1783440000010,
     "heartbeatInterval": 15000,
     "sessionRequired": true,
+    "auth": {
+      "required": false
+    },
     "rtc": {
       "iceServers": [
         { "urls": "stun:stun.l.google.com:19302" }
@@ -122,23 +136,68 @@ Server replies with `server.welcome`:
 }
 ```
 
-### 3.2 Reconnection
+The `auth.required` field advertises whether the server requires authentication.
+See [3.4 Authentication](#34-authentication).
 
-On WebSocket disconnect, the server holds the client's state (session
-memberships, pool memberships, topic subscriptions, presence) for the duration
-of `resumeTimeout` (provided in `server.welcome`). During this window, other
-clients see the disconnected client as temporarily offline -- the server
-does NOT emit `client.disconnected` immediately.
+### 3.2 Version Negotiation
 
-**Resuming:** The client sends `client.hello` with `resumeToken`:
+The client sends a `versions` array in the hello payload, listing supported
+protocol versions in preference order (highest first). The server selects the
+highest mutually supported version and includes it as `version` in the welcome
+response.
+
+If the server does not support any of the client's listed versions, it responds
+with a version error:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_003",
-  "type": "client.hello",
-  "ts": 1783440002000,
+  "header": {
+    "v": 1,
+    "id": "err_001",
+    "resource": "client",
+    "method": "welcome",
+    "kind": "response",
+    "replyTo": "msg_001"
+  },
   "payload": {
+    "status": "error",
+    "error": {
+      "code": "protocol.unsupported_version",
+      "resource": "client",
+      "message": "None of the requested versions are supported.",
+      "retry": false
+    }
+  }
+}
+```
+
+Once the handshake completes, the negotiated version is implicit for the
+connection lifetime. The `v` field MAY be omitted from subsequent frames.
+Implementations SHOULD include `v` in the hello/welcome exchange and MAY
+omit it from all other frames on that connection.
+
+### 3.3 Reconnection
+
+On WebSocket disconnect, the server holds the client's state (session
+memberships, pool memberships, topic subscriptions, presence) for the duration
+of `resumeTimeout` (provided in the welcome response). During this window,
+other clients see the disconnected client as temporarily offline -- the server
+does NOT emit a disconnected event immediately.
+
+**Resuming:** The client sends a hello request with `resumeToken`:
+
+```json
+{
+  "header": {
+    "v": 1,
+    "id": "msg_003",
+    "resource": "client",
+    "method": "hello",
+    "kind": "request",
+    "ts": 1783440002000
+  },
+  "payload": {
+    "versions": [1],
     "resumeToken": "rt_8f2a1b3c4d5e",
     "capabilities": {
       "rtc": true
@@ -147,18 +206,24 @@ does NOT emit `client.disconnected` immediately.
 }
 ```
 
-If the token is valid and not expired, the server responds with
-`server.welcome` and the original `clientId`. The client's session
-memberships, pool memberships, topic subscriptions, and presence are restored:
+If the token is valid and not expired, the server responds with a welcome
+and the original `clientId`. The client's session memberships, pool
+memberships, topic subscriptions, and presence are restored:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_004",
-  "type": "server.welcome",
-  "ts": 1783440002010,
-  "replyTo": "msg_003",
+  "header": {
+    "v": 1,
+    "id": "msg_004",
+    "resource": "client",
+    "method": "welcome",
+    "kind": "response",
+    "ts": 1783440002010,
+    "replyTo": "msg_003"
+  },
   "payload": {
+    "status": "ok",
+    "version": 1,
     "clientId": "client_a7f3",
     "resumed": true,
     "resumeToken": "rt_9a4b2c5d6e7f",
@@ -180,11 +245,11 @@ A new `resumeToken` is issued on each successful connection. The previous
 token is invalidated.
 
 **Resume failed or expired:** If the token is invalid or the timeout has
-elapsed, the server responds with a fresh `server.welcome` (new `clientId`,
+elapsed, the server responds with a fresh welcome (new `clientId`,
 `resumed: false`). The client must re-join sessions, re-enter pools, and
 re-subscribe.
 
-**Fresh connection** (no resume): Omit `resumeToken` from `client.hello`.
+**Fresh connection** (no resume): Omit `resumeToken` from the hello payload.
 The server assigns a new `clientId` with no prior state.
 
 **RTC peer connections** are always invalidated on disconnect and must be
@@ -192,49 +257,186 @@ re-established after reconnection, even on successful resume.
 
 **Timeout behavior:** If the resume window expires without reconnection:
 
-1. The server emits `client.disconnected` with reason `"timeout"` to all
-   sessions the client was in.
-2. The server emits `pool.member.left` with reason `"timeout"` to all
+1. The server emits a `session/disconnected` event with reason `"timeout"` to
+   all sessions the client was in.
+2. The server emits a `pool/member-left` event with reason `"timeout"` to all
    pools the client was in.
 3. The client's state is destroyed.
 4. The `resumeToken` is invalidated.
+
+### 3.4 Authentication
+
+Authentication is **optional**. A server MAY require clients to present
+credentials during the handshake; when it does not, clients connect without
+credentials and the flow is identical to earlier revisions (fully backwards
+compatible).
+
+#### 3.4.1 The `auth` envelope
+
+The client carries an `auth` object in the `client.hello` payload. It is an
+**opaque, extensible envelope** keyed by `type`:
+
+```json
+"auth": {
+  "type": "token",
+  "token": "eyJhbGciOi..."
+}
+```
+
+- `type` (string, required) identifies the credential scheme. The reserved
+  value `"none"` (or an omitted `auth` object) means the client is presenting
+  no credentials.
+- Additional fields carry the credential for that scheme.
+
+The protocol does **not** prescribe credential schemes beyond `none`. It defines
+only the envelope and the handshake flow; the server owns all validation logic.
+Two common schemes are documented as conventions:
+
+| `type`          | Fields             | Notes                                             |
+| --------------- | ------------------ | ------------------------------------------------- |
+| `none`          | —                  | Anonymous. Default when `auth` is omitted.        |
+| `token`         | `token` (string)   | Opaque bearer token or JWT.                       |
+| `shared-secret` | `secret` (string)  | Pre-shared secret common to all clients.          |
+
+Servers MAY define additional custom `type` values. Clients and servers MUST
+ignore auth fields they do not understand rather than failing.
+
+#### 3.4.2 Server requirement and advertisement
+
+The `server.welcome` payload includes an additive `auth` object advertising
+whether authentication is required:
+
+```json
+"auth": {
+  "required": true
+}
+```
+
+Clients SHOULD treat a missing `auth` object in the welcome as
+`{ "required": false }`.
+
+#### 3.4.3 Rejection flow
+
+When a server requires authentication, it validates the client's `auth`
+envelope during the fresh-connection handshake (before assigning a `clientId`):
+
+- If the client presents no credentials (`auth` omitted or `type: "none"`), the
+  server rejects with `auth.required`.
+- If the client presents credentials that fail validation, the server rejects
+  with `auth.failed`.
+
+Both rejections are **welcome-response error frames** — the same shape as the
+[version-negotiation error](#32-version-negotiation): `resource: "client"`,
+`method: "welcome"`, `kind: "response"`, with `payload.status: "error"` and
+`retry: false`. A rejected client is not registered and holds no server state.
+
+```json
+{
+  "header": {
+    "v": 1,
+    "id": "err_002",
+    "resource": "client",
+    "method": "welcome",
+    "kind": "response",
+    "replyTo": "msg_001"
+  },
+  "payload": {
+    "status": "error",
+    "error": {
+      "code": "auth.required",
+      "resource": "client",
+      "message": "Authentication required.",
+      "retry": false
+    }
+  }
+}
+```
+
+#### 3.4.4 Reconnection
+
+Resumed connections are **not re-challenged**. The `resumeToken` issued in a
+prior welcome is itself a bearer credential scoped to the resume window, so a
+hello carrying a valid `resumeToken` bypasses auth validation. Once the resume
+window expires, the client must perform a fresh handshake and re-authenticate.
+
+#### 3.4.5 Security requirements
+
+- Credentials travel in the `client.hello` payload; clients and servers MUST use
+  a secure transport (`wss://` / TLS) whenever authentication is in use.
+- Servers SHOULD compare secrets and tokens using a constant-time comparison to
+  avoid timing side channels.
+- Servers MUST NOT log credential values.
 
 ---
 
 ## 4. Canonical Message Envelope
 
-Every Starfish frame uses this envelope over both WebSocket and WebRTC.
+Every Starfish frame uses a two-level envelope: a `header` object containing
+protocol metadata, and a `payload` object containing application data.
 
 ```typescript
 type StarfishFrame = {
-  v: 1
+  header: StarfishHeader
+  payload?: Record<string, unknown>
+}
+
+type StarfishHeader = {
+  v?: 2
   id: string
-  type: string
+  resource: string
+  method: string
+  kind: "request" | "response" | "event"
   ts?: number
   session?: string
   from?: string
   to?: string | string[]
   topic?: string
-  ack?: boolean
   replyTo?: string
-  transport?: "ws" | "rtc"
-  options?: Options
-  payload?: any
-  error?: StarfishError
+  delivery?: Delivery
+  priority?: "low" | "normal" | "high" | "critical"
+  ttl?: number
+  meta?: Record<string, unknown>
 }
 ```
 
-### 4.1 Required Fields
+### 4.1 Required Header Fields
 
-All frames MUST include:
+All frames MUST include in the header:
 
-| Field  | Description                          |
-| ------ | ------------------------------------ |
-| `v`    | Protocol version. Always `1`.        |
-| `id`   | Unique message identifier.           |
-| `type` | Message type string.                 |
+| Field      | Description                                          |
+| ---------- | ---------------------------------------------------- |
+| `id`       | Unique message identifier.                           |
+| `resource` | The resource being acted on (e.g. `"session"`, `"topic"`, `"data"`). |
+| `method`   | The action or event name (e.g. `"join"`, `"publish"`, `"changed"`). |
+| `kind`     | Frame direction: `"request"`, `"response"`, or `"event"`. |
 
-### 4.2 Message ID
+### 4.2 Kind
+
+The `kind` field makes frame direction unambiguous:
+
+| Kind         | Description                                                  |
+| ------------ | ------------------------------------------------------------ |
+| `"request"`  | Client-to-server action. Expects a response.                 |
+| `"response"` | Server-to-client reply. Always includes `replyTo`.           |
+| `"event"`    | Server-to-client or peer-to-peer notification. No `replyTo`. |
+
+### 4.3 Resource and Method
+
+Together, `resource` and `method` identify the operation: `resource` names the
+entity, `method` names the action.
+
+Resources: `client`, `session`, `topic`, `message`, `presence`, `data`, `pool`,
+`rtc`, `heartbeat`, `clock`, `ack`.
+
+The full vocabulary is defined in each section below.
+
+### 4.4 Version Field
+
+The `v` field indicates the protocol version. It MUST be included in the
+hello/welcome handshake. After handshake, `v` is implicit for the connection
+lifetime and MAY be omitted from subsequent frames.
+
+### 4.5 Message ID
 
 The `id` field is a client-generated string, unique within that client's
 connection. The simplest approach is a monotonic counter (`"1"`, `"2"`, `"3"`).
@@ -244,35 +446,57 @@ Server-generated messages (events, responses) use server-assigned IDs.
 
 IDs are used for:
 
-- Acknowledgement routing (`replyTo`)
+- Response routing (`replyTo`)
 - Deduplication
 - Debugging and tracing
 
-### 4.3 Reserved Top-Level Fields
+### 4.6 Optional Header Fields
 
-Applications MUST place custom data inside `payload`, not at the top level.
+| Field      | Description                                                    |
+| ---------- | -------------------------------------------------------------- |
+| `v`        | Protocol version. Required in handshake, optional after.       |
+| `ts`       | Timestamp (milliseconds since epoch).                          |
+| `session`  | Session scope for the message.                                 |
+| `from`     | Sender client ID. Set by server on delivery.                   |
+| `to`       | Recipient client ID(s).                                        |
+| `topic`    | Topic name for pub/sub messages.                               |
+| `replyTo`  | ID of the request this frame responds to.                      |
+| `delivery` | Delivery options (see Section 5).                              |
+| `priority` | Message priority: `"low"`, `"normal"`, `"high"`, `"critical"`. |
+| `ttl`      | Discard if older than this many milliseconds.                  |
+| `meta`     | Open `Record<string, unknown>` for extensible metadata.        |
 
-Reserved fields: `v`, `id`, `type`, `ts`, `session`, `from`, `to`, `topic`,
-`ack`, `replyTo`, `transport`, `options`, `payload`, `error`.
+### 4.7 Header Meta
 
-### 4.4 Type Field Convention
+The `meta` field is an open key-value bag for extensible metadata. Both client
+and server may attach arbitrary entries for tracing, debugging, or custom
+features without polluting the defined header fields.
 
-Inbound message types are verbs describing intent:
+Implementations MUST NOT require any specific keys in `meta`. Implementations
+MUST ignore unknown `meta` keys.
 
-- `topic.publish`, `client.send`, `session.broadcast`, `presence.set`
+### 4.8 Payload
 
-Delivered message types are nouns describing what arrived:
+The `payload` object contains application-specific data. Its shape depends on
+the `resource`/`method` combination and is defined per message type in each
+section below.
 
-- `topic.message`, `client.message`, `presence.updated`
+For responses, `payload` always includes a `status` field: `"ok"` for success
+or `"error"` for failure (see Section 19).
 
-The server rewrites the `type` field during routing. Clients receive delivered
-types, never the sender's verb form.
+Applications MUST place custom data inside `payload`, not in `header`.
+
+### 4.9 Reserved Header Fields
+
+The following header field names are reserved and MUST NOT be used for
+application data: `v`, `id`, `resource`, `method`, `kind`, `ts`, `session`,
+`from`, `to`, `topic`, `replyTo`, `delivery`, `priority`, `ttl`, `meta`.
 
 ---
 
-## 5. Message Options
+## 5. Delivery Options
 
-Protocol-level options are placed in the `options` field, separate from
+Delivery options are placed in the `header.delivery` field, separate from
 application data in `payload`.
 
 ```typescript
@@ -282,31 +506,22 @@ type Delivery = {
   preferTransport?: "ws" | "rtc" | "auto"
   fallback?: boolean
   includeSelf?: boolean
-}
-
-type Options = {
-  delivery?: Delivery
-  priority?: "low" | "normal" | "high" | "critical"
-  ttl?: number
   requireAck?: boolean
 }
 ```
 
-**Defaults** (applied when `options` is omitted):
+**Defaults** (applied when `delivery` is omitted):
 
 ```json
 {
-  "delivery": {
-    "reliability": "reliable",
-    "ordering": "ordered",
-    "preferTransport": "auto",
-    "fallback": true
-  },
-  "priority": "normal"
+  "reliability": "reliable",
+  "ordering": "ordered",
+  "preferTransport": "auto",
+  "fallback": true
 }
 ```
 
-### 5.1 Delivery Options
+### 5.1 Delivery Fields
 
 | Field              | Meaning                                                |
 | ------------------ | ------------------------------------------------------ |
@@ -315,17 +530,19 @@ type Options = {
 | `preferTransport`  | Preferred transport path.                              |
 | `fallback`         | Use WebSocket if RTC path fails.                       |
 | `includeSelf`      | Include sender in broadcast delivery. Default `false`. |
-
-### 5.2 General Options
-
-| Field              | Meaning                                                |
-| ------------------ | ------------------------------------------------------ |
-| `priority`         | Message priority: `"low"`, `"normal"`, `"high"`, `"critical"`. |
-| `ttl`              | Discard if older than this many milliseconds.          |
 | `requireAck`       | Receiver must acknowledge.                             |
 
-Options values are **hints**, not guarantees. Implementations SHOULD honor them on
-a best-effort basis.
+### 5.2 Priority and TTL
+
+Priority and TTL are direct header fields, not nested in `delivery`:
+
+| Field      | Meaning                                                |
+| ---------- | ------------------------------------------------------ |
+| `priority` | Message priority: `"low"`, `"normal"`, `"high"`, `"critical"`. Default `"normal"`. |
+| `ttl`      | Discard if older than this many milliseconds.          |
+
+All delivery values are **hints**, not guarantees. Implementations SHOULD honor
+them on a best-effort basis.
 
 ---
 
@@ -338,15 +555,18 @@ connected. When the last client leaves, the server MAY destroy the session
 and its associated data.
 
 If the session does not exist, the server returns a `session.not_found` error
-unless `create: true` is set in the payload. There is no separate
-`session.create` message -- creation is an explicit option on join.
+unless `create: true` is set in the payload. There is no separate create
+request -- creation is an explicit option on join.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_010",
-  "type": "session.join",
-  "session": "show-abc",
+  "header": {
+    "id": "msg_010",
+    "resource": "session",
+    "method": "join",
+    "kind": "request",
+    "session": "show-abc"
+  },
   "payload": {
     "create": true,
     "name": "dancer-1",
@@ -362,12 +582,16 @@ Response:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_011",
-  "type": "session.joined",
-  "session": "show-abc",
-  "replyTo": "msg_010",
+  "header": {
+    "id": "msg_011",
+    "resource": "session",
+    "method": "join",
+    "kind": "response",
+    "session": "show-abc",
+    "replyTo": "msg_010"
+  },
   "payload": {
+    "status": "ok",
     "clientId": "client_a7f3",
     "clients": [
       {
@@ -385,10 +609,13 @@ Response:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_012",
-  "type": "session.leave",
-  "session": "show-abc"
+  "header": {
+    "id": "msg_012",
+    "resource": "session",
+    "method": "leave",
+    "kind": "request",
+    "session": "show-abc"
+  }
 }
 ```
 
@@ -398,10 +625,13 @@ When a client joins:
 
 ```json
 {
-  "v": 1,
-  "id": "evt_001",
-  "type": "client.connected",
-  "session": "show-abc",
+  "header": {
+    "id": "evt_001",
+    "resource": "session",
+    "method": "connected",
+    "kind": "event",
+    "session": "show-abc"
+  },
   "payload": {
     "client": {
       "id": "client_b912",
@@ -416,10 +646,13 @@ When a client leaves or disconnects:
 
 ```json
 {
-  "v": 1,
-  "id": "evt_002",
-  "type": "client.disconnected",
-  "session": "show-abc",
+  "header": {
+    "id": "evt_002",
+    "resource": "session",
+    "method": "disconnected",
+    "kind": "event",
+    "session": "show-abc"
+  },
   "payload": {
     "clientId": "client_b912",
     "reason": "left"
@@ -481,9 +714,12 @@ Minimal example (auto mode, the common case):
 
 ```json
 {
-  "v": 1,
-  "id": "msg_100",
-  "type": "pool.enter",
+  "header": {
+    "id": "msg_100",
+    "resource": "pool",
+    "method": "enter",
+    "kind": "request"
+  },
   "payload": {
     "pool": "distant-touch",
     "create": true,
@@ -496,9 +732,12 @@ Full example with all fields:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_100",
-  "type": "pool.enter",
+  "header": {
+    "id": "msg_100",
+    "resource": "pool",
+    "method": "enter",
+    "kind": "request"
+  },
   "payload": {
     "pool": "distant-touch",
     "create": true,
@@ -519,7 +758,7 @@ Full example with all fields:
 | Field        | Description                                                     |
 | ------------ | --------------------------------------------------------------- |
 | `pool`       | Pool name.                                                      |
-| `create`     | Create the pool if it doesn't exist. Same pattern as `session.join`. |
+| `create`     | Create the pool if it doesn't exist. Same pattern as session join. |
 | `mode`       | Matching mode. Default `"auto"`. Only used on creation, ignored if pool exists. |
 | `groupSize`  | Number of clients per match. Only used on creation.             |
 | `role`       | `"member"` (default) or `"matchmaker"` (delegated mode only).   |
@@ -533,11 +772,15 @@ returns a `pool.not_found` error.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_101",
-  "type": "pool.entered",
-  "replyTo": "msg_100",
+  "header": {
+    "id": "msg_101",
+    "resource": "pool",
+    "method": "enter",
+    "kind": "response",
+    "replyTo": "msg_100"
+  },
   "payload": {
+    "status": "ok",
     "pool": "distant-touch",
     "mode": "auto",
     "groupSize": 2
@@ -552,11 +795,15 @@ Members are invisible to each other.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_101",
-  "type": "pool.entered",
-  "replyTo": "msg_100",
+  "header": {
+    "id": "msg_101",
+    "resource": "pool",
+    "method": "enter",
+    "kind": "response",
+    "replyTo": "msg_100"
+  },
   "payload": {
+    "status": "ok",
     "pool": "distant-touch",
     "mode": "claim",
     "groupSize": 2,
@@ -633,9 +880,12 @@ matching decisions are made by clients or the matchmaker, not the server.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_102",
-  "type": "pool.leave",
+  "header": {
+    "id": "msg_102",
+    "resource": "pool",
+    "method": "leave",
+    "kind": "request"
+  },
   "payload": {
     "pool": "distant-touch"
   }
@@ -654,9 +904,12 @@ When a member enters the pool:
 
 ```json
 {
-  "v": 1,
-  "id": "evt_100",
-  "type": "pool.member.joined",
+  "header": {
+    "id": "evt_100",
+    "resource": "pool",
+    "method": "member-joined",
+    "kind": "event"
+  },
   "payload": {
     "pool": "distant-touch",
     "member": {
@@ -671,9 +924,12 @@ When a member leaves or is removed:
 
 ```json
 {
-  "v": 1,
-  "id": "evt_101",
-  "type": "pool.member.left",
+  "header": {
+    "id": "evt_101",
+    "resource": "pool",
+    "method": "member-left",
+    "kind": "event"
+  },
   "payload": {
     "pool": "distant-touch",
     "memberId": "client_c441",
@@ -686,14 +942,17 @@ Valid reasons: `"left"`, `"matched"`, `"timeout"`, `"disconnected"`.
 
 ### 7.7 Claiming (claim, mutual, propose modes)
 
-Members send `pool.claim` to request a match with a specific target. Claims
+Members send a claim request to request a match with a specific target. Claims
 are not available in auto or delegated modes.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_110",
-  "type": "pool.claim",
+  "header": {
+    "id": "msg_110",
+    "resource": "pool",
+    "method": "claim",
+    "kind": "request"
+  },
   "payload": {
     "pool": "distant-touch",
     "target": "client_b912"
@@ -704,32 +963,39 @@ are not available in auto or delegated modes.
 Behavior depends on the pool's mode:
 
 **Claim:** The server matches immediately. The target has no say. The
-server responds with `pool.matched` to both clients.
+server responds with a `pool/matched` event to both clients.
 
 **Mutual:** The server records the claim. If the target has also claimed the
-claimer, the match is confirmed and both receive `pool.matched`. If not yet
-mutual, the server acknowledges the pending claim:
+claimer, the match is confirmed and both receive a `pool/matched` event. If
+not yet mutual, the server acknowledges the pending claim:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_111",
-  "type": "pool.claim.pending",
-  "replyTo": "msg_110",
+  "header": {
+    "id": "msg_111",
+    "resource": "pool",
+    "method": "claim",
+    "kind": "response",
+    "replyTo": "msg_110"
+  },
   "payload": {
+    "status": "pending",
     "pool": "distant-touch",
     "target": "client_b912"
   }
 }
 ```
 
-**Propose:** The target receives a proposal:
+**Propose:** The target receives a proposal event:
 
 ```json
 {
-  "v": 1,
-  "id": "evt_110",
-  "type": "pool.proposal",
+  "header": {
+    "id": "evt_110",
+    "resource": "pool",
+    "method": "proposal",
+    "kind": "event"
+  },
   "payload": {
     "pool": "distant-touch",
     "from": "client_a7f3",
@@ -742,9 +1008,12 @@ The target responds with accept or reject:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_112",
-  "type": "pool.accept",
+  "header": {
+    "id": "msg_112",
+    "resource": "pool",
+    "method": "accept",
+    "kind": "request"
+  },
   "payload": {
     "pool": "distant-touch",
     "from": "client_a7f3"
@@ -754,9 +1023,12 @@ The target responds with accept or reject:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_113",
-  "type": "pool.reject",
+  "header": {
+    "id": "msg_113",
+    "resource": "pool",
+    "method": "reject",
+    "kind": "request"
+  },
   "payload": {
     "pool": "distant-touch",
     "from": "client_a7f3"
@@ -768,9 +1040,12 @@ On rejection, the claimer receives:
 
 ```json
 {
-  "v": 1,
-  "id": "evt_111",
-  "type": "pool.claim.rejected",
+  "header": {
+    "id": "evt_111",
+    "resource": "pool",
+    "method": "claim-rejected",
+    "kind": "event"
+  },
   "payload": {
     "pool": "distant-touch",
     "target": "client_b912"
@@ -784,14 +1059,17 @@ Both sides remain in the pool and can try again with other members.
 
 In delegated mode, only clients with `role: "matchmaker"` can control
 matching. Regular members cannot see each other or send claims. The
-matchmaker receives `pool.member.joined` and `pool.member.left` events
+matchmaker receives `pool/member-joined` and `pool/member-left` events
 and uses them to make matching decisions.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_120",
-  "type": "pool.assign",
+  "header": {
+    "id": "msg_120",
+    "resource": "pool",
+    "method": "assign",
+    "kind": "request"
+  },
   "payload": {
     "pool": "distant-touch",
     "groups": [
@@ -808,11 +1086,15 @@ confirmation:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_121",
-  "type": "pool.assigned",
-  "replyTo": "msg_120",
+  "header": {
+    "id": "msg_121",
+    "resource": "pool",
+    "method": "assign",
+    "kind": "response",
+    "replyTo": "msg_120"
+  },
   "payload": {
+    "status": "ok",
     "pool": "distant-touch",
     "matched": [
       { "group": ["client_a7f3", "client_b912"], "session": "dt-a1b2c3" },
@@ -835,9 +1117,12 @@ On successful match (in any mode), all matched members receive:
 
 ```json
 {
-  "v": 1,
-  "id": "evt_120",
-  "type": "pool.matched",
+  "header": {
+    "id": "evt_120",
+    "resource": "pool",
+    "method": "matched",
+    "kind": "event"
+  },
   "payload": {
     "pool": "distant-touch",
     "session": "dt-a1b2c3",
@@ -849,15 +1134,15 @@ On successful match (in any mode), all matched members receive:
 }
 ```
 
-After `pool.matched`:
+After a match:
 
 1. Matched members are removed from the pool.
-2. In claim-based modes, other pool members receive `pool.member.left` with
+2. In claim-based modes, other pool members receive `pool/member-left` with
    `reason: "matched"` for each matched member. In delegated mode, the
    matchmaker receives these events. In auto mode, no events are sent.
 3. Matched members are **not** automatically joined to the session. They must
-   call `session.join` with the provided session name. This gives clients time
-   to transition (show a "matched" screen, load assets, etc.).
+   send a `session/join` request with the provided session name. This gives
+   clients time to transition (show a "matched" screen, load assets, etc.).
 4. The session name is server-generated and unique.
 
 ### 7.10 Group Size
@@ -875,19 +1160,19 @@ when N members have all claimed each other (directly or transitively), the
 match fires.
 
 For `groupSize > 2` in `delegated` mode, the matchmaker specifies complete
-groups in `pool.assign`.
+groups in the assign request.
 
 For `groupSize > 2` in `auto` mode, the server collects members until
 `groupSize` is reached (respecting filters), then fires the match.
 
 ### 7.11 Pool Lifecycle
 
-- A pool is created on the first `pool.enter` with `create: true`.
+- A pool is created on the first `pool/enter` request with `create: true`.
 - A pool is destroyed when the last member (including matchmakers) leaves.
 - Mode and group size are immutable after creation.
 - Members that disconnect enter the resume window (same as sessions). If
   they reconnect, their pool membership is restored. If the resume window
-  expires, `pool.member.left` fires with `reason: "timeout"`.
+  expires, `pool/member-left` fires with `reason: "timeout"`.
 - Pending claims are cleared when a member leaves or is matched.
 
 ---
@@ -898,11 +1183,14 @@ For `groupSize > 2` in `auto` mode, the server collects members until
 
 ```json
 {
-  "v": 1,
-  "id": "msg_020",
-  "type": "topic.subscribe",
-  "session": "show-abc",
-  "topic": "lights"
+  "header": {
+    "id": "msg_020",
+    "resource": "topic",
+    "method": "subscribe",
+    "kind": "request",
+    "session": "show-abc",
+    "topic": "lights"
+  }
 }
 ```
 
@@ -910,12 +1198,18 @@ Response:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_021",
-  "type": "topic.subscribed",
-  "session": "show-abc",
-  "topic": "lights",
-  "replyTo": "msg_020"
+  "header": {
+    "id": "msg_021",
+    "resource": "topic",
+    "method": "subscribe",
+    "kind": "response",
+    "session": "show-abc",
+    "topic": "lights",
+    "replyTo": "msg_020"
+  },
+  "payload": {
+    "status": "ok"
+  }
 }
 ```
 
@@ -923,11 +1217,14 @@ Response:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_022",
-  "type": "topic.unsubscribe",
-  "session": "show-abc",
-  "topic": "lights"
+  "header": {
+    "id": "msg_022",
+    "resource": "topic",
+    "method": "unsubscribe",
+    "kind": "request",
+    "session": "show-abc",
+    "topic": "lights"
+  }
 }
 ```
 
@@ -935,12 +1232,13 @@ Response:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_023",
-  "type": "topic.publish",
-  "session": "show-abc",
-  "topic": "lights",
-  "options": {
+  "header": {
+    "id": "msg_023",
+    "resource": "topic",
+    "method": "publish",
+    "kind": "request",
+    "session": "show-abc",
+    "topic": "lights",
     "delivery": {
       "preferTransport": "auto",
       "reliability": "reliable"
@@ -956,12 +1254,15 @@ Delivered to subscribers as:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_023",
-  "type": "topic.message",
-  "session": "show-abc",
-  "from": "client_a7f3",
-  "topic": "lights",
+  "header": {
+    "id": "msg_023",
+    "resource": "topic",
+    "method": "message",
+    "kind": "event",
+    "session": "show-abc",
+    "from": "client_a7f3",
+    "topic": "lights"
+  },
   "payload": {
     "cue": "blackout"
   }
@@ -979,11 +1280,14 @@ the topic.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_030",
-  "type": "client.send",
-  "session": "show-abc",
-  "to": "client_b912",
+  "header": {
+    "id": "msg_030",
+    "resource": "message",
+    "method": "send",
+    "kind": "request",
+    "session": "show-abc",
+    "to": "client_b912"
+  },
   "payload": {
     "gesture": "freeze"
   }
@@ -994,12 +1298,15 @@ Delivered as:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_030",
-  "type": "client.message",
-  "session": "show-abc",
-  "from": "client_a7f3",
-  "to": "client_b912",
+  "header": {
+    "id": "msg_030",
+    "resource": "message",
+    "method": "message",
+    "kind": "event",
+    "session": "show-abc",
+    "from": "client_a7f3",
+    "to": "client_b912"
+  },
   "payload": {
     "gesture": "freeze"
   }
@@ -1014,25 +1321,29 @@ Broadcast sends to all clients in the current session except the sender.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_040",
-  "type": "session.broadcast",
-  "session": "show-abc",
+  "header": {
+    "id": "msg_040",
+    "resource": "session",
+    "method": "broadcast",
+    "kind": "request",
+    "session": "show-abc"
+  },
   "payload": {
     "cue": "start"
   }
 }
 ```
 
-To include the sender in delivery, set `includeSelf` in `options.delivery`:
+To include the sender in delivery, set `includeSelf` in `header.delivery`:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_041",
-  "type": "session.broadcast",
-  "session": "show-abc",
-  "options": {
+  "header": {
+    "id": "msg_041",
+    "resource": "session",
+    "method": "broadcast",
+    "kind": "request",
+    "session": "show-abc",
     "delivery": {
       "includeSelf": true
     }
@@ -1061,10 +1372,13 @@ object each time.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_050",
-  "type": "presence.set",
-  "session": "show-abc",
+  "header": {
+    "id": "msg_050",
+    "resource": "presence",
+    "method": "set",
+    "kind": "request",
+    "session": "show-abc"
+  },
   "payload": {
     "role": "dancer",
     "color": "red",
@@ -1078,11 +1392,14 @@ object each time.
 
 ```json
 {
-  "v": 1,
-  "id": "evt_050",
-  "type": "presence.updated",
-  "session": "show-abc",
-  "from": "client_a7f3",
+  "header": {
+    "id": "evt_050",
+    "resource": "presence",
+    "method": "updated",
+    "kind": "event",
+    "session": "show-abc",
+    "from": "client_a7f3"
+  },
   "payload": {
     "role": "dancer",
     "color": "red",
@@ -1100,7 +1417,7 @@ rate will have intermediate values dropped -- only the latest value is
 broadcast.
 
 For high-frequency ephemeral data (60fps cursor positions, sensor streams),
-use `topic.publish` with `options.delivery.reliability: "latest"` instead of presence.
+use `topic/publish` with `delivery.reliability: "latest"` instead of presence.
 
 Presence uses WebSocket unless the implementation explicitly opts into RTC
 delivery for presence.
@@ -1115,10 +1432,13 @@ Data operations are server-authoritative and MUST use WebSocket.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_060",
-  "type": "data.save",
-  "session": "show-abc",
+  "header": {
+    "id": "msg_060",
+    "resource": "data",
+    "method": "save",
+    "kind": "request",
+    "session": "show-abc"
+  },
   "payload": {
     "key": "score",
     "scope": "session",
@@ -1132,12 +1452,16 @@ Response:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_061",
-  "type": "data.saved",
-  "session": "show-abc",
-  "replyTo": "msg_060",
+  "header": {
+    "id": "msg_061",
+    "resource": "data",
+    "method": "save",
+    "kind": "response",
+    "session": "show-abc",
+    "replyTo": "msg_060"
+  },
   "payload": {
+    "status": "ok",
     "key": "score",
     "scope": "session",
     "data": 12,
@@ -1172,21 +1496,24 @@ The default conflict strategy is **last-write-wins**. Clients that need
 stronger guarantees can use **optimistic concurrency** via `expectedVersion`.
 
 The `version` field is a monotonically increasing integer per key, maintained
-by the server. It is returned in `data.saved`, `data.value`, and
-`data.changed` responses.
+by the server. It is returned in save responses, get responses, and
+data changed events.
 
 **Last-write-wins** (default): omit `expectedVersion`. The server accepts
 the write unconditionally.
 
-**Optimistic concurrency**: include `expectedVersion` in the save. The server
-rejects the write if the key's current version does not match.
+**Optimistic concurrency**: include `expectedVersion` in the save payload.
+The server rejects the write if the key's current version does not match.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_060",
-  "type": "data.save",
-  "session": "show-abc",
+  "header": {
+    "id": "msg_060",
+    "resource": "data",
+    "method": "save",
+    "kind": "request",
+    "session": "show-abc"
+  },
   "payload": {
     "key": "score",
     "scope": "session",
@@ -1197,17 +1524,25 @@ rejects the write if the key's current version does not match.
 }
 ```
 
-If the version does not match, the server responds with `data.conflict`:
+If the version does not match, the server responds with a conflict error:
 
 ```json
 {
-  "v": 1,
-  "id": "err_060",
-  "type": "error",
-  "replyTo": "msg_060",
-  "error": {
-    "code": "data.conflict",
-    "message": "Version mismatch.",
+  "header": {
+    "id": "err_060",
+    "resource": "data",
+    "method": "save",
+    "kind": "response",
+    "replyTo": "msg_060"
+  },
+  "payload": {
+    "status": "error",
+    "error": {
+      "code": "data.conflict",
+      "resource": "data",
+      "message": "Version mismatch.",
+      "retry": true
+    },
     "details": {
       "key": "score",
       "expectedVersion": 2,
@@ -1219,7 +1554,7 @@ If the version does not match, the server responds with `data.conflict`:
 ```
 
 The `details.currentData` field returns the current value so the client can
-retry without an extra `data.get` round-trip.
+retry without an extra get round-trip.
 
 For a new key that does not yet exist, use `"expectedVersion": 0`.
 
@@ -1227,10 +1562,13 @@ For a new key that does not yet exist, use `"expectedVersion": 0`.
 
 ```json
 {
-  "v": 1,
-  "id": "msg_062",
-  "type": "data.get",
-  "session": "show-abc",
+  "header": {
+    "id": "msg_062",
+    "resource": "data",
+    "method": "get",
+    "kind": "request",
+    "session": "show-abc"
+  },
   "payload": {
     "key": "score",
     "scope": "session"
@@ -1242,12 +1580,16 @@ Response:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_063",
-  "type": "data.value",
-  "session": "show-abc",
-  "replyTo": "msg_062",
+  "header": {
+    "id": "msg_063",
+    "resource": "data",
+    "method": "get",
+    "kind": "response",
+    "session": "show-abc",
+    "replyTo": "msg_062"
+  },
   "payload": {
+    "status": "ok",
     "key": "score",
     "scope": "session",
     "data": 12,
@@ -1262,10 +1604,13 @@ Broadcast to all clients in the session when a shared value changes:
 
 ```json
 {
-  "v": 1,
-  "id": "evt_060",
-  "type": "data.changed",
-  "session": "show-abc",
+  "header": {
+    "id": "evt_060",
+    "resource": "data",
+    "method": "changed",
+    "kind": "event",
+    "session": "show-abc"
+  },
   "payload": {
     "key": "score",
     "scope": "session",
@@ -1308,11 +1653,14 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 
 ```json
 {
-  "v": 1,
-  "id": "rtc_001",
-  "type": "rtc.connect",
-  "session": "show-abc",
-  "to": "client_b912",
+  "header": {
+    "id": "rtc_001",
+    "resource": "rtc",
+    "method": "connect",
+    "kind": "request",
+    "session": "show-abc",
+    "to": "client_b912"
+  },
   "payload": {
     "channels": ["control", "stream", "state"]
   }
@@ -1323,12 +1671,15 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 
 ```json
 {
-  "v": 1,
-  "id": "rtc_002",
-  "type": "rtc.offer",
-  "session": "show-abc",
-  "from": "client_a7f3",
-  "to": "client_b912",
+  "header": {
+    "id": "rtc_002",
+    "resource": "rtc",
+    "method": "offer",
+    "kind": "event",
+    "session": "show-abc",
+    "from": "client_a7f3",
+    "to": "client_b912"
+  },
   "payload": {
     "sdp": "..."
   }
@@ -1339,12 +1690,15 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 
 ```json
 {
-  "v": 1,
-  "id": "rtc_003",
-  "type": "rtc.answer",
-  "session": "show-abc",
-  "from": "client_b912",
-  "to": "client_a7f3",
+  "header": {
+    "id": "rtc_003",
+    "resource": "rtc",
+    "method": "answer",
+    "kind": "event",
+    "session": "show-abc",
+    "from": "client_b912",
+    "to": "client_a7f3"
+  },
   "payload": {
     "sdp": "..."
   }
@@ -1355,12 +1709,15 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 
 ```json
 {
-  "v": 1,
-  "id": "rtc_004",
-  "type": "rtc.ice",
-  "session": "show-abc",
-  "from": "client_a7f3",
-  "to": "client_b912",
+  "header": {
+    "id": "rtc_004",
+    "resource": "rtc",
+    "method": "ice",
+    "kind": "event",
+    "session": "show-abc",
+    "from": "client_a7f3",
+    "to": "client_b912"
+  },
   "payload": {
     "candidate": {}
   }
@@ -1371,12 +1728,15 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 
 ```json
 {
-  "v": 1,
-  "id": "evt_070",
-  "type": "rtc.connected",
-  "session": "show-abc",
-  "from": "client_a7f3",
-  "to": "client_b912"
+  "header": {
+    "id": "evt_070",
+    "resource": "rtc",
+    "method": "connected",
+    "kind": "event",
+    "session": "show-abc",
+    "from": "client_a7f3",
+    "to": "client_b912"
+  }
 }
 ```
 
@@ -1384,12 +1744,15 @@ WebRTC is optional and always coordinated through WebSocket signaling.
 
 ```json
 {
-  "v": 1,
-  "id": "evt_071",
-  "type": "rtc.disconnected",
-  "session": "show-abc",
-  "from": "client_a7f3",
-  "to": "client_b912",
+  "header": {
+    "id": "evt_071",
+    "resource": "rtc",
+    "method": "disconnected",
+    "kind": "event",
+    "session": "show-abc",
+    "from": "client_a7f3",
+    "to": "client_b912"
+  },
   "payload": {
     "reason": "ice_failed"
   }
@@ -1452,7 +1815,7 @@ All RTC DataChannel payloads use the same Starfish frame envelope.
 
 ## 16. Transport Selection
 
-The client chooses transport based on `options.delivery.preferTransport`.
+The client chooses transport based on `header.delivery.preferTransport`.
 
 ### 16.1 `preferTransport: "ws"`
 
@@ -1469,17 +1832,17 @@ Send through RTC if available. If unavailable:
 
 Recommended default routing:
 
-| Message type                           | Default transport                    |
-| -------------------------------------- | ------------------------------------ |
-| `data.*`                               | WebSocket only                       |
-| `session.*`                            | WebSocket only                       |
-| `pool.*`                               | WebSocket only                       |
-| `presence.*`                           | WebSocket                            |
-| `topic.publish` (reliable)             | WebSocket                            |
-| `topic.publish` (unreliable / latest)  | RTC if peer path exists, else WS     |
-| `client.send` (reliable)               | RTC if connected, else WS            |
-| `client.send` (unreliable / latest)    | RTC preferred                        |
-| `session.broadcast`                    | WebSocket (unless RTC mesh enabled)  |
+| Message                                            | Default transport                    |
+| -------------------------------------------------- | ------------------------------------ |
+| `data/*`                                           | WebSocket only                       |
+| `session/*`                                        | WebSocket only                       |
+| `pool/*`                                           | WebSocket only                       |
+| `presence/*`                                       | WebSocket                            |
+| `topic/publish` (reliable)                         | WebSocket                            |
+| `topic/publish` (unreliable / latest)              | RTC if peer path exists, else WS     |
+| `message/send` (reliable)                          | RTC if connected, else WS            |
+| `message/send` (unreliable / latest)               | RTC preferred                        |
+| `session/broadcast`                                | WebSocket (unless RTC mesh enabled)  |
 
 ---
 
@@ -1492,7 +1855,7 @@ RTC topic messages for topics it has subscribed to through WebSocket.
 
 1. Client subscribes via WebSocket.
 2. Server records subscription.
-3. Server pushes subscription map to peers via `topic.peers`.
+3. Server pushes subscription map to peers via `topic/peers`.
 4. Publisher delivers topic messages over RTC to peers listed in the map.
 5. **Receiver MUST validate** incoming RTC topic messages against its own
    subscription set. Drop unauthorized messages silently.
@@ -1501,7 +1864,7 @@ The subscription map may be stale. This is acceptable -- Starfish uses
 **eventual consistency** for RTC topic routing:
 
 - A newly subscribed client may miss messages until the publisher receives
-  the updated `topic.peers`.
+  the updated `topic/peers` event.
 - A recently unsubscribed client may receive messages it no longer wants.
   The receiver drops them.
 
@@ -1509,11 +1872,14 @@ The subscription map may be stale. This is acceptable -- Starfish uses
 
 ```json
 {
-  "v": 1,
-  "id": "evt_080",
-  "type": "topic.peers",
-  "session": "show-abc",
-  "topic": "pose",
+  "header": {
+    "id": "evt_080",
+    "resource": "topic",
+    "method": "peers",
+    "kind": "event",
+    "session": "show-abc",
+    "topic": "pose"
+  },
   "payload": {
     "subscribers": ["client_b912", "client_c441"]
   }
@@ -1524,19 +1890,22 @@ The subscription map may be stale. This is acceptable -- Starfish uses
 
 ## 18. Acknowledgements
 
-Any frame may request acknowledgement via `options.requireAck: true`.
+Any frame may request acknowledgement via `header.delivery.requireAck: true`.
 
 Request:
 
 ```json
 {
-  "v": 1,
-  "id": "msg_090",
-  "type": "client.send",
-  "session": "show-abc",
-  "to": "client_b912",
-  "options": {
-    "requireAck": true
+  "header": {
+    "id": "msg_090",
+    "resource": "message",
+    "method": "send",
+    "kind": "request",
+    "session": "show-abc",
+    "to": "client_b912",
+    "delivery": {
+      "requireAck": true
+    }
   },
   "payload": {
     "cue": "go"
@@ -1548,13 +1917,17 @@ Positive acknowledgement:
 
 ```json
 {
-  "v": 1,
-  "id": "ack_090",
-  "type": "ack",
-  "replyTo": "msg_090",
-  "session": "show-abc",
-  "from": "client_b912",
+  "header": {
+    "id": "ack_090",
+    "resource": "ack",
+    "method": "ack",
+    "kind": "response",
+    "replyTo": "msg_090",
+    "session": "show-abc",
+    "from": "client_b912"
+  },
   "payload": {
+    "status": "ok",
     "received": true
   }
 }
@@ -1564,13 +1937,21 @@ Negative acknowledgement:
 
 ```json
 {
-  "v": 1,
-  "id": "ack_091",
-  "type": "nack",
-  "replyTo": "msg_090",
-  "error": {
-    "code": "topic.not_subscribed",
-    "message": "Receiver is not subscribed to topic."
+  "header": {
+    "id": "ack_091",
+    "resource": "ack",
+    "method": "nack",
+    "kind": "response",
+    "replyTo": "msg_090"
+  },
+  "payload": {
+    "status": "error",
+    "error": {
+      "code": "topic.not_subscribed",
+      "resource": "topic",
+      "message": "Receiver is not subscribed to topic.",
+      "retry": false
+    }
   }
 }
 ```
@@ -1579,11 +1960,17 @@ Negative acknowledgement:
 
 ## 19. Error Format
 
+All responses include a `status` field in `payload`: `"ok"` for success,
+`"error"` for failure.
+
+### 19.1 Structured Error Object
+
 ```typescript
 type StarfishError = {
   code: string
+  resource: string
   message: string
-  details?: any
+  retry: boolean
 }
 ```
 
@@ -1591,47 +1978,61 @@ Error response:
 
 ```json
 {
-  "v": 1,
-  "id": "err_001",
-  "type": "error",
-  "replyTo": "msg_001",
-  "error": {
-    "code": "session.not_found",
-    "message": "Session does not exist."
+  "header": {
+    "id": "err_001",
+    "resource": "session",
+    "method": "join",
+    "kind": "response",
+    "replyTo": "msg_001"
+  },
+  "payload": {
+    "status": "error",
+    "error": {
+      "code": "session.not_found",
+      "resource": "session",
+      "message": "Session does not exist.",
+      "retry": false
+    }
   }
 }
 ```
 
-### 19.1 Error Codes
+The `error.resource` field identifies which resource produced the error. The
+`error.retry` field hints whether the client should retry the request.
 
-| Code                           | Description                               |
-| ------------------------------ | ----------------------------------------- |
-| `auth.required`                | Authentication required.                  |
-| `auth.failed`                  | Authentication failed.                    |
-| `session.not_found`            | Session does not exist.                   |
-| `session.full`                 | Session is at capacity.                   |
-| `client.not_found`             | Target client not found.                  |
-| `topic.invalid`                | Invalid topic name.                       |
-| `topic.not_subscribed`         | Client not subscribed to topic.           |
-| `transport.unavailable`        | Requested transport not available.        |
-| `rtc.failed`                   | RTC connection failed.                    |
-| `data.invalid_op`              | Invalid data operation.                   |
-| `data.conflict`                | Version mismatch (optimistic concurrency).|
-| `data.forbidden`               | Not authorized for data operation.        |
-| `pool.not_found`               | Pool does not exist.                      |
-| `pool.not_member`              | Client is not in this pool.               |
-| `pool.target_not_found`        | Claim target is not in the pool.          |
-| `pool.already_matched`         | Target was already matched.               |
-| `pool.mode_mismatch`           | Operation not allowed in this pool mode.  |
-| `pool.role_required`           | Operation requires matchmaker role.       |
-| `pool.invalid_group`           | Group does not match pool's group size.   |
-| `rate_limited`                 | Client is sending too fast.               |
-| `payload.too_large`            | Payload exceeds size limit.               |
-| `protocol.invalid_frame`       | Malformed frame.                          |
-| `protocol.unsupported_version` | Unsupported protocol version.             |
-| `resume.invalid`               | Resume token is invalid.                  |
-| `resume.expired`               | Resume token has expired.                 |
-| `internal_error`               | Server internal error.                    |
+Error responses may include an additional `details` field in `payload` with
+operation-specific context (e.g. `currentData` for conflict errors).
+
+### 19.2 Error Codes
+
+| Code                           | Resource  | Retry | Description                               |
+| ------------------------------ | --------- | ----- | ----------------------------------------- |
+| `auth.required`                | `client`  | false | Authentication required.                  |
+| `auth.failed`                  | `client`  | false | Authentication failed.                    |
+| `session.not_found`            | `session` | false | Session does not exist.                   |
+| `session.full`                 | `session` | true  | Session is at capacity.                   |
+| `client.not_found`             | `message` | false | Target client not found.                  |
+| `topic.invalid`                | `topic`   | false | Invalid topic name.                       |
+| `topic.not_subscribed`         | `topic`   | false | Client not subscribed to topic.           |
+| `transport.unavailable`        | `rtc`     | true  | Requested transport not available.        |
+| `rtc.failed`                   | `rtc`     | true  | RTC connection failed.                    |
+| `data.invalid_op`              | `data`    | false | Invalid data operation.                   |
+| `data.conflict`                | `data`    | true  | Version mismatch (optimistic concurrency).|
+| `data.forbidden`               | `data`    | false | Not authorized for data operation.        |
+| `pool.not_found`               | `pool`    | false | Pool does not exist.                      |
+| `pool.not_member`              | `pool`    | false | Client is not in this pool.               |
+| `pool.target_not_found`        | `pool`    | false | Claim target is not in the pool.          |
+| `pool.already_matched`         | `pool`    | false | Target was already matched.               |
+| `pool.mode_mismatch`           | `pool`    | false | Operation not allowed in this pool mode.  |
+| `pool.role_required`           | `pool`    | false | Operation requires matchmaker role.       |
+| `pool.invalid_group`           | `pool`    | false | Group does not match pool's group size.   |
+| `rate_limited`                 | (varies)  | true  | Client is sending too fast.               |
+| `payload.too_large`            | (varies)  | false | Payload exceeds size limit.               |
+| `protocol.invalid_frame`       | (varies)  | false | Malformed frame.                          |
+| `protocol.unsupported_version` | `client`  | false | Unsupported protocol version.             |
+| `resume.invalid`               | `client`  | false | Resume token is invalid.                  |
+| `resume.expired`               | `client`  | false | Resume token has expired.                 |
+| `internal_error`               | (varies)  | true  | Server internal error.                    |
 
 ---
 
@@ -1644,10 +2045,13 @@ WebSocket heartbeat:
 
 ```json
 {
-  "v": 1,
-  "id": "ping_001",
-  "type": "ping",
-  "ts": 1783440000000
+  "header": {
+    "id": "ping_001",
+    "resource": "heartbeat",
+    "method": "ping",
+    "kind": "request",
+    "ts": 1783440000000
+  }
 }
 ```
 
@@ -1655,17 +2059,23 @@ Response:
 
 ```json
 {
-  "v": 1,
-  "id": "pong_001",
-  "type": "pong",
-  "replyTo": "ping_001",
-  "ts": 1783440000010
+  "header": {
+    "id": "pong_001",
+    "resource": "heartbeat",
+    "method": "pong",
+    "kind": "response",
+    "replyTo": "ping_001",
+    "ts": 1783440000010
+  },
+  "payload": {
+    "status": "ok"
+  }
 }
 ```
 
-The heartbeat interval is provided by the server in `server.welcome`. If a
-client misses heartbeats for 2x the interval, the server SHOULD consider the
-client disconnected.
+The heartbeat interval is provided by the server in the welcome response.
+If a client misses heartbeats for 2x the interval, the server SHOULD consider
+the client disconnected.
 
 RTC peers MAY send heartbeats over the control channel using the same format.
 
@@ -1679,10 +2089,13 @@ Request:
 
 ```json
 {
-  "v": 1,
-  "id": "clock_001",
-  "type": "clock.sync",
-  "ts": 1783440000000
+  "header": {
+    "id": "clock_001",
+    "resource": "clock",
+    "method": "sync",
+    "kind": "request",
+    "ts": 1783440000000
+  }
 }
 ```
 
@@ -1690,11 +2103,15 @@ Response:
 
 ```json
 {
-  "v": 1,
-  "id": "clock_002",
-  "type": "clock.synced",
-  "replyTo": "clock_001",
+  "header": {
+    "id": "clock_002",
+    "resource": "clock",
+    "method": "sync",
+    "kind": "response",
+    "replyTo": "clock_001"
+  },
   "payload": {
+    "status": "ok",
     "serverTime": 1783440000010
   }
 }
@@ -1722,39 +2139,36 @@ filtered event streams.
 **SDK mapping:**
 
 ```typescript
-starfish.events$({ type: "client.connected" })
+starfish.events$({ resource: "session", method: "connected" })
 starfish.events$({ topic: "lights" })
 starfish.events$({ from: "client_a7f3" })
 ```
 
 ### 22.1 Event Types
 
-| Event type            | Trigger                              |
-| --------------------- | ------------------------------------ |
-| `client.connected`    | Client joined session.               |
-| `client.disconnected` | Client left or timed out.            |
-| `session.joined`      | This client joined a session.        |
-| `session.left`        | This client left a session.          |
-| `presence.updated`    | Client presence changed.             |
-| `topic.subscribed`    | Subscription confirmed.              |
-| `topic.unsubscribed`  | Unsubscription confirmed.            |
-| `topic.message`       | Topic message received.              |
-| `client.message`      | Direct message received.             |
-| `data.changed`        | Shared data value changed.           |
-| `pool.entered`        | This client entered a pool.          |
-| `pool.member.joined`  | Member entered the pool.             |
-| `pool.member.left`    | Member left the pool.                |
-| `pool.matched`        | This client was matched.             |
-| `pool.proposal`       | Received a match proposal.           |
-| `pool.claim.pending`  | Claim recorded, awaiting mutual.     |
-| `pool.claim.rejected` | Proposal was rejected by target.     |
-| `pool.assigned`       | Matchmaker: assignment confirmed.    |
-| `rtc.connected`       | RTC peer connection established.     |
-| `rtc.disconnected`    | RTC peer connection lost.            |
-| `transport.changed`   | Active transport changed.            |
-| `error`               | Error occurred.                      |
-| `ack`                 | Positive acknowledgement.            |
-| `nack`                | Negative acknowledgement.            |
+| Resource    | Method          | Trigger                              |
+| ----------- | --------------- | ------------------------------------ |
+| `session`   | `connected`     | Client joined session.               |
+| `session`   | `disconnected`  | Client left or timed out.            |
+| `session`   | `join`          | This client joined a session (response). |
+| `topic`     | `subscribe`     | Subscription confirmed (response).   |
+| `topic`     | `message`       | Topic message received.              |
+| `topic`     | `peers`         | Subscription map updated.            |
+| `message`   | `message`       | Direct message received.             |
+| `presence`  | `updated`       | Client presence changed.             |
+| `data`      | `changed`       | Shared data value changed.           |
+| `pool`      | `enter`         | This client entered a pool (response). |
+| `pool`      | `member-joined` | Member entered the pool.             |
+| `pool`      | `member-left`   | Member left the pool.                |
+| `pool`      | `matched`       | This client was matched.             |
+| `pool`      | `proposal`      | Received a match proposal.           |
+| `pool`      | `claim`         | Claim recorded, awaiting mutual (response). |
+| `pool`      | `claim-rejected`| Proposal was rejected by target.     |
+| `pool`      | `assign`        | Matchmaker: assignment confirmed (response). |
+| `rtc`       | `connected`     | RTC peer connection established.     |
+| `rtc`       | `disconnected`  | RTC peer connection lost.            |
+| `ack`       | `ack`           | Positive acknowledgement.            |
+| `ack`       | `nack`          | Negative acknowledgement.            |
 
 ---
 
@@ -1779,7 +2193,7 @@ const starfish = new StarfishClient({
 await starfish.join("show-abc", { name: "projector-left", role: "visuals" })
 await starfish.leave()
 
-// Pools (auto mode — the common case)
+// Pools (auto mode -- the common case)
 await starfish.pool.enter("distant-touch", { groupSize: 2 })
 await starfish.pool.leave("distant-touch")
 
@@ -1850,12 +2264,15 @@ Servers MUST enforce the following:
 5. Data operations are server-authoritative. Clients cannot bypass the server
    for data mutations.
 6. WebRTC signaling is only allowed between clients in the same session.
-7. Servers SHOULD support optional session tokens for authentication.
+7. Servers MAY require authentication via the handshake `auth` envelope
+   ([3.4 Authentication](#34-authentication)), rejecting unauthenticated clients
+   with `auth.required` / `auth.failed`. Credentials MUST be validated in
+   constant time, sent over TLS, and never logged.
 8. Pool claims and assignments are server-authoritative. The server validates
    that targets are current pool members before executing any match.
 9. In delegated pool mode, only clients with `role: "matchmaker"` may send
-   `pool.assign`. The server MUST reject `pool.assign` from non-matchmaker
-   clients. The server MUST reject `pool.claim` from any client in an auto
+   `pool/assign`. The server MUST reject `pool/assign` from non-matchmaker
+   clients. The server MUST reject `pool/claim` from any client in an auto
    or delegated pool.
 
 ---
@@ -1889,10 +2306,13 @@ Applications needing binary transport in v0.1 should use a reference pattern:
 
 ```json
 {
-  "v": 1,
-  "id": "bin_001",
-  "type": "topic.publish",
-  "topic": "video-frame",
+  "header": {
+    "id": "bin_001",
+    "resource": "topic",
+    "method": "publish",
+    "kind": "request",
+    "topic": "video-frame"
+  },
   "payload": {
     "encoding": "binary-ref",
     "mime": "image/jpeg",
@@ -1908,24 +2328,18 @@ of this specification.
 
 ## 27. Versioning
 
-The protocol version is the `v` field on every frame. Current version: `1`.
+The protocol version is the `v` field in the header. Current version: `1`.
 
-Servers MUST reject frames with unsupported versions:
+Version negotiation occurs during the handshake. The client sends `versions`
+(an array of supported versions, highest first) in the hello payload. The
+server selects the highest mutually supported version and returns it as
+`version` in the welcome payload.
 
-```json
-{
-  "v": 1,
-  "id": "err_ver",
-  "type": "error",
-  "error": {
-    "code": "protocol.unsupported_version",
-    "message": "Unsupported protocol version."
-  }
-}
-```
+After the handshake, the negotiated version is implicit for the connection
+lifetime. Frames MAY omit the `v` field.
 
-Version negotiation is not supported in v0.1. Both client and server must
-agree on protocol version `1`.
+If no common version exists, the server responds with a
+`protocol.unsupported_version` error and closes the connection.
 
 ---
 
@@ -1949,3 +2363,11 @@ agree on protocol version `1`.
    enforces rules (atomicity, authorization, delivery) but does not make
    application-level decisions. Matching logic, pairing preferences, and
    session behavior are determined by client code.
+
+6. **Explicit direction.** The `kind` field makes every frame's direction
+   unambiguous. Requests expect responses. Events are fire-and-forget
+   notifications.
+
+7. **Structured errors.** Every error response includes a machine-readable
+   code, the resource that produced it, a human-readable message, and a
+   retry hint.

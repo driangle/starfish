@@ -32,7 +32,7 @@ async def hello(ws) -> dict:
     """Send client.hello and return the welcome response."""
     await ws.send(json.dumps({
         "header": {"id": "h1", "resource": "client", "method": "hello", "kind": "request"},
-        "payload": {"versions": [2], "client": {"name": "test"}, "capabilities": {"rtc": False}},
+        "payload": {"versions": [1], "client": {"name": "test"}, "capabilities": {"rtc": False}},
     }))
     return json.loads(await ws.recv())
 
@@ -45,7 +45,7 @@ async def test_hello_welcome(server):
         assert msg["header"]["resource"] == "client"
         assert msg["header"]["method"] == "welcome"
         assert msg["payload"]["status"] == "ok"
-        assert msg["payload"]["version"] == 2
+        assert msg["payload"]["version"] == 1
         assert msg["payload"]["clientId"].startswith("client_")
         assert "resumeToken" in msg["payload"]
     finally:
@@ -213,7 +213,7 @@ async def test_resume(server):
     try:
         await ws2.send(json.dumps({
             "header": {"id": "h2", "resource": "client", "method": "hello", "kind": "request"},
-            "payload": {"versions": [2], "resumeToken": token},
+            "payload": {"versions": [1], "resumeToken": token},
         }))
         welcome2 = json.loads(await ws2.recv())
         assert welcome2["payload"]["resumed"] is True

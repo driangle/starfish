@@ -15,7 +15,7 @@ describe("client.hello meta size limit", () => {
         method: "hello",
         kind: "request",
       },
-      payload: { versions: [2], client: { name: "Alice", meta: largeMeta } },
+      payload: { versions: [1], client: { name: "Alice", meta: largeMeta } },
     });
 
     expect(client.sent).toHaveLength(1);
@@ -38,7 +38,7 @@ describe("client.hello meta size limit", () => {
         method: "hello",
         kind: "request",
       },
-      payload: { versions: [2], client: { name: "Alice", meta: okMeta } },
+      payload: { versions: [1], client: { name: "Alice", meta: okMeta } },
     });
 
     expect(client.sent).toHaveLength(1);
@@ -46,7 +46,7 @@ describe("client.hello meta size limit", () => {
     expect(client.sent[0].header.method).toBe("welcome");
     expect(client.sent[0].header.kind).toBe("response");
     expect(client.sent[0].payload?.status).toBe("ok");
-    expect(client.sent[0].payload?.version).toBe(2);
+    expect(client.sent[0].payload?.version).toBe(1);
     expect(client.authenticated).toBe(true);
   });
 });

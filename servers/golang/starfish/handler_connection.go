@@ -86,7 +86,7 @@ func (h *Handler) handleClientHello(c *Client, f *Frame) {
 
 			wp := map[string]any{
 				"status":            "ok",
-				"version":           2,
+				"version":           1,
 				"clientId":          c.id,
 				"resumed":           true,
 				"resumeToken":       newToken,
@@ -108,7 +108,7 @@ func (h *Handler) handleClientHello(c *Client, f *Frame) {
 					Resource: "client",
 					Method:   "welcome",
 					Kind:     "response",
-					V:        2,
+					V:        1,
 					Ts:       &ts,
 					ReplyTo:  f.Header.ID,
 				},
@@ -146,7 +146,7 @@ func (h *Handler) handleClientHello(c *Client, f *Frame) {
 
 	wp := map[string]any{
 		"status":            "ok",
-		"version":           2,
+		"version":           1,
 		"clientId":          clientID,
 		"resumeToken":       resumeToken,
 		"resumeTimeout":     h.hub.config.ResumeTimeout.Milliseconds(),
@@ -167,7 +167,7 @@ func (h *Handler) handleClientHello(c *Client, f *Frame) {
 			Resource: "client",
 			Method:   "welcome",
 			Kind:     "response",
-			V:        2,
+			V:        1,
 			Ts:       &ts,
 			ReplyTo:  f.Header.ID,
 		},
@@ -178,14 +178,14 @@ func (h *Handler) handleClientHello(c *Client, f *Frame) {
 	h.hub.resumes.RegisterToken(c, resumeToken)
 }
 
-// versionSupported checks if the client's version list includes v2.
+// versionSupported checks if the client's version list includes v1.
 // If no versions are provided, we accept (backwards compat during transition).
 func versionSupported(versions []int) bool {
 	if len(versions) == 0 {
 		return true
 	}
 	for _, v := range versions {
-		if v == 2 {
+		if v == 1 {
 			return true
 		}
 	}

@@ -2,7 +2,7 @@ package starfish
 
 import "encoding/json"
 
-// Frame is the canonical Starfish v0.2 message envelope.
+// Frame is the canonical Starfish v0.1 message envelope.
 type Frame struct {
 	Header  Header         `json:"header"`
 	Payload map[string]any `json:"payload,omitempty"`

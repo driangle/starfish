@@ -2,7 +2,7 @@ package starfish
 
 import "encoding/json"
 
-// Error codes defined by the Starfish v0.2 specification.
+// Error codes defined by the Starfish v0.1 specification.
 const (
 	ErrAuthRequired           = "auth.required"
 	ErrAuthFailed             = "auth.failed"
@@ -41,7 +41,7 @@ type errorInfo struct {
 	Retry    bool
 }
 
-// errorRegistry maps error codes to their metadata per the v0.2 spec.
+// errorRegistry maps error codes to their metadata per the v0.1 spec.
 var errorRegistry = map[string]errorInfo{
 	ErrAuthRequired:           {"Authentication required.", "client", false},
 	ErrAuthFailed:             {"Authentication failed.", "client", false},
@@ -73,7 +73,7 @@ var errorRegistry = map[string]errorInfo{
 	ErrPoolInvalidGroup:   {"Group does not match pool's group size.", "pool", false},
 }
 
-// NewErrorFrame creates a v0.2 error response frame.
+// NewErrorFrame creates a v0.1 error response frame.
 // The resource and method identify which request this error responds to.
 func NewErrorFrame(gen *IDGenerator, replyTo string, resource string, method string, code string, details any) *Frame {
 	info, ok := errorRegistry[code]

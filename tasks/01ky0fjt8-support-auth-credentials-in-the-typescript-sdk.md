@@ -13,7 +13,7 @@ created_at: 2026-07-20
 ## Objective
 
 Ensure the TypeScript SDK (`sdks/typescript/`) supports the auth handshake from
-protocol spec `protocol/spec/starfish-v0.2.md` §3.4: send credentials in
+protocol spec `protocol/spec/starfish-v0.1.md` §3.4: send credentials in
 `client.hello` and surface `auth.required`/`auth.failed` rejections clearly.
 
 ## Tasks

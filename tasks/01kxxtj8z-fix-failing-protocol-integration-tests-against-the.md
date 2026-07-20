@@ -4,7 +4,7 @@ title: "Fix failing protocol integration tests against the Python server"
 status: completed
 priority: high
 effort: medium
-phase: v0.2
+phase: v0.1
 dependencies: ["01kwyst53"]
 tags: ["testing", "integration", "python", "protocol"]
 created_at: 2026-07-19

@@ -270,10 +270,10 @@ func TestPoolResumePreservesMembership(t *testing.T) {
 			Resource: "client",
 			Method:   "hello",
 			Kind:     "request",
-			V:        2,
+			V:        1,
 		},
 		Payload: map[string]any{
-			"versions":    []int{2},
+			"versions":    []int{1},
 			"resumeToken": resumeToken,
 		},
 	})

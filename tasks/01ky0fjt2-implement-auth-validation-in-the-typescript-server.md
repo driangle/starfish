@@ -13,7 +13,7 @@ created_at: 2026-07-20
 ## Objective
 
 Implement the optional authentication handshake defined in protocol spec
-`protocol/spec/starfish-v0.2.md` §3.4 in the TypeScript server
+`protocol/spec/starfish-v0.1.md` §3.4 in the TypeScript server
 (`servers/typescript/`). Add a pluggable (optionally async) validator, keep
 no-validator servers backwards compatible, and ship a secure-by-default token
 validator.

@@ -5,7 +5,7 @@ import type { ResumeEntry } from "./resume.js";
 import { createErrorFrame, ERR_PAYLOAD_TOO_LARGE, ERR_PROTOCOL_UNSUPPORTED_VERSION } from "./errors.js";
 import { MAX_CLIENT_META_SIZE } from "./limits.js";
 
-const SUPPORTED_VERSIONS = [2];
+const SUPPORTED_VERSIONS = [1];
 
 type HelloPayload = {
   versions?: number[];
@@ -181,7 +181,7 @@ function sendWelcome(
 
   client.sendFrame({
     header: {
-      v: 2,
+      v: 1,
       id: hub.idGen.messageId(),
       resource: "client",
       method: "welcome",

@@ -118,7 +118,7 @@ class Connection:
         else:
             client = self._options.client
             payload = {
-                "versions": [2],
+                "versions": [1],
                 "client": {
                     "name": client.name if client else "starfish-client",
                     "role": client.role if client else "default",

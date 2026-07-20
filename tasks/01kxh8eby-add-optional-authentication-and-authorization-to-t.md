@@ -22,7 +22,7 @@ implementation is tracked in follow-up tasks (see below).
 
 ## Tasks
 
-Protocol spec (this task — `protocol/spec/starfish-v0.2.md` §3.4):
+Protocol spec (this task — `protocol/spec/starfish-v0.1.md` §3.4):
 
 - [x] Design the auth handshake extension to the protocol spec (auth types, token exchange, rejection flow)
 - [x] Define supported auth types (e.g. `none`, `token`, `shared-secret`) and their message payloads

@@ -20,7 +20,7 @@ export function helloFrame(opts?: {
     payload.resumeToken = opts.resumeToken;
     payload.capabilities = { rtc: false };
   } else {
-    payload.versions = [2];
+    payload.versions = [1];
     payload.client = {
       name: opts?.name ?? "test-client",
       role: opts?.role ?? "test",
@@ -29,7 +29,7 @@ export function helloFrame(opts?: {
     payload.capabilities = { rtc: false };
     payload.auth = { type: "none" };
   }
-  return { header: { ...request("hello", "client", "hello"), v: 2, ts: Date.now() }, payload };
+  return { header: { ...request("hello", "client", "hello"), v: 1, ts: Date.now() }, payload };
 }
 
 export function joinFrame(

@@ -13,7 +13,7 @@ created_at: 2026-07-20
 ## Objective
 
 Implement the optional authentication handshake defined in protocol spec
-`protocol/spec/starfish-v0.2.md` §3.4 in the Go server (`servers/golang/`). Add a
+`protocol/spec/starfish-v0.1.md` §3.4 in the Go server (`servers/golang/`). Add a
 pluggable validator so server-SDK users define custom auth logic, keep servers
 without a validator fully backwards compatible, and ship a secure-by-default
 built-in token validator.

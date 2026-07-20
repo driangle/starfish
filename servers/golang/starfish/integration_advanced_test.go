@@ -155,10 +155,10 @@ func TestResumeConnection(t *testing.T) {
 			Resource: "client",
 			Method:   "hello",
 			Kind:     "request",
-			V:        2,
+			V:        1,
 		},
 		Payload: map[string]any{
-			"versions":    []int{2},
+			"versions":    []int{1},
 			"resumeToken": resumeToken,
 		},
 	})
@@ -221,10 +221,10 @@ func TestResumeExpired(t *testing.T) {
 			Resource: "client",
 			Method:   "hello",
 			Kind:     "request",
-			V:        2,
+			V:        1,
 		},
 		Payload: map[string]any{
-			"versions":    []int{2},
+			"versions":    []int{1},
 			"resumeToken": resumeToken,
 		},
 	})

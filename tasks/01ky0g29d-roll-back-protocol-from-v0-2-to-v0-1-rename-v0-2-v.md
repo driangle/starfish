@@ -1,12 +1,13 @@
 ---
 title: "Roll back protocol from v0.2 to v0.1 (rename v0.2 → v0.1, remove old v0.1)"
 id: "01ky0g29d"
-status: pending
+status: completed
 priority: high
 type: chore
 tags: ["protocol", "cleanup", "breaking"]
 created_at: "2026-07-20"
 phase: v0.1
+completed_at: 2026-07-20
 ---
 
 # Roll back protocol from v0.2 to v0.1 (rename v0.2 → v0.1, remove old v0.1)
@@ -51,23 +52,40 @@ The version lives in three layers, all of which must move:
    - `.taskmd.yaml` defines a `v0.2` phase — remove it (and reassign any `phase: v0.2` tasks to `v0.1`).
    - Several task files reference `protocol/spec/starfish-v0.2.md` (the auth tasks: `01kxh8eby`, `01ky0fjt*`, `01ky0fjtm`) or `phase: v0.2` — repoint them to `starfish-v0.1.md` / `phase: v0.1`.
 
+5. **Release tags / published artifacts** (added to scope per user):
+   - **Investigation finding:** none of the existing release tags ship the v0.2
+     wire format. All five tags (`sdks/typescript/v0.0.1`,
+     `servers/typescript/v0.0.1`, `servers/golang/v0.1.0`,
+     `adapters/p5js/v0.0.1`, `adapters/threejs/v0.0.1`) were cut on 2026-07-14,
+     **before** the v0.2 protocol commits (2026-07-17/18). `git merge-base
+     --is-ancestor` confirms the wire-version-`2` commits are *not* ancestors of
+     any tag. There are no `v0.2*` tags and no GitHub releases.
+   - **Therefore: do NOT delete/reset the existing tags** — they are legitimate
+     v0.1-era releases and removing them would destroy real history. The task is
+     only to *verify* no tag/release/published package embeds v0.2.
+   - The only v0.2 "artifacts" that actually exist are the **checked-in `dist/`
+     build outputs** in the working tree (`servers/typescript/dist/`,
+     `sdks/typescript/dist/`) — handled by the rebuild step above. Package
+     `version` fields are all still `0.0.1` and need no change.
+
 > NB: version *package* numbers like `v0.1.0` / `servers/golang/v0.1.0` and the
 > `v0.1.1` phase are unrelated release tags — **do not** touch those. Only the
 > protocol spec version (v0.1 vs v0.2) and the wire integer (1 vs 2) are in scope.
 
 ## Tasks
 
-- [ ] Delete the old `protocol/spec/starfish-v0.1.md`, then rename `starfish-v0.2.md` → `starfish-v0.1.md` (use `git mv`).
-- [ ] Inside the new `starfish-v0.1.md`, replace every "v0.2" label and every wire version `2` with `v0.1` / `1` (header `v` field, "Current version", welcome payload `version`, examples). Verify no stale `2`s remain where `1` is meant.
-- [ ] Update `protocol/README.md` table and prose: single "current" spec = v0.1; drop the superseded-v0.1 / current-v0.2 framing.
-- [ ] Verify `README.md` (root) link to `protocol/spec/starfish-v0.1.md` still resolves.
-- [ ] Change the wire version integer `2 → 1` in all SDKs and servers (Go, TypeScript, Python, Swift, JVM): `versions` arrays, sent `version`/`v` fields, and any `versionSupported`/accept checks and their comments.
-- [ ] Rebuild committed generated artifacts (`servers/typescript/dist/`, any other `dist/`) so they carry `1`, not `2`.
-- [ ] Update integration/unit tests that assert on version `2` (e.g. handshake tests) to expect `1`; keep `protocol.unsupported_version` error tests meaningful (they should now reject non-`1` versions).
-- [ ] Remove the `v0.2` phase from `.taskmd.yaml`; reassign `phase: v0.2` tasks to `v0.1`.
-- [ ] Repoint task files referencing `protocol/spec/starfish-v0.2.md` to `starfish-v0.1.md`.
-- [ ] Final sweep: `grep -rn "v0\.2\|starfish-v0\.2" --exclude-dir=node_modules --exclude-dir=.git .` returns nothing (except this task file / historical git commit messages); confirm no code path still emits or accepts wire version `2`.
-- [ ] Run the full build + integration test matrix (Go/Python/TS SDKs against Go/Python/TS servers) to confirm handshake still succeeds end-to-end on version `1`.
+- [x] Delete the old `protocol/spec/starfish-v0.1.md`, then rename `starfish-v0.2.md` → `starfish-v0.1.md` (use `git mv`).
+- [x] Inside the new `starfish-v0.1.md`, replace every "v0.2" label and every wire version `2` with `v0.1` / `1` (header `v` field, "Current version", welcome payload `version`, examples). Verify no stale `2`s remain where `1` is meant.
+- [x] Update `protocol/README.md` table and prose: single "current" spec = v0.1; drop the superseded-v0.1 / current-v0.2 framing.
+- [x] Verify `README.md` (root) link to `protocol/spec/starfish-v0.1.md` still resolves.
+- [x] Change the wire version integer `2 → 1` in all SDKs and servers (Go, TypeScript, Python, Swift, JVM): `versions` arrays, sent `version`/`v` fields, and any `versionSupported`/accept checks and their comments.
+- [x] Rebuild committed generated artifacts (`servers/typescript/dist/`, any other `dist/`) so they carry `1`, not `2`.
+- [x] Update integration/unit tests that assert on version `2` (e.g. handshake tests) to expect `1`; keep `protocol.unsupported_version` error tests meaningful (they should now reject non-`1` versions).
+- [x] Remove the `v0.2` phase from `.taskmd.yaml`; reassign `phase: v0.2` tasks to `v0.1`.
+- [x] Repoint task files referencing `protocol/spec/starfish-v0.2.md` to `starfish-v0.1.md`.
+- [x] Verify release tags / artifacts: confirm no git tag, remote tag, or GitHub release embeds v0.2 (investigation says none do — leave the existing v0.1-era tags intact); ensure rebuilt `dist/` artifacts carry version `1`.
+- [x] Final sweep: `grep -rn "v0\.2\|starfish-v0\.2" --exclude-dir=node_modules --exclude-dir=.git .` returns nothing (except this task file / historical git commit messages); confirm no code path still emits or accepts wire version `2`.
+- [x] Run the full build + integration test matrix (Go/Python/TS SDKs against Go/Python/TS servers) to confirm handshake still succeeds end-to-end on version `1`.
 
 ## Acceptance Criteria
 

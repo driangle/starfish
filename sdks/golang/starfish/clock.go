@@ -72,7 +72,7 @@ func (c *clockManager) takeSample(ctx context.Context) (int64, error) {
 
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       c.idg.Next("clock"),
 			Resource: "clock",
 			Method:   "sync",

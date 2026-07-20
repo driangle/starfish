@@ -85,10 +85,10 @@ func hello(t *testing.T, conn *websocket.Conn, name string) *starfish.Frame {
 			Resource: "client",
 			Method:   "hello",
 			Kind:     "request",
-			V:        2,
+			V:        1,
 		},
 		Payload: map[string]any{
-			"versions": []int{2},
+			"versions": []int{1},
 			"client": map[string]any{
 				"name": name,
 				"role": "test",

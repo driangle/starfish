@@ -33,7 +33,7 @@ final class ValidateTests: XCTestCase {
     func testFrameWithAllFields() throws {
         let frame = StarfishFrame(
             header: StarfishHeader(
-                v: 2,
+                v: 1,
                 id: "full_1",
                 resource: "message",
                 method: "send",
@@ -53,7 +53,7 @@ final class ValidateTests: XCTestCase {
         let json = try encodeFrame(frame)
         let decoded = try decodeFrame(json)
 
-        XCTAssertEqual(decoded.header.v, 2)
+        XCTAssertEqual(decoded.header.v, 1)
         XCTAssertEqual(decoded.header.id, "full_1")
         XCTAssertEqual(decoded.header.resource, "message")
         XCTAssertEqual(decoded.header.method, "send")

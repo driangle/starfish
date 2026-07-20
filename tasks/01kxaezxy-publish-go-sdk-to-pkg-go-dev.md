@@ -7,7 +7,7 @@ type: chore
 tags: ["publish", "sdk", "golang"]
 created_at: "2026-07-12"
 dependencies: [01kwyst3n]
-phase: v0.2
+phase: v0.1
 ---
 
 # Publish Go SDK to pkg.go.dev

@@ -7,7 +7,7 @@ type: chore
 tags: ["publish", "adapter", "touchdesigner"]
 created_at: "2026-07-12"
 dependencies: [01kwyst7v]
-phase: v0.3
+phase: v0.2
 ---
 
 # Publish TouchDesigner adapter to relevant registry

@@ -9,7 +9,7 @@ func TestMarshalFrame_HeaderPayload(t *testing.T) {
 	ts := int64(1700000000000)
 	f := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       "msg_1",
 			Resource: "session",
 			Method:   "join",
@@ -97,7 +97,7 @@ func TestRoundTrip(t *testing.T) {
 	fallback := true
 	original := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       "msg_42",
 			Resource: "message",
 			Method:   "send",
@@ -236,7 +236,7 @@ func TestUnmarshalFrame_WireFormat(t *testing.T) {
 	// Simulate a frame as it would arrive on the wire.
 	wire := `{
 		"header": {
-			"v": 2,
+			"v": 1,
 			"id": "msg_1",
 			"resource": "topic",
 			"method": "publish",
@@ -265,8 +265,8 @@ func TestUnmarshalFrame_WireFormat(t *testing.T) {
 	}
 
 	h := f.Header
-	if h.V != 2 {
-		t.Errorf("V = %d, want 2", h.V)
+	if h.V != 1 {
+		t.Errorf("V = %d, want 1", h.V)
 	}
 	if h.From != "peer-1" {
 		t.Errorf("From = %v, want peer-1", h.From)

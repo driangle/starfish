@@ -32,7 +32,7 @@ func (m *messagingManager) send(ctx context.Context, to string, payload map[stri
 	ts := time.Now().UnixMilli()
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       m.idg.Next("send"),
 			Resource: "message",
 			Method:   "send",
@@ -58,7 +58,7 @@ func (m *messagingManager) sendMulti(ctx context.Context, to []string, payload m
 	ts := time.Now().UnixMilli()
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       m.idg.Next("send"),
 			Resource: "message",
 			Method:   "send",
@@ -84,7 +84,7 @@ func (m *messagingManager) broadcast(ctx context.Context, payload map[string]any
 	ts := time.Now().UnixMilli()
 	frame := &Frame{
 		Header: Header{
-			V:        2,
+			V:        1,
 			ID:       m.idg.Next("broadcast"),
 			Resource: "session",
 			Method:   "broadcast",

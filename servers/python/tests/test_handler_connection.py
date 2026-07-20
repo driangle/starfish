@@ -14,7 +14,7 @@ class TestHandlerConnection:
         self.client = Client(self.hub, self.ws)  # type: ignore
 
     def test_fresh_hello(self):
-        frame = make_frame("client", "hello", payload={"versions": [2]})
+        frame = make_frame("client", "hello", payload={"versions": [1]})
         self.hub.handler.dispatch(self.client, frame)
 
         assert self.client.authenticated is True
@@ -28,13 +28,13 @@ class TestHandlerConnection:
         assert msg["header"]["method"] == "welcome"
         assert msg["header"]["kind"] == "response"
         assert msg["payload"]["status"] == "ok"
-        assert msg["payload"]["version"] == 2
+        assert msg["payload"]["version"] == 1
         assert msg["payload"]["clientId"] == self.client.id
         assert "resumeToken" in msg["payload"]
 
     def test_hello_with_client_info(self):
         frame = make_frame("client", "hello", payload={
-            "versions": [2],
+            "versions": [1],
             "client": {"name": "test-client", "role": "visuals", "meta": {"color": "red"}},
             "capabilities": {"rtc": True},
         })
@@ -63,11 +63,11 @@ class TestHandlerConnection:
         assert self.client.authenticated is True
         msg = json.loads(self.client._send_queue.get_nowait())
         assert msg["header"]["method"] == "welcome"
-        assert msg["payload"]["version"] == 2
+        assert msg["payload"]["version"] == 1
 
     def test_resume_success(self):
         # First do a fresh hello
-        frame = make_frame("client", "hello", payload={"versions": [2]})
+        frame = make_frame("client", "hello", payload={"versions": [1]})
         self.hub.handler.dispatch(self.client, frame)
         msg = json.loads(self.client._send_queue.get_nowait())
         token = msg["payload"]["resumeToken"]
@@ -80,7 +80,7 @@ class TestHandlerConnection:
         # New connection resumes with the token
         ws2 = MockWebSocket()
         client2 = Client(self.hub, ws2)  # type: ignore
-        frame2 = make_frame("client", "hello", payload={"versions": [2], "resumeToken": token})
+        frame2 = make_frame("client", "hello", payload={"versions": [1], "resumeToken": token})
         self.hub.handler.dispatch(client2, frame2)
 
         assert client2.authenticated is True
@@ -90,7 +90,7 @@ class TestHandlerConnection:
         assert msg2["payload"]["clientId"] == original_id
 
     def test_resume_invalid_token(self):
-        frame = make_frame("client", "hello", payload={"versions": [2], "resumeToken": "rt_invalid"})
+        frame = make_frame("client", "hello", payload={"versions": [1], "resumeToken": "rt_invalid"})
         self.hub.handler.dispatch(self.client, frame)
 
         # Should fall through to fresh hello
