@@ -1,11 +1,12 @@
 ---
 title: "Add optional authentication and authorization to the protocol"
 id: "01kxh8eby"
-status: pending
+status: completed
 priority: high
 type: feature
 tags: ["protocol", "security"]
 created_at: "2026-07-14"
+completed_at: 2026-07-20
 ---
 
 # Add optional authentication and authorization to the protocol
@@ -14,22 +15,30 @@ created_at: "2026-07-14"
 
 Add an optional authentication and authorization layer to the Starfish protocol. Currently, `client.hello` sends `"auth": { "type": "none" }` with no mechanism for servers to require credentials. Servers should be able to require authentication, and clients must comply when it is required. When a server does not require auth, the current no-auth flow should continue to work unchanged.
 
+## Scope
+
+This task now covers the **protocol spec design only**. The per-project
+implementation is tracked in follow-up tasks (see below).
+
 ## Tasks
 
-- [ ] Design the auth handshake extension to the protocol spec (auth types, token exchange, rejection flow)
-- [ ] Define supported auth types (e.g. `none`, `token`, `shared-secret`) and their message payloads
-- [ ] Add auth fields to `client.hello` and `server.welcome` messages in the protocol spec
-- [ ] Add an `auth.required` / `auth.failed` error message type for rejected connections
-- [ ] Implement server-side auth validation in the TypeScript server
-- [ ] Implement server-side auth validation in the Go server
-- [ ] Update the TypeScript SDK to support sending auth credentials in `client.hello`
-- [ ] Update the Python SDK to support sending auth credentials in `client.hello`
-- [ ] Update the Go SDK to support sending auth credentials in `client.hello`
-- [ ] Update the Swift SDK to support sending auth credentials in `client.hello`
-- [ ] Add tests for auth-required server rejecting unauthenticated clients
-- [ ] Add tests for auth-required server accepting authenticated clients
-- [ ] Add tests for no-auth server accepting clients without credentials (backwards compatibility)
-- [ ] Document the authentication flow and configuration options
+Protocol spec (this task — `protocol/spec/starfish-v0.2.md` §3.4):
+
+- [x] Design the auth handshake extension to the protocol spec (auth types, token exchange, rejection flow)
+- [x] Define supported auth types (e.g. `none`, `token`, `shared-secret`) and their message payloads
+- [x] Add auth fields to `client.hello` and `server.welcome` messages in the protocol spec
+- [x] Add an `auth.required` / `auth.failed` error message type for rejected connections
+
+Implementation — tracked by follow-up tasks (each includes its own auth tests):
+
+- [ ] Go server — `01ky0fjsw`
+- [ ] TypeScript server — `01ky0fjt2`
+- [ ] Python server — `01ky0fjt5`
+- [ ] TypeScript SDK — `01ky0fjt8`
+- [ ] Python SDK — `01ky0fjtb`
+- [ ] Go SDK — `01ky0fjte`
+- [ ] Swift SDK — `01ky0fjth`
+- [ ] Documentation — `01ky0fjtm`
 
 ## Acceptance Criteria
 

@@ -124,6 +124,9 @@ Server replies with a welcome response:
     "serverTime": 1783440000010,
     "heartbeatInterval": 15000,
     "sessionRequired": true,
+    "auth": {
+      "required": false
+    },
     "rtc": {
       "iceServers": [
         { "urls": "stun:stun.l.google.com:19302" }
@@ -132,6 +135,9 @@ Server replies with a welcome response:
   }
 }
 ```
+
+The `auth.required` field advertises whether the server requires authentication.
+See [3.4 Authentication](#34-authentication).
 
 ### 3.2 Version Negotiation
 
@@ -257,6 +263,109 @@ re-established after reconnection, even on successful resume.
    pools the client was in.
 3. The client's state is destroyed.
 4. The `resumeToken` is invalidated.
+
+### 3.4 Authentication
+
+Authentication is **optional**. A server MAY require clients to present
+credentials during the handshake; when it does not, clients connect without
+credentials and the flow is identical to earlier revisions (fully backwards
+compatible).
+
+#### 3.4.1 The `auth` envelope
+
+The client carries an `auth` object in the `client.hello` payload. It is an
+**opaque, extensible envelope** keyed by `type`:
+
+```json
+"auth": {
+  "type": "token",
+  "token": "eyJhbGciOi..."
+}
+```
+
+- `type` (string, required) identifies the credential scheme. The reserved
+  value `"none"` (or an omitted `auth` object) means the client is presenting
+  no credentials.
+- Additional fields carry the credential for that scheme.
+
+The protocol does **not** prescribe credential schemes beyond `none`. It defines
+only the envelope and the handshake flow; the server owns all validation logic.
+Two common schemes are documented as conventions:
+
+| `type`          | Fields             | Notes                                             |
+| --------------- | ------------------ | ------------------------------------------------- |
+| `none`          | —                  | Anonymous. Default when `auth` is omitted.        |
+| `token`         | `token` (string)   | Opaque bearer token or JWT.                       |
+| `shared-secret` | `secret` (string)  | Pre-shared secret common to all clients.          |
+
+Servers MAY define additional custom `type` values. Clients and servers MUST
+ignore auth fields they do not understand rather than failing.
+
+#### 3.4.2 Server requirement and advertisement
+
+The `server.welcome` payload includes an additive `auth` object advertising
+whether authentication is required:
+
+```json
+"auth": {
+  "required": true
+}
+```
+
+Clients SHOULD treat a missing `auth` object in the welcome as
+`{ "required": false }`.
+
+#### 3.4.3 Rejection flow
+
+When a server requires authentication, it validates the client's `auth`
+envelope during the fresh-connection handshake (before assigning a `clientId`):
+
+- If the client presents no credentials (`auth` omitted or `type: "none"`), the
+  server rejects with `auth.required`.
+- If the client presents credentials that fail validation, the server rejects
+  with `auth.failed`.
+
+Both rejections are **welcome-response error frames** — the same shape as the
+[version-negotiation error](#32-version-negotiation): `resource: "client"`,
+`method: "welcome"`, `kind: "response"`, with `payload.status: "error"` and
+`retry: false`. A rejected client is not registered and holds no server state.
+
+```json
+{
+  "header": {
+    "v": 2,
+    "id": "err_002",
+    "resource": "client",
+    "method": "welcome",
+    "kind": "response",
+    "replyTo": "msg_001"
+  },
+  "payload": {
+    "status": "error",
+    "error": {
+      "code": "auth.required",
+      "resource": "client",
+      "message": "Authentication required.",
+      "retry": false
+    }
+  }
+}
+```
+
+#### 3.4.4 Reconnection
+
+Resumed connections are **not re-challenged**. The `resumeToken` issued in a
+prior welcome is itself a bearer credential scoped to the resume window, so a
+hello carrying a valid `resumeToken` bypasses auth validation. Once the resume
+window expires, the client must perform a fresh handshake and re-authenticate.
+
+#### 3.4.5 Security requirements
+
+- Credentials travel in the `client.hello` payload; clients and servers MUST use
+  a secure transport (`wss://` / TLS) whenever authentication is in use.
+- Servers SHOULD compare secrets and tokens using a constant-time comparison to
+  avoid timing side channels.
+- Servers MUST NOT log credential values.
 
 ---
 
@@ -2156,7 +2265,10 @@ Servers MUST enforce the following:
 5. Data operations are server-authoritative. Clients cannot bypass the server
    for data mutations.
 6. WebRTC signaling is only allowed between clients in the same session.
-7. Servers SHOULD support optional session tokens for authentication.
+7. Servers MAY require authentication via the handshake `auth` envelope
+   ([3.4 Authentication](#34-authentication)), rejecting unauthenticated clients
+   with `auth.required` / `auth.failed`. Credentials MUST be validated in
+   constant time, sent over TLS, and never logged.
 8. Pool claims and assignments are server-authoritative. The server validates
    that targets are current pool members before executing any match.
 9. In delegated pool mode, only clients with `role: "matchmaker"` may send
