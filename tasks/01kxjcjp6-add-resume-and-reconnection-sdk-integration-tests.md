@@ -1,11 +1,12 @@
 ---
 title: "Add resume and reconnection SDK integration tests"
 id: "01kxjcjp6"
-status: pending
+status: completed
 priority: high
 type: chore
 tags: ["testing", "sdk"]
 created_at: "2026-07-15"
+completed_at: 2026-07-20
 ---
 
 # Add resume and reconnection SDK integration tests
@@ -16,11 +17,16 @@ Resume/reconnection is tested at the protocol level but not in either SDK's inte
 
 ## Tasks
 
-- [ ] TypeScript SDK: test that disconnecting and reconnecting with a resume token preserves the clientId
-- [ ] TypeScript SDK: test that session membership is restored after resume
-- [ ] TypeScript SDK: test that an expired/invalid resume token results in a fresh session
-- [ ] Python SDK: mirror the same 3 resume tests
-- [ ] Verify tests pass against both Go and TypeScript servers
+- [x] TypeScript SDK: test that disconnecting and reconnecting with a resume token preserves the clientId
+- [x] TypeScript SDK: test that session membership is restored after resume
+- [x] TypeScript SDK: test that an expired/invalid resume token results in a fresh session
+- [x] Python SDK: mirror the same 3 resume tests
+- [x] Verify tests pass against both Go and TypeScript servers
+
+> **Note:** The Python `disconnect()`+resume tests exposed a real Python SDK bug
+> (resume fails after `disconnect()`). The two affected tests are marked
+> `xfail(strict)` and the fix is tracked in task `01ky0jyep`. The TypeScript SDK
+> resume tests all pass against both servers; the Python invalid-token test passes.
 
 ## Acceptance Criteria
 
