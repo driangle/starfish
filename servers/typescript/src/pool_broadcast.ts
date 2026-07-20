@@ -89,6 +89,8 @@ export function sendMatchedToGroup(
   poolName: string,
 ): void {
   for (const peer of result.peers) {
+    // Each member sees the other members of the group, not itself.
+    const otherPeers = result.peers.filter((p) => p.id !== peer.id);
     hub.getClient(peer.id)?.sendFrame({
       header: {
         id: hub.idGen.messageId(),
@@ -96,7 +98,7 @@ export function sendMatchedToGroup(
         method: "matched",
         kind: "event",
       },
-      payload: { pool: poolName, session: result.session, peers: result.peers },
+      payload: { pool: poolName, session: result.session, peers: otherPeers },
     });
   }
 }

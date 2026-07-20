@@ -26,16 +26,19 @@ def handle_pool_claim(hub: StarfishServer, client: Client, frame: StarfishFrame)
     pool = resolve_pool(hub, client, frame)
     if pool is None:
         return
-    if not require_pool_member(pool, hub, client, frame):
-        return
 
     header = frame.get("header", {})
     payload = frame.get("payload") or {}
 
+    # Mode is checked before membership: claiming in a non-claim pool is a mode
+    # mismatch regardless of whether the caller is still a member.
     if not pool.is_claim_based():
         client.send_frame(
             create_error_frame(hub.id_gen, header.get("id", ""), ERR_POOL_MODE_MISMATCH, "pool", "claim")
         )
+        return
+
+    if not require_pool_member(pool, hub, client, frame):
         return
 
     target_id = payload.get("target")

@@ -54,7 +54,8 @@ class TestHandlerPool:
         msg1 = json.loads(c1._send_queue.get_nowait())
         assert msg1["header"]["method"] == "matched"
         assert msg1["payload"]["pool"] == "lobby"
-        assert len(msg1["payload"]["peers"]) == 2
+        # peers excludes the recipient, so a matched pair sees one peer each.
+        assert len(msg1["payload"]["peers"]) == 1
 
         msg2 = json.loads(c2._send_queue.get_nowait())
         assert msg2["header"]["method"] == "matched"

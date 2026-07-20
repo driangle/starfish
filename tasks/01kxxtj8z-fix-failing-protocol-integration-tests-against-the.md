@@ -1,13 +1,14 @@
 ---
 id: "01kxxtj8z"
 title: "Fix failing protocol integration tests against the Python server"
-status: pending
+status: completed
 priority: high
 effort: medium
 phase: v0.2
 dependencies: ["01kwyst53"]
 tags: ["testing", "integration", "python", "protocol"]
 created_at: 2026-07-19
+completed_at: 2026-07-20
 ---
 
 # Fix failing protocol integration tests against the Python server
@@ -24,17 +25,17 @@ missing behavior so every protocol test passes against the Python server.
 Captured 2026-07-19 via `make test-python` (6 failures — identical set to the TypeScript
 server, see `01kxxtj8w`):
 
-- [ ] `connection: resume with valid token preserves clientId` — `welcome.resumed` is not
+- [x] `connection: resume with valid token preserves clientId` — `welcome.resumed` is not
       `true` after resuming with a valid token.
-- [ ] `connection: resume with invalid token gives fresh session` — resume with an invalid
+- [x] `connection: resume with invalid token gives fresh session` — resume with an invalid
       token does not fall back cleanly to a fresh session (`resumed` should be falsy).
-- [ ] `pool resume: disconnected client retains membership within resume window` —
+- [x] `pool resume: disconnected client retains membership within resume window` —
       membership is dropped immediately on disconnect instead of held for the resume window.
-- [ ] `pool resume: reconnected client can still be matched` — a resumed client is not
+- [x] `pool resume: reconnected client can still be matched` — a resumed client is not
       re-eligible for pool matchmaking.
-- [ ] `pool-auto: three clients entering with groupSize 3 are matched together` —
+- [x] `pool-auto: three clients entering with groupSize 3 are matched together` —
       `groupSize > 2` is not honored.
-- [ ] `pool-claim: pool.claim in auto mode returns pool.mode_mismatch` — returns
+- [x] `pool-claim: pool.claim in auto mode returns pool.mode_mismatch` — returns
       `pool.not_member` instead of `pool.mode_mismatch`.
 
 Note: unlike the Go and TypeScript servers, there is no dedicated "pool matchmaking support
@@ -43,11 +44,11 @@ suite. Confirm pool support is complete while closing these edge cases.
 
 ## Tasks
 
-- [ ] Fix connection resume so `welcome.resumed` reflects valid/invalid token outcomes
-- [ ] Hold pool membership through the resume window and restore matchmaking on reconnect
-- [ ] Implement `groupSize` > 2 matching in the pool matchmaker
-- [ ] Return `pool.mode_mismatch` when claiming in a non-claim-mode pool
-- [ ] Verify `make test-python` passes with zero failures
+- [x] Fix connection resume so `welcome.resumed` reflects valid/invalid token outcomes
+- [x] Hold pool membership through the resume window and restore matchmaking on reconnect
+- [x] Implement `groupSize` > 2 matching in the pool matchmaker
+- [x] Return `pool.mode_mismatch` when claiming in a non-claim-mode pool
+- [x] Verify `make test-python` passes with zero failures
 
 ## Acceptance Criteria
 

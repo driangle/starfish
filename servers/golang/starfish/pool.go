@@ -73,10 +73,16 @@ func (p *Pool) AddMember(c *Client, attrs map[string]any, filter map[string]any,
 }
 
 // RestoreMember re-adds a client from a resume entry.
+//
+// A disconnected client keeps its pool membership during the resume window, so
+// on resume it may already be present. Update its record in place and only
+// append to the FIFO order when it is genuinely new, otherwise the client would
+// appear twice in the order and could be matched against itself.
 func (p *Pool) RestoreMember(c *Client, attrs map[string]any, filter map[string]any, role string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	_, existed := p.members[c.id]
 	p.members[c.id] = &PoolMember{
 		client:     c,
 		attributes: attrs,
@@ -84,7 +90,9 @@ func (p *Pool) RestoreMember(c *Client, attrs map[string]any, filter map[string]
 		role:       role,
 		joinedAt:   time.Now(),
 	}
-	p.order = append(p.order, c.id)
+	if !existed {
+		p.order = append(p.order, c.id)
+	}
 }
 
 // RemoveMember removes a client from the pool and clears their claims.

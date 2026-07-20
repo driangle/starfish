@@ -62,9 +62,10 @@ func TestPoolAutoMode(t *testing.T) {
 	if session == "" {
 		t.Fatal("expected non-empty session name")
 	}
+	// peers lists the other members of the group, excluding the recipient.
 	peers, _ := matched1.Payload["peers"].([]any)
-	if len(peers) != 2 {
-		t.Fatalf("expected 2 peers, got %d", len(peers))
+	if len(peers) != 1 {
+		t.Fatalf("expected 1 peer, got %d", len(peers))
 	}
 }
 

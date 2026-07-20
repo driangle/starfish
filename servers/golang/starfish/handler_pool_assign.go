@@ -29,7 +29,8 @@ func (h *Handler) handlePoolAssign(c *Client, f *Frame) {
 		return
 	}
 
-	// Validate all groups
+	// Validate all groups: wrong size is an invalid group; an unknown member
+	// (including the matchmaker assigning itself) is a missing target.
 	for _, group := range payload.Groups {
 		if len(group) != pool.groupSize {
 			c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrPoolInvalidGroup, nil))
@@ -37,7 +38,7 @@ func (h *Handler) handlePoolAssign(c *Client, f *Frame) {
 		}
 		for _, memberID := range group {
 			if !pool.HasMember(memberID) || memberID == c.id {
-				c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrPoolInvalidGroup, nil))
+				c.SendFrame(NewErrorFrame(h.hub.idGen, f.Header.ID, "pool", "assign", ErrPoolTargetNotFound, nil))
 				return
 			}
 		}
@@ -92,14 +93,15 @@ func (h *Handler) executePoolMatch(pool *Pool, memberIDs []string, replyTo strin
 }
 
 // processAutoMatches runs the auto-match loop and sends results.
+//
+// An auto pool is a persistent queue: it is not destroyed when it drains to
+// empty via matching, only when its last member explicitly leaves. Keeping the
+// pool alive lets later operations (e.g. a stray pool.claim) see its mode and
+// respond with pool.mode_mismatch rather than pool.not_found.
 func (h *Handler) processAutoMatches(pool *Pool) {
 	results := pool.TryAutoMatch()
 	for _, result := range results {
 		h.sendPoolMatched(pool.name, result.sessionName, result.peers, result.memberIDs)
-	}
-
-	if pool.IsEmpty() {
-		h.hub.RemovePool(pool.name)
 	}
 }
 
@@ -109,6 +111,14 @@ func (h *Handler) sendPoolMatched(poolName, sessionName string, peers []PoolMemb
 		client := h.hub.GetClient(id)
 		if client == nil {
 			continue
+		}
+
+		// Each member sees the other members of the group, not itself.
+		otherPeers := make([]PoolMemberInfo, 0, len(peers))
+		for _, p := range peers {
+			if p.ID != id {
+				otherPeers = append(otherPeers, p)
+			}
 		}
 
 		client.SendFrame(&Frame{
@@ -121,7 +131,7 @@ func (h *Handler) sendPoolMatched(poolName, sessionName string, peers []PoolMemb
 			Payload: map[string]any{
 				"pool":    poolName,
 				"session": sessionName,
-				"peers":   peers,
+				"peers":   otherPeers,
 			},
 		})
 

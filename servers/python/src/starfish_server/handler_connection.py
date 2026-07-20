@@ -37,6 +37,10 @@ def handle_client_hello(hub: StarfishServer, client: Client, frame: StarfishFram
 
 
 def _negotiate_version(client_versions: list[int]) -> int | None:
+    # A client that offers no versions (e.g. a resume hello) is accepted at the
+    # default supported version for backwards compatibility.
+    if not client_versions:
+        return SUPPORTED_VERSIONS[0]
     for v in client_versions:
         if v in SUPPORTED_VERSIONS:
             return v

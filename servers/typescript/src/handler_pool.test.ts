@@ -111,7 +111,8 @@ describe("auto mode matching", () => {
     const payload = c1Matched[0].payload as Record<string, unknown>;
     expect(payload.pool).toBe("game");
     expect(payload.session).toBeDefined();
-    expect((payload.peers as unknown[]).length).toBe(2);
+    // peers excludes the recipient, so a matched pair sees one peer each.
+    expect((payload.peers as unknown[]).length).toBe(1);
   });
 
   it("does not send member events in auto mode", () => {

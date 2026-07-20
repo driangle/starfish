@@ -18,12 +18,15 @@ import {
 export function handlePoolClaim(hub: StarfishServer, client: Client, frame: StarfishFrame): void {
   const pool = resolvePool(hub, client, frame);
   if (!pool) return;
-  if (!requirePoolMember(pool, hub, client, frame)) return;
 
+  // Mode is checked before membership: claiming in a non-claim pool is a mode
+  // mismatch regardless of whether the caller is still a member.
   if (!pool.isClaimBased()) {
     client.sendFrame(createErrorFrame(hub.idGen, frame.header.id, ERR_POOL_MODE_MISMATCH, "pool", "claim"));
     return;
   }
+
+  if (!requirePoolMember(pool, hub, client, frame)) return;
 
   const targetId = (frame.payload as { target?: string } | undefined)?.target;
   if (!targetId || !pool.hasMember(targetId)) {

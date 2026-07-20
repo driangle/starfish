@@ -120,6 +120,8 @@ def _send_match(hub: StarfishServer, pool: object, match: Any) -> None:
         client = hub.get_client(peer["id"])
         if client:
             client.pools.discard(pool.name if hasattr(pool, "name") else "")
+            # Each member sees the other members of the group, not itself.
+            other_peers = [p for p in match.peers if p["id"] != peer["id"]]
             client.send_frame({
                 "header": {
                     "id": hub.id_gen.message_id(),
@@ -130,6 +132,6 @@ def _send_match(hub: StarfishServer, pool: object, match: Any) -> None:
                 "payload": {
                     "pool": pool.name if hasattr(pool, "name") else "",
                     "session": match.session,
-                    "peers": match.peers,
+                    "peers": other_peers,
                 },
             })

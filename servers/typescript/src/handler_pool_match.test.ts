@@ -37,7 +37,8 @@ describe("claim mode", () => {
 
     const payload = findFrames(c1, "pool", "matched")[0].payload as Record<string, unknown>;
     expect(payload.session).toBeDefined();
-    expect((payload.peers as unknown[]).length).toBe(2);
+    // peers excludes the recipient, so a matched pair sees one peer each.
+    expect((payload.peers as unknown[]).length).toBe(1);
   });
 
   it("broadcasts member.left with reason matched to remaining members", () => {

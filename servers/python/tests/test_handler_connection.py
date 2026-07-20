@@ -55,10 +55,15 @@ class TestHandlerConnection:
         assert msg["payload"]["error"]["code"] == "protocol.unsupported_version"
 
     def test_hello_empty_versions(self):
+        # A client that offers no versions (e.g. a resume hello) is accepted at
+        # the default supported version for backwards compatibility.
         frame = make_frame("client", "hello", payload={"versions": []})
         self.hub.handler.dispatch(self.client, frame)
 
-        assert self.client.authenticated is False
+        assert self.client.authenticated is True
+        msg = json.loads(self.client._send_queue.get_nowait())
+        assert msg["header"]["method"] == "welcome"
+        assert msg["payload"]["version"] == 2
 
     def test_resume_success(self):
         # First do a fresh hello

@@ -37,6 +37,8 @@ def send_matched_to_group(hub: StarfishServer, result: MatchResult, pool_name: s
     for peer in result.peers:
         c = hub.get_client(peer["id"])
         if c:
+            # Each member sees the other members of the group, not itself.
+            other_peers = [p for p in result.peers if p["id"] != peer["id"]]
             c.send_frame({
                 "header": {
                     "id": hub.id_gen.message_id(),
@@ -44,7 +46,7 @@ def send_matched_to_group(hub: StarfishServer, result: MatchResult, pool_name: s
                     "method": "matched",
                     "kind": "event",
                 },
-                "payload": {"pool": pool_name, "session": result.session, "peers": result.peers},
+                "payload": {"pool": pool_name, "session": result.session, "peers": other_peers},
             })
 
 

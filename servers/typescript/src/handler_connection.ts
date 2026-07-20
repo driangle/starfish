@@ -31,6 +31,9 @@ type WelcomePayload = {
 };
 
 function negotiateVersion(clientVersions: number[]): number | undefined {
+  // A client that offers no versions (e.g. a resume hello) is accepted at the
+  // default supported version for backwards compatibility.
+  if (clientVersions.length === 0) return SUPPORTED_VERSIONS[0];
   for (const v of clientVersions) {
     if (SUPPORTED_VERSIONS.includes(v)) return v;
   }
