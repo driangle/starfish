@@ -85,8 +85,38 @@ export function directSendFrame(
   session: string,
   to: string | string[],
   payload: any,
+  opts?: { delivery?: DeliveryOptions },
 ): StarfishFrame {
-  return { header: request("send", "message", "send", { session, to }), payload };
+  return {
+    header: request("send", "message", "send", {
+      session,
+      to,
+      ...(opts?.delivery && { delivery: opts.delivery }),
+    }),
+    payload,
+  };
+}
+
+// Acknowledgement frames are sent by a message's recipient back to the original
+// sender. The server routes them to `to` based on `replyTo` referencing the
+// original message id; it never synthesizes acks on its own.
+export function ackFrame(session: string, to: string | string[], replyTo: string): StarfishFrame {
+  return {
+    header: request("ack", "ack", "ack", { session, to, replyTo, kind: "response" }),
+    payload: { status: "ok", received: true },
+  };
+}
+
+export function nackFrame(
+  session: string,
+  to: string | string[],
+  replyTo: string,
+  error: { code: string; resource: string; message: string; retry: boolean },
+): StarfishFrame {
+  return {
+    header: request("nack", "ack", "nack", { session, to, replyTo, kind: "response" }),
+    payload: { status: "error", error },
+  };
 }
 
 export function broadcastFrame(

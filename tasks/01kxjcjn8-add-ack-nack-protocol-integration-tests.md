@@ -1,11 +1,12 @@
 ---
 title: "Add ack/nack protocol integration tests"
 id: "01kxjcjn8"
-status: pending
+status: completed
 priority: high
 type: chore
 tags: ["testing", "protocol"]
 created_at: "2026-07-15"
+completed_at: 2026-07-20
 ---
 
 # Add ack/nack protocol integration tests
@@ -16,11 +17,11 @@ The `ack` and `nack` acknowledgement message types are defined in the v0.1 proto
 
 ## Tasks
 
-- [ ] Add test: sending a message with `requireAck: true` results in an `ack` from the server or recipient
-- [ ] Add test: `nack` is returned when delivery fails (e.g., target not found, topic not subscribed)
-- [ ] Add test: `ack` contains correct `replyTo` referencing the original message ID
-- [ ] Add test: messages without `requireAck` do not produce ack/nack responses
-- [ ] Verify tests pass against both Go and TypeScript servers
+- [x] Add test: sending a message with `requireAck: true` results in an `ack` from the server or recipient
+- [x] Add test: `nack` is returned when delivery fails (e.g., target not found, topic not subscribed)
+- [x] Add test: `ack` contains correct `replyTo` referencing the original message ID
+- [x] Add test: messages without `requireAck` do not produce ack/nack responses
+- [x] Verify tests pass against both Go and TypeScript servers
 
 ## Acceptance Criteria
 

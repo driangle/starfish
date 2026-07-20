@@ -12,19 +12,19 @@ created_at: "2026-07-18"
 
 ## Objective
 
-Implement the MIDI `BridgeConnector` for the signal bridge CLI. Supports all three directions (relative to starfish): `in` forwards incoming MIDI messages (note on/off, CC, pitch bend, etc.) from a device to a starfish topic; `out` sends topic messages back to the device; `both` runs both on the same device. See the core task (`01kxtrwnb`) for the shared `--direction` convention.
+Implement the MIDI `BridgeConnector` for the signal bridge CLI. Supports all three directions (relative to starfish): `in` forwards incoming MIDI messages (note on/off, CC, pitch bend, etc.) from a device to a starfish topic; `out` sends topic messages back to the device; `both` runs both on the same device. See the core task (`01kxtrwnb`) for the shared direction convention.
 
 ### CLI Usage
 
 ```bash
-# in (default): device → topic
-starfish-bridge midi --server ws://localhost:8080/starfish --session jam --topic midi --device "Launchpad Pro"
+# in: device → topic
+starfish-bridge midi in   --server ws://localhost:8080/starfish --session jam --topic midi --device "Launchpad Pro"
 
 # out: topic → device
-starfish-bridge midi --server ws://localhost:8080/starfish --session jam --topic midi --device "Launchpad Pro" --direction out
+starfish-bridge midi out  --server ws://localhost:8080/starfish --session jam --topic midi --device "Launchpad Pro"
 
 # both: bidirectional
-starfish-bridge midi --server ws://localhost:8080/starfish --session jam --topic midi --device "Launchpad Pro" --direction both
+starfish-bridge midi both --server ws://localhost:8080/starfish --session jam --topic midi --device "Launchpad Pro"
 ```
 
 ## Tasks
@@ -37,9 +37,9 @@ starfish-bridge midi --server ws://localhost:8080/starfish --session jam --topic
 
 ## Acceptance Criteria
 
-- Running `starfish-bridge midi ... --device "..."` (default `--direction in`) opens the device input and publishes incoming MIDI to the topic
+- Running `starfish-bridge midi in ... --device "..."` opens the device input and publishes incoming MIDI to the topic
 - MIDI messages are published as structured JSON payloads (e.g. `{ type: "noteOn", channel: 0, note: 60, velocity: 127 }`)
 - Running without `--device` lists available MIDI devices and exits
-- Running with `--direction out` subscribes to the topic and translates structured payloads back into valid MIDI messages sent to the device
-- Running with `--direction both` does both simultaneously on the same device
+- Running `starfish-bridge midi out ...` subscribes to the topic and translates structured payloads back into valid MIDI messages sent to the device
+- Running `starfish-bridge midi both ...` does both simultaneously on the same device
 - The connector cleans up the MIDI device on shutdown

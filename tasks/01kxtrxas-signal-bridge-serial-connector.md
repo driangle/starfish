@@ -12,16 +12,16 @@ created_at: "2026-07-18"
 
 ## Objective
 
-Implement the Serial `BridgeConnector` for the signal bridge CLI. Opens a serial port (USB/UART) and bridges framed messages with a starfish topic: `in` reads framed messages from the port to a topic, `out` writes topic messages to the port, `both` runs both on the same port. This covers Arduinos, custom microcontrollers, and any hardware that communicates over serial. See the core task (`01kxtrwnb`) for the shared `--direction` convention.
+Implement the Serial `BridgeConnector` for the signal bridge CLI. Opens a serial port (USB/UART) and bridges framed messages with a starfish topic: `in` reads framed messages from the port to a topic, `out` writes topic messages to the port, `both` runs both on the same port. This covers Arduinos, custom microcontrollers, and any hardware that communicates over serial. See the core task (`01kxtrwnb`) for the shared direction convention.
 
 ### CLI Usage
 
 ```bash
-# in (default): port → topic
-starfish-bridge serial --server ws://localhost:8080/starfish --session sensors --topic serial --port /dev/ttyUSB0 --baud 115200 --framing newline
+# in: port → topic
+starfish-bridge serial in   --server ws://localhost:8080/starfish --session sensors --topic serial --port /dev/ttyUSB0 --baud 115200 --framing newline
 
 # both: bidirectional on the same port
-starfish-bridge serial --server ws://localhost:8080/starfish --session sensors --topic serial --port /dev/ttyUSB0 --baud 115200 --framing newline --direction both
+starfish-bridge serial both --server ws://localhost:8080/starfish --session sensors --topic serial --port /dev/ttyUSB0 --baud 115200 --framing newline
 ```
 
 ## Tasks
@@ -37,9 +37,9 @@ starfish-bridge serial --server ws://localhost:8080/starfish --session sensors -
 
 ## Acceptance Criteria
 
-- Running `starfish-bridge serial ... --port /dev/ttyUSB0 --baud 115200 --framing newline` (default `--direction in`) opens the port and publishes each newline-delimited message to the topic
+- Running `starfish-bridge serial in ... --port /dev/ttyUSB0 --baud 115200 --framing newline` opens the port and publishes each newline-delimited message to the topic
 - JSON payloads from serial are parsed and forwarded as structured data; non-JSON payloads are wrapped as `{ raw: "..." }`
 - Running with --list-ports enumerates available serial ports and exits
-- Running with `--direction out` subscribes to the topic and writes framed messages back to the port; structured payloads are serialized with the configured framing before writing
-- Running with `--direction both` reads and writes on the same port simultaneously
+- Running `starfish-bridge serial out ...` subscribes to the topic and writes framed messages back to the port; structured payloads are serialized with the configured framing before writing
+- Running `starfish-bridge serial both ...` reads and writes on the same port simultaneously
 - The connector handles USB device disconnection gracefully and reconnects when the device reappears

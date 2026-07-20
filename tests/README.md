@@ -13,6 +13,7 @@ tests/
       presence.test.ts      # Presence tracking
       topics.test.ts        # Topic pub/sub
       messaging.test.ts     # Direct and broadcast messaging
+      ack.test.ts           # Acknowledgements (ack/nack routing)
       data.test.ts          # Shared data operations
       broadcast.test.ts     # Broadcast messaging
       rtc-signaling.test.ts # WebRTC signaling

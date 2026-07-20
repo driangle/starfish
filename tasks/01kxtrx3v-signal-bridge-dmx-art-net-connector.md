@@ -12,16 +12,16 @@ created_at: "2026-07-18"
 
 ## Objective
 
-Implement the DMX/Art-Net `BridgeConnector` for the signal bridge CLI. Sends and receives DMX512 universe data over Art-Net (UDP), bridging channel values between starfish topics and physical lighting fixtures. `out` drives fixtures from a topic; `in` reads a lighting console into a topic; `both` does both on the same universe. See the core task (`01kxtrwnb`) for the shared `--direction` convention.
+Implement the DMX/Art-Net `BridgeConnector` for the signal bridge CLI. Sends and receives DMX512 universe data over Art-Net (UDP), bridging channel values between starfish topics and physical lighting fixtures. `out` drives fixtures from a topic; `in` reads a lighting console into a topic; `both` does both on the same universe. See the core task (`01kxtrwnb`) for the shared direction convention.
 
 ### CLI Usage
 
 ```bash
 # out: starfish topic → Art-Net universe (control lights from starfish)
-starfish-bridge artnet --server ws://localhost:8080/starfish --session show --topic dmx --universe 0 --direction out
+starfish-bridge artnet out --server ws://localhost:8080/starfish --session show --topic dmx --universe 0
 
 # in: Art-Net universe → starfish topic (read from a lighting console)
-starfish-bridge artnet --server ws://localhost:8080/starfish --session show --topic dmx --universe 0 --direction in
+starfish-bridge artnet in  --server ws://localhost:8080/starfish --session show --topic dmx --universe 0
 ```
 
 ## Tasks
@@ -36,8 +36,8 @@ starfish-bridge artnet --server ws://localhost:8080/starfish --session show --to
 
 ## Acceptance Criteria
 
-- Running with `--direction out` subscribes to a starfish topic and sends DMX channel data to the specified Art-Net universe
-- Running with `--direction in` listens for Art-Net packets on the specified universe and publishes channel values to the starfish topic
-- Running with `--direction both` bridges the universe in both directions simultaneously
+- Running `starfish-bridge artnet out ...` subscribes to a starfish topic and sends DMX channel data to the specified Art-Net universe
+- Running `starfish-bridge artnet in ...` listens for Art-Net packets on the specified universe and publishes channel values to the starfish topic
+- Running `starfish-bridge artnet both ...` bridges the universe in both directions simultaneously
 - Channel data is sent at an appropriate refresh rate (max 44Hz per DMX spec)
 - The connector handles universe addressing correctly (0–32767)
