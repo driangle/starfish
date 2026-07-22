@@ -1,0 +1,269 @@
+/* ==========================================================================
+   Starfish docs — visual design
+   Design tokens (OKLCH) from the Starfish Protocol Visual Design handoff,
+   mapped onto VitePress's default-theme CSS variables.
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+/* --------------------------------------------------------------------------
+   Design tokens
+   Defined once here so both the custom Home page and the restyled VitePress
+   chrome consume the same palette. Light lives on :root, dark on .dark
+   (VitePress toggles the `.dark` class on <html>).
+   -------------------------------------------------------------------------- */
+:root {
+  --bg: oklch(0.992 0.004 70);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.968 0.005 70);
+  --text: oklch(0.24 0.012 60);
+  --muted: oklch(0.52 0.012 60);
+  --faint: oklch(0.72 0.01 60);
+  --border: oklch(0.905 0.006 70);
+  --border-strong: oklch(0.85 0.008 70);
+  --accent: oklch(0.6 0.19 28);
+  --accent-fg: oklch(0.99 0.01 70);
+  --accent-soft: oklch(0.6 0.19 28 / 0.12);
+  --dot: oklch(0.85 0.01 70);
+}
+
+.dark {
+  --bg: oklch(0.168 0.008 65);
+  --surface: oklch(0.205 0.009 65);
+  --surface-2: oklch(0.235 0.01 65);
+  --text: oklch(0.93 0.006 70);
+  --muted: oklch(0.66 0.01 70);
+  --faint: oklch(0.46 0.01 70);
+  --border: oklch(0.3 0.01 65);
+  --border-strong: oklch(0.36 0.01 65);
+  --accent: oklch(0.7 0.17 32);
+  --accent-fg: oklch(0.16 0.01 65);
+  --accent-soft: oklch(0.7 0.17 32 / 0.16);
+  --dot: oklch(0.32 0.012 65);
+}
+
+/* --------------------------------------------------------------------------
+   Typography + brand mapping onto VitePress variables
+   -------------------------------------------------------------------------- */
+:root {
+  --vp-font-family-base: "Space Grotesk", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --vp-font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, monospace;
+
+  /* Surfaces */
+  --vp-c-bg: var(--bg);
+  --vp-c-bg-alt: var(--surface-2);
+  --vp-c-bg-soft: var(--surface-2);
+  --vp-c-bg-elv: var(--surface);
+
+  /* Text */
+  --vp-c-text-1: var(--text);
+  --vp-c-text-2: var(--muted);
+  --vp-c-text-3: var(--faint);
+
+  /* Lines */
+  --vp-c-border: var(--border);
+  --vp-c-divider: var(--border);
+  --vp-c-gutter: var(--border);
+
+  /* Brand / accent */
+  --vp-c-brand-1: var(--accent);
+  --vp-c-brand-2: var(--accent);
+  --vp-c-brand-3: var(--accent);
+  --vp-c-brand-soft: var(--accent-soft);
+
+  /* Buttons pick up the accent */
+  --vp-button-brand-bg: var(--accent);
+  --vp-button-brand-hover-bg: var(--accent);
+  --vp-button-brand-active-bg: var(--accent);
+  --vp-button-brand-text: var(--accent-fg);
+  --vp-button-brand-hover-text: var(--accent-fg);
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-hover-border: transparent;
+
+  /* Inline code + code blocks */
+  --vp-code-color: var(--accent);
+  --vp-code-bg: var(--accent-soft);
+  --vp-code-block-bg: var(--surface-2);
+}
+
+/* --------------------------------------------------------------------------
+   Nav bar — logo mark, lowercase wordmark, version badge, search chip
+   -------------------------------------------------------------------------- */
+.VPNavBar {
+  background-color: color-mix(in oklab, var(--bg) 82%, transparent);
+  backdrop-filter: blur(12px);
+}
+.VPNavBar.top:not(.has-sidebar) {
+  background-color: color-mix(in oklab, var(--bg) 82%, transparent);
+}
+.VPNavBar .title {
+  gap: 11px;
+}
+.VPNavBarTitle .title .text,
+.VPNavBarTitle a.title {
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  text-transform: lowercase !important;
+}
+
+/* Diamond + dot logo mark, injected via the nav-bar-title-before slot */
+.sf-logo {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.sf-logo .sf-logo-diamond {
+  position: absolute;
+  inset: 2px;
+  border: 1.5px solid var(--text);
+  transform: rotate(45deg);
+}
+.sf-logo .sf-logo-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+/* Version badge, injected via the nav-bar-title-after slot */
+.sf-version {
+  font-family: var(--vp-font-family-mono);
+  font-size: 11px;
+  color: var(--faint);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  letter-spacing: 0.02em;
+  margin-left: 11px;
+}
+
+.VPNavBarSearchButton .DocSearch-Button,
+.VPNavBar .DocSearch-Button {
+  font-family: var(--vp-font-family-mono);
+  border-radius: 7px;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar — uppercase group labels, accent left-border on active item
+   -------------------------------------------------------------------------- */
+.VPSidebarItem.level-0 > .item > .text,
+.VPSidebar .group .VPSidebarItem.level-0 .text {
+  font-weight: 600;
+}
+.VPSidebarItem.level-0 > .item .text {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.VPSidebarItem.level-1 .link .text,
+.VPSidebarItem.level-2 .link .text {
+  font-size: 13.5px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  color: var(--muted);
+}
+.VPSidebarItem.level-1 .link,
+.VPSidebarItem.level-2 .link {
+  border-left: 2px solid transparent;
+  border-radius: 6px;
+  padding-left: 11px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.VPSidebarItem.is-active > .item .link .text,
+.VPSidebarItem.is-active > .item .link:hover .text {
+  color: var(--accent);
+  font-weight: 600;
+}
+.VPSidebarItem.is-active > .item .link {
+  border-left-color: var(--accent);
+}
+
+/* --------------------------------------------------------------------------
+   Document typography — tighter headings, ruled h2s, mono code
+   -------------------------------------------------------------------------- */
+.vp-doc h1 {
+  font-size: 40px;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+}
+.vp-doc h2 {
+  font-size: 23px;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+  margin-top: 44px;
+  padding-bottom: 10px;
+  border-top: none;
+  border-bottom: 1px solid var(--border);
+}
+.vp-doc h3 {
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  margin-top: 32px;
+}
+.vp-doc p,
+.vp-doc li {
+  line-height: 1.65;
+}
+.vp-doc a {
+  font-weight: 500;
+  text-decoration: none;
+}
+.vp-doc a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.vp-doc div[class*="language-"],
+.vp-doc pre {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* Prev/next footer cards */
+.pager-link {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.pager-link .desc {
+  font-family: var(--vp-font-family-mono);
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.pager-link .title {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Shared animation — pulsing session nodes on the home constellation
+   -------------------------------------------------------------------------- */
+@keyframes sf-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+::selection {
+  background: var(--accent-soft);
+}
