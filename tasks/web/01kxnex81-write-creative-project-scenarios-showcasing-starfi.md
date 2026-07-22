@@ -1,11 +1,12 @@
 ---
 title: "Write creative project scenarios showcasing starfish"
 id: "01kxnex81"
-status: pending
+status: completed
 priority: high
 type: chore
 tags: ["docs", "examples"]
 created_at: "2026-07-16"
+completed_at: 2026-07-20
 ---
 
 # Write creative project scenarios showcasing starfish
@@ -18,11 +19,11 @@ The scenarios should be creative, expansive, original, and future-oriented while
 
 ## Tasks
 
-- [ ] Research existing docs structure to determine where to place the new page
-- [ ] Design 5 distinct creative project scenarios, each using different starfish features
-- [ ] Write the documentation page with project descriptions and code examples
-- [ ] Ensure code examples use the TypeScript SDK API correctly
-- [ ] Review for creativity, originality, and humanistic quality
+- [x] Research existing docs structure to determine where to place the new page
+- [x] Design 5 distinct creative project scenarios, each using different starfish features
+- [x] Write the documentation page with project descriptions and code examples
+- [x] Ensure code examples use the TypeScript SDK API correctly
+- [x] Review for creativity, originality, and humanistic quality
 
 ## Acceptance Criteria
 

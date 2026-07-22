@@ -119,5 +119,6 @@ try client.publish(topic: "chat", payload: ["text": "Hello, Starfish!"])
 ## Next Steps
 
 - Learn about [Core Concepts](./core-concepts) like sessions, topics, presence, and shared data
+- Let strangers find each other with [Pool Matchmaking](./workflows#pool-matchmaking) before they join a session
 - See all available options in [Configuration](./configuration)
 - Explore [Common Workflows](./workflows) for real-world patterns

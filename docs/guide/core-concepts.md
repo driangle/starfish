@@ -87,6 +87,70 @@ try client.leave()
 
 Each client in a session has a `ClientInfo` containing their `id`, optional `name`, `role`, and `meta`.
 
+## Pools
+
+A **pool** is a named matchmaking queue. Instead of knowing a session name up front,
+clients enter a pool and the server pairs them into a freshly created session. Pools
+decide *which* session a client joins; everything else (topics, presence, data) happens
+inside that session as usual. Pools operate over WebSocket only.
+
+The mode is chosen when the pool is created and determines how matches form:
+
+| Mode | Description |
+|------|-------------|
+| `auto` | Server pairs clients automatically (FIFO) once `groupSize` is reached. The default. |
+| `claim` | Clients see the member list and claim a partner; the first claim wins. |
+| `mutual` | Both clients must claim each other before the match fires. |
+| `propose` | One client proposes; the other accepts or rejects. |
+| `delegated` | A `matchmaker`-role client forms groups explicitly with `assign()`. |
+
+The common case is `auto` mode: enter the pool, wait for a match, then join the session
+the server hands back. Matched clients are **not** auto-joined — this gives you a moment
+to show a "matched" screen or load assets first.
+
+::: code-group
+
+```ts [TypeScript]
+// Must be in a session before entering a pool.
+await client.join("lobby");
+
+// React to being matched: join the session the server created.
+client.pool.matched$.subscribe(async ({ session, peers }) => {
+  console.log("Matched with", peers.map((p) => p.id));
+  await client.leave();       // leave the lobby
+  await client.join(session); // join the matched session
+});
+
+// Enter the pool. `create: true` opens it if it doesn't exist yet.
+await client.pool.enter("duets", { groupSize: 2, mode: "auto", create: true });
+```
+
+```python [Python]
+from starfish import PoolEnterOptions
+
+# Must be in a session before entering a pool.
+await client.join("lobby")
+
+# React to being matched: join the session the server created.
+async def on_match(result):
+    print("Matched with", [p.id for p in result.peers])
+    await client.leave()
+    await client.join(result.session)
+
+client.pool_matched.subscribe(on_match)
+
+# Enter the pool. create=True (the default) opens it if it doesn't exist yet.
+await client.pool_enter(PoolEnterOptions(pool="duets", group_size=2, mode="auto"))
+```
+
+:::
+
+In claim-based modes (`claim`, `mutual`, `propose`), the member list is visible, so you
+can present partners and let a client choose. Observe it with `pool.members$` in
+TypeScript or `pool_members(name)` in Python. For a full walkthrough of each mode, see
+[Pool Matchmaking](./workflows#pool-matchmaking); for the complete API, see the
+[Pool reference](../reference/pool).
+
 ## Topics
 
 **Topics** are named pub/sub channels within a session. Subscribe to a topic to receive messages, and publish to send messages to all subscribers.

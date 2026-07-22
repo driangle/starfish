@@ -17,6 +17,12 @@ Practical recipes for building with Starfish. Each recipe solves a specific prob
 - [Broadcast to Specific Clients](./targeted-messaging) — send messages to selected recipients
 - [Request/Reply Pattern](./request-reply) — RPC-style communication with `replyTo`
 
+### Matchmaking
+- [Random Pairing with Auto Mode](./pool-auto-pairing) — pair strangers automatically with pools
+- [Attribute Filtering](./pool-filtered-matching) — match only compatible clients with `filter`
+- [Custom Matchmaker with Delegated Mode](./pool-delegated-matchmaker) — form groups yourself with `assign()`
+- [Re-pairing When a Peer Disconnects](./pool-repaired-on-disconnect) — find a new partner when yours leaves
+
 ### Data & State
 - [Store and Sync Shared State](./shared-state) — use data operations for collaborative state
 

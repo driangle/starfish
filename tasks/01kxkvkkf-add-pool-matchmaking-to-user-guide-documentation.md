@@ -1,12 +1,13 @@
 ---
 title: "Add pool matchmaking to user guide documentation"
 id: "01kxkvkkf"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["pool", "docs", "guide"]
 dependencies: ["01kxjn8mq"]
 created_at: "2026-07-15"
+completed_at: 2026-07-21
 ---
 
 # Add pool matchmaking to user guide documentation
@@ -31,7 +32,7 @@ Five pool modes are supported:
 
 ## Tasks
 
-- [ ] Add a **Pools** section to `docs/guide/core-concepts.md` after the Sessions section:
+- [x] Add a **Pools** section to `docs/guide/core-concepts.md` after the Sessions section:
   - Explain that a pool is a named matchmaking queue that pairs clients into a server-generated session
   - Describe the five modes (`auto`, `claim`, `mutual`, `propose`, `delegated`) in a table
   - Show `pool_enter` / `pool.enter` in TypeScript and Python with `mode: "auto"` as the minimal example
@@ -39,17 +40,17 @@ Five pool modes are supported:
   - Mention `pool_members` / `pool.members$` for claim-based modes
   - Note that pools operate over WebSocket only (no RTC transport for pool frames)
 
-- [ ] Add a **Pool Matchmaking** workflow to `docs/guide/workflows.md`:
+- [x] Add a **Pool Matchmaking** workflow to `docs/guide/workflows.md`:
   - Auto-pairing workflow: enter pool, await match, join session
   - Claim workflow: enter pool, observe members, claim a partner, await match
   - Propose/accept workflow: enter pool, listen for proposals, accept or reject
   - Delegated workflow: matchmaker enters pool with `role: "matchmaker"`, observes members, calls `assign`
   - Each workflow should have TypeScript and Python code blocks following the existing `::: code-group` format
 
-- [ ] Update `docs/guide/quick-start.md` if appropriate:
+- [x] Update `docs/guide/quick-start.md` if appropriate:
   - Add a brief note in "Next Steps" pointing to pool matchmaking as the way to let strangers find each other before joining a session (one line is sufficient — no new code blocks needed)
 
-- [ ] Update `docs/guide/api-overview.md`:
+- [x] Update `docs/guide/api-overview.md`:
   - Add a **Pool** section to the StarfishClient Methods table, listing all pool methods and their return types
   - TypeScript API: `pool.enter(name, options)`, `pool.leave(name)`, `pool.claim(name, targetId)`, `pool.accept(name, fromId)`, `pool.reject(name, fromId)`, `pool.assign(name, groups)`, `pool.members$`, `pool.matched$`, `pool.proposal$`, `pool.claimRejected$`
   - Python API: `pool_enter(options)`, `pool_leave(pool)`, `pool_claim(pool, target)`, `pool_accept(pool, from_)`, `pool_reject(pool, from_)`, `pool_assign(pool, groups)`, `pool_members(pool)`, `pool_matched` property

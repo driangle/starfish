@@ -10,6 +10,7 @@ export default defineConfig({
     nav: [
       { text: "Guide", link: "/guide/" },
       { text: "Cookbook", link: "/cookbook/" },
+      { text: "Scenarios", link: "/scenarios/" },
       { text: "Reference", link: "/reference/" },
       { text: "Adapters", link: "/adapters/" },
     ],
@@ -72,6 +73,15 @@ export default defineConfig({
           ],
         },
         {
+          text: "Matchmaking",
+          items: [
+            { text: "Auto Pairing", link: "/cookbook/pool-auto-pairing" },
+            { text: "Attribute Filtering", link: "/cookbook/pool-filtered-matching" },
+            { text: "Delegated Matchmaker", link: "/cookbook/pool-delegated-matchmaker" },
+            { text: "Re-pairing on Disconnect", link: "/cookbook/pool-repaired-on-disconnect" },
+          ],
+        },
+        {
           text: "Data & State",
           items: [
             { text: "Shared State", link: "/cookbook/shared-state" },
@@ -85,11 +95,25 @@ export default defineConfig({
           ],
         },
       ],
+      "/scenarios/": [
+        {
+          text: "Scenarios",
+          items: [
+            { text: "Overview", link: "/scenarios/" },
+            { text: "Constellation", link: "/scenarios/constellation" },
+            { text: "Duet", link: "/scenarios/duet" },
+            { text: "The Long Mural", link: "/scenarios/the-long-mural" },
+            { text: "Chorus", link: "/scenarios/chorus" },
+            { text: "Wander", link: "/scenarios/wander" },
+          ],
+        },
+      ],
       "/reference/": [
         {
           text: "Reference",
           items: [
             { text: "Overview", link: "/reference/" },
+            { text: "Pool Matchmaking API", link: "/reference/pool" },
           ],
         },
       ],

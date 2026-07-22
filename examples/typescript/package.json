@@ -14,7 +14,12 @@
     "presence": "node dist/presence.js",
     "shared-data": "node dist/shared-data.js",
     "clock-sync": "node dist/clock-sync.js",
-    "pool-matchmaking": "node dist/pool-matchmaking.js"
+    "pool-matchmaking": "node dist/pool-matchmaking.js",
+    "scenario:constellation": "node dist/scenarios/constellation/constellation.js",
+    "scenario:duet": "node dist/scenarios/duet/duet.js",
+    "scenario:the-long-mural": "node dist/scenarios/the-long-mural/the-long-mural.js",
+    "scenario:chorus": "node dist/scenarios/chorus/chorus.js",
+    "scenario:wander": "node dist/scenarios/wander/wander.js"
   },
   "dependencies": {
     "@starfish/client": "file:../../sdks/typescript",

@@ -290,7 +290,7 @@ class TestPoolMembers:
                 header=StarfishHeader(
                     id="evt_1",
                     resource="pool",
-                    method="member.joined",
+                    method="member-joined",
                     kind="event",
                 ),
                 payload={
@@ -337,7 +337,7 @@ class TestPoolMembers:
                 header=StarfishHeader(
                     id="evt_1",
                     resource="pool",
-                    method="member.left",
+                    method="member-left",
                     kind="event",
                 ),
                 payload={

@@ -28,6 +28,18 @@ export class Pool {
   async enter(poolName: string, options: PoolEnterOptions): Promise<StarfishFrame> {
     this.requireSession();
 
+    // Only include optional fields when defined — the frame serializer rejects
+    // explicit `undefined` values.
+    const payload: Record<string, unknown> = {
+      pool: poolName,
+      groupSize: options.groupSize,
+    };
+    if (options.mode !== undefined) payload.mode = options.mode;
+    if (options.role !== undefined) payload.role = options.role;
+    if (options.attributes !== undefined) payload.attributes = options.attributes;
+    if (options.filter !== undefined) payload.filter = options.filter;
+    if (options.create !== undefined) payload.create = options.create;
+
     const frame: StarfishFrame = {
       header: {
         id: nextId("pool"),
@@ -35,19 +47,15 @@ export class Pool {
         method: "enter",
         kind: "request",
       },
-      payload: {
-        pool: poolName,
-        groupSize: options.groupSize,
-        mode: options.mode,
-        role: options.role,
-        attributes: options.attributes,
-        filter: options.filter,
-        create: options.create,
-      },
+      payload,
     };
 
-    const response = await this.connection.sendAndWait(frame);
+    // Set currentPool before awaiting the response: the server may dispatch a
+    // "matched" event immediately after the enter response, and handleFrame
+    // drops pool events that don't match currentPool. Setting it first avoids
+    // racing that event against the post-await continuation.
     this.currentPool = poolName;
+    const response = await this.connection.sendAndWait(frame);
 
     if (response.payload?.members) {
       for (const member of response.payload.members as PoolMember[]) {

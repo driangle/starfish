@@ -1,12 +1,13 @@
 ---
 title: "Add pool matchmaking to API reference documentation"
 id: "01kxkvkw3"
-status: pending
+status: completed
 priority: medium
 type: feature
 tags: ["pool", "docs", "reference"]
 dependencies: ["01kxjn8mq"]
 created_at: "2026-07-15"
+completed_at: 2026-07-21
 ---
 
 # Add pool matchmaking to API reference documentation
@@ -23,7 +24,7 @@ The reference currently lives at `docs/reference/index.md`, which is a placehold
 
 ## Tasks
 
-- [ ] Create `docs/reference/pool.md` with the following sections:
+- [x] Create `docs/reference/pool.md` with the following sections:
 
   ### Overview
   - One-paragraph description: pools are named matchmaking queues; clients enter, the server pairs them atomically, and the resulting session name is delivered via `pool.matched`
@@ -169,7 +170,7 @@ The reference currently lives at `docs/reference/index.md`, which is a placehold
   | `pool.not_found` | `enter` | The named pool does not exist and `create` was false |
   | `NO_SESSION` | all pool methods (TS) | Called before `client.join()` |
 
-- [ ] Update `docs/reference/index.md` to link to the new `pool.md` file
+- [x] Update `docs/reference/index.md` to link to the new `pool.md` file
 
 ## Acceptance Criteria
 

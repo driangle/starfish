@@ -76,7 +76,31 @@
 | `clock.sync(samples?)` | `Promise<number>` | Sync with server clock |
 | `clock.now()` | `number` | Current server-adjusted time |
 | `clock.offset` | `number` | Clock offset in ms |
-| `at(serverTime, callback)` | `Timeout` | Schedule callback at server time |
+| `clock.at(serverTime, callback)` | `Timeout` | Schedule callback at server time |
+
+### Pools
+
+Server-managed matchmaking: enter a pool and the server groups you with other waiting
+clients into a shared session. TypeScript exposes these through `client.pool`; Python
+exposes them directly on the client. See the [Pool reference](../reference/pool) for the
+full API.
+
+| TypeScript | Python | Returns | Description |
+|-----------|--------|---------|-------------|
+| `pool.enter(name, options)` | `pool_enter(options)` | `Promise<StarfishFrame>` / `PoolEnteredResult` | Enter a pool |
+| `pool.leave(name)` | `pool_leave(pool)` | `void` / `None` | Leave a pool |
+| `pool.claim(name, targetId)` | `pool_claim(pool, target)` | `void` / `None` | Claim a specific member (claim/mutual modes) |
+| `pool.accept(name, fromId)` | `pool_accept(pool, from_)` | `void` / `None` | Accept a proposal (propose mode) |
+| `pool.reject(name, fromId)` | `pool_reject(pool, from_)` | `void` / `None` | Reject a proposal (propose mode) |
+| `pool.assign(name, groups)` | `pool_assign(pool, groups)` | `Promise<StarfishFrame>` / `StarfishFrame` | Assign groups (delegated mode, matchmaker role) |
+| `pool.matched$` | `pool_matched` | `EventStream<PoolMatchedEvent>` / `EventStream[PoolMatchResult]` | Emitted when the server matches you into a session |
+| `pool.members$` | `pool_members(pool)` | `Observable<PoolMember[]>` | Current members of the pool |
+| `pool.proposal$` | — | `EventStream<...>` | Incoming pairing proposals (TypeScript only) |
+| `pool.claimRejected$` | — | `EventStream<...>` | Emitted when a claim you made is rejected (TypeScript only) |
+
+Pool `mode` is one of `"auto"` (server pairs by group size), `"claim"`, `"mutual"`,
+`"propose"`, or `"delegated"`. Pass `create: true` to open the pool if it does not
+exist yet.
 
 ## Language-Specific API Differences
 
@@ -230,5 +254,33 @@ class StarfishError extends Error {
   details?: unknown;
 }
 ```
+
+### Pool Types
+
+```ts
+interface PoolEnterOptions {
+  groupSize: number;
+  mode?: "auto" | "claim" | "mutual" | "propose" | "delegated"; // default "auto"
+  role?: "member" | "matchmaker";                               // default "member"
+  attributes?: Record<string, unknown>;
+  filter?: Record<string, string>;
+  create?: boolean;
+}
+
+interface PoolMember {
+  id: string;
+  attributes?: Record<string, unknown>;
+}
+
+interface PoolMatchedEvent {
+  pool: string;
+  session: string;
+  peers: PoolMember[];
+}
+```
+
+In Python these correspond to the `PoolEnterOptions`, `PoolMember`, and
+`PoolMatchResult` dataclasses. See the [Pool reference](../reference/pool#types) for the
+Python field definitions.
 
 See [Troubleshooting](./troubleshooting) for a list of all error codes.

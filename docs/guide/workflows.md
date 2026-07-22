@@ -63,6 +63,174 @@ try client.leave()
 
 :::
 
+## Pool Matchmaking
+
+Pools pair clients into a server-created session. A client enters a pool, waits to be
+matched, and then joins the returned session. See [Core Concepts](./core-concepts#pools)
+for the mode overview and the [Pool reference](../reference/pool) for the full API.
+
+### Auto-pairing
+
+The simplest flow: enter an `auto` pool, await the match, join the session.
+
+::: code-group
+
+```ts [TypeScript]
+await client.join("lobby");
+
+client.pool.matched$.subscribe(async ({ session }) => {
+  await client.leave();
+  await client.join(session);
+  // ...you're now in the matched session with your partner.
+});
+
+await client.pool.enter("duets", { groupSize: 2, mode: "auto", create: true });
+```
+
+```python [Python]
+from starfish import PoolEnterOptions
+
+await client.join("lobby")
+
+async def on_match(result):
+    await client.leave()
+    await client.join(result.session)
+
+client.pool_matched.subscribe(on_match)
+
+await client.pool_enter(PoolEnterOptions(pool="duets", group_size=2, mode="auto"))
+```
+
+:::
+
+### Claiming a partner
+
+In `claim` mode the member list is visible. Observe it, then claim a specific member;
+the match fires immediately and both clients receive `matched`.
+
+::: code-group
+
+```ts [TypeScript]
+await client.join("lobby");
+
+client.pool.members$.subscribe((members) => {
+  renderCandidates(members); // show who's waiting
+});
+
+client.pool.matched$.subscribe(async ({ session }) => {
+  await client.leave();
+  await client.join(session);
+});
+
+await client.pool.enter("arena", { groupSize: 2, mode: "claim", create: true });
+
+// Later, when the user picks someone:
+function onPick(targetId: string) {
+  client.pool.claim("arena", targetId);
+}
+```
+
+```python [Python]
+from starfish import PoolEnterOptions
+
+await client.join("lobby")
+
+client.pool_members("arena").subscribe(lambda members: render_candidates(members))
+
+async def on_match(result):
+    await client.leave()
+    await client.join(result.session)
+
+client.pool_matched.subscribe(on_match)
+
+await client.pool_enter(PoolEnterOptions(pool="arena", group_size=2, mode="claim"))
+
+# Later, when the user picks someone:
+async def on_pick(target_id):
+    await client.pool_claim("arena", target_id)
+```
+
+:::
+
+### Proposing (accept / reject)
+
+In `propose` mode, one side proposes with `claim` and the other accepts or rejects. In
+TypeScript, incoming proposals arrive on `pool.proposal$`.
+
+```ts
+await client.join("lobby");
+
+client.pool.proposal$.subscribe(({ from }) => {
+  if (wantToPairWith(from)) {
+    client.pool.accept("arena", from);
+  } else {
+    client.pool.reject("arena", from);
+  }
+});
+
+client.pool.matched$.subscribe(async ({ session }) => {
+  await client.leave();
+  await client.join(session);
+});
+
+await client.pool.enter("arena", { groupSize: 2, mode: "propose", create: true });
+
+// Propose to a specific member:
+client.pool.claim("arena", someMemberId);
+```
+
+### Delegated matchmaker
+
+In `delegated` mode a trusted client enters with `role: "matchmaker"`, watches members
+arrive, and forms groups explicitly with `assign()`. The matchmaker is not consumed by
+matching and can assign repeatedly.
+
+::: code-group
+
+```ts [TypeScript]
+await client.join("lobby");
+
+client.pool.members$.subscribe((members) => {
+  if (members.length >= 4) {
+    const ids = members.map((m) => m.id);
+    // Two groups of two.
+    client.pool.assign("teams", [
+      [ids[0], ids[1]],
+      [ids[2], ids[3]],
+    ]);
+  }
+});
+
+await client.pool.enter("teams", {
+  groupSize: 2,
+  mode: "delegated",
+  role: "matchmaker",
+  create: true,
+});
+```
+
+```python [Python]
+from starfish import PoolEnterOptions
+
+await client.join("lobby")
+
+async def on_members(members):
+    if len(members) >= 4:
+        ids = [m.id for m in members]
+        await client.pool_assign("teams", [[ids[0], ids[1]], [ids[2], ids[3]]])
+
+client.pool_members("teams").subscribe(on_members)
+
+await client.pool_enter(PoolEnterOptions(
+    pool="teams", group_size=2, mode="delegated", role="matchmaker",
+))
+```
+
+:::
+
+Regular members in a delegated pool just enter and wait for `matched` — only the
+matchmaker calls `assign()`.
+
 ## Pub/Sub with Topics
 
 Topics are the primary way to broadcast messages to interested clients.

@@ -52,11 +52,12 @@ async function main() {
     });
   });
 
-  // Enter the pool — auto mode pairs clients automatically
+  // Enter the pool — auto mode pairs clients automatically.
+  // create: true lets whichever client arrives first open the pool.
   console.log("Both clients entering pool 'distant-touch'...");
-  await clientA.pool.enter("distant-touch", { groupSize: 2 });
+  await clientA.pool.enter("distant-touch", { groupSize: 2, create: true });
   console.log("clientA entered the pool.");
-  await clientB.pool.enter("distant-touch", { groupSize: 2 });
+  await clientB.pool.enter("distant-touch", { groupSize: 2, create: true });
   console.log("clientB entered the pool.");
 
   // Wait for both clients to be matched

@@ -2,9 +2,13 @@
 
 API reference documentation for Starfish SDKs and servers.
 
-## Sections
+## Available
 
-Content coming soon. The reference will cover:
+- [Pool Matchmaking API](./pool) — the full pool API for the TypeScript and Python SDKs, all five modes, types, protocol frames, and error codes
+
+## Coming soon
+
+The reference will also cover:
 
 - Protocol specification
 - TypeScript SDK API

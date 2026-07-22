@@ -50,3 +50,17 @@ Collaborative state using replace, merge, and counter operations with version tr
 Synchronized timing across clients using round-trip measurement and scheduled callbacks.
 
 **SDK features:** `clock.sync()`, `clock.now()`, `clock.offset`, `at()`
+
+## Scenarios
+
+Larger, end-to-end examples that each dramatize one creative project and combine
+several SDK features. Every scenario lives in its own folder under `src/scenarios/`
+with a dedicated README. They mirror the [documentation scenarios](../../docs/scenarios/).
+
+| Scenario                                                 | Run                               | Features                                                      |
+| -------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------- |
+| [Constellation](src/scenarios/constellation/README.md)   | `npm run scenario:constellation`  | Presence, broadcast, clock sync                               |
+| [Duet](src/scenarios/duet/README.md)                     | `npm run scenario:duet`           | Pools, WebRTC (WS fallback in Node), unreliable delivery      |
+| [The Long Mural](src/scenarios/the-long-mural/README.md) | `npm run scenario:the-long-mural` | Shared data ops, scopes, optimistic concurrency               |
+| [Chorus](src/scenarios/chorus/README.md)                 | `npm run scenario:chorus`         | Presence, broadcast, `latest`/`critical` delivery, clock sync |
+| [Wander](src/scenarios/wander/README.md)                 | `npm run scenario:wander`         | Direct messaging, request/reply                               |

@@ -183,7 +183,7 @@ class Pool:
             )
             self.matched.emit(result)
 
-        elif frame.header.method == "member.joined":
+        elif frame.header.method == "member-joined":
             pool_name = payload.get("pool", "")
             member_data = payload.get("member", {})
             member = PoolMember(
@@ -196,7 +196,7 @@ class Pool:
                 current.append(member)
                 obs.set(current)
 
-        elif frame.header.method == "member.left":
+        elif frame.header.method == "member-left":
             pool_name = payload.get("pool", "")
             member_id = payload.get("memberId", "")
             obs = self._member_observables.get(pool_name)
