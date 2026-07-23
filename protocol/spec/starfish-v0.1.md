@@ -131,6 +131,10 @@ Server replies with a welcome response:
       "iceServers": [
         { "urls": "stun:stun.l.google.com:19302" }
       ]
+    },
+    "media": {
+      "modes": ["mesh"],
+      "sfu": null
     }
   }
 }
@@ -138,6 +142,11 @@ Server replies with a welcome response:
 
 The `auth.required` field advertises whether the server requires authentication.
 See [3.4 Authentication](#34-authentication).
+
+The optional `media` capability block advertises realtime media-plane support
+and is additive. See [18.5 Server Media Capability](#185-server-media-capability--welcomemedia).
+A server that omits it is assumed to support the mesh phase (signaling relay is
+unchanged) or, by policy, no media.
 
 ### 3.2 Version Negotiation
 
@@ -482,7 +491,7 @@ the `resource`/`method` combination and is defined per message type in each
 section below.
 
 For responses, `payload` always includes a `status` field: `"ok"` for success
-or `"error"` for failure (see Section 19).
+or `"error"` for failure (see Section 20).
 
 Applications MUST place custom data inside `payload`, not in `header`.
 
@@ -1888,7 +1897,263 @@ The subscription map may be stale. This is acceptable -- Starfish uses
 
 ---
 
-## 18. Acknowledgements
+## 18. Media Plane
+
+> **Status:** additive minor revision. This section introduces a realtime
+> **media plane** for sharing WebRTC `MediaStream`s (camera, mic, screen,
+> `canvas.captureStream()`). It reuses the existing RTC signaling (§14), the
+> DataChannels (§15), and the topic subscription map (§17). It adds **no new
+> frame envelope**, **no protocol `v` bump**, and **no required server changes**
+> for the mesh phase. Design reference: `protocol/rfcs/0001-realtime-media.md`.
+
+Where the data plane (§8–§12) carries JSON payloads, the media plane carries
+live WebRTC tracks between peers. Media addressing **mirrors data addressing**:
+the same session / subset / topic scopes apply. The plane is designed so an
+**SFU (Selective Forwarding Unit) can be introduced later** (§18.6) without any
+change to application code or the frame envelope.
+
+### 18.1 Conceptual Model
+
+The media plane is **declarative**: a client states *what* it wants to share and
+*with whom* (a scope); the SDK realizes that intent over the active topology
+(peer-to-peer mesh now, SFU later). Applications never touch transceivers,
+renegotiation, or glare.
+
+| Concept          | Meaning                                                                 |
+| ---------------- | ----------------------------------------------------------------------- |
+| **Publication**  | A local track/stream the client shares, with a declared **scope**.      |
+| **Subscription** | A client's declared interest in receiving media for a topic.            |
+| **RemoteStream** | Inbound media, tagged `{ peerId, topic? }` for the receiving app.       |
+| **Scope**        | Where a publication is delivered: `session`, `audience`, or `topic`.    |
+
+**Scope** is one of:
+
+- `session` — every peer in the session (the default; the broadcast case).
+- `audience: [peerId, …]` — a specific subset of peers (the direct case).
+- `topic: name` — whoever is subscribed to that media topic (the pub/sub case).
+
+Scope is **declarative intent**, never an imperative "open these connections."
+This is precisely what lets the mesh and a future SFU share one API (§18.6).
+
+### 18.2 Media Addressing
+
+Media addressing mirrors the data plane one-to-one. The verbs are
+**`share` / `unshare`** — deliberately distinct from topic `publish`/`subscribe`
+(§8) so that sharing a track to a media topic does not collide with publishing a
+JSON message on a data topic.
+
+| Data plane                              | Media plane                                 | Reaches               |
+| --------------------------------------- | ------------------------------------------- | --------------------- |
+| `broadcast(payload)` (§10)              | `share(stream)`                             | all peers in session  |
+| `send(to, payload)` (§9)                | `share(stream, { to })`                     | a specific peer/subset|
+| `publish(topic)` + `subscribe(topic)` (§8) | `share(stream, { topic })` + `subscribe(topic)` | media-topic subscribers |
+
+**API contract (`share` / `unshare`):**
+
+- `share(stream, scope?)` → **Publication**. Begins delivering the stream's
+  tracks to the resolved scope (default `session`). Idempotent per stream: a
+  second `share` of the same stream updates its scope rather than duplicating.
+- A **Publication** exposes: `setEnabled(bool)` (mute/unmute without
+  renegotiation), `replaceTrack(track)` (swap the source in place, e.g.
+  camera → screenshare, without a re-share), and `stop()` (tear down).
+- `unshare(publication)` (equivalently `publication.stop()`) → stops delivery,
+  removes the track(s), and renegotiates. Receivers observe `streamended`.
+- `subscribe(topic, opts?)` / `unsubscribe(topic)` → declares/withdraws interest
+  in a media topic. Reuses the same subscription authority as data topics (§17).
+
+Because media is per-`RTCPeerConnection`, **subset targeting is the underlying
+primitive**: `session` scope is "add to every peer," `audience` is "add only to
+these peers," and `topic` is "add to the peers the subscription map lists"
+(§18.3).
+
+### 18.3 Topic-Scoped Media (reuses the §17 subscription map)
+
+Topic-scoped media introduces **no new discovery subsystem**. It reuses the
+existing `topic/peers` subscription map (§17) verbatim:
+
+1. A receiver calls `subscribe(topic)` — the same server-side subscription
+   authority as data topics (§17). Topic subscription remains server-authoritative.
+2. The server pushes the updated subscriber list to publishers via the existing
+   `topic/peers` event (§17.1).
+3. A publisher sharing on that topic adds its track to each listed subscriber's
+   peer connection (opening one if needed) and renegotiates (§18.4).
+
+The map's **eventual-consistency and receiver-validation rules (§17) apply to
+media unchanged**:
+
+- A newly subscribed receiver may not see a publisher's track until that
+  publisher receives the updated `topic/peers` event. A recently unsubscribed
+  receiver may briefly still receive a track; the publisher removes it on the
+  next map update.
+- **Receivers MUST validate** inbound media topic tags (§18.4) against their own
+  subscription set, exactly as §17 requires for RTC topic messages. Media for a
+  topic the receiver is not subscribed to is dropped/detached silently.
+
+Membership churn is handled by renegotiation: subscribe → publisher adds a track
+and renegotiates; unsubscribe → publisher removes the track and renegotiates.
+
+### 18.4 Track ↔ Topic Mapping — `media.map`
+
+SDP m-lines carry no application-level topic name, so a publisher cannot rely on
+SDP alone to tell a receiver *why* a track arrived. When a publisher adds a track
+for a scope, it sends a small **`media.map`** control message over the
+`starfish.control` DataChannel (§15.1) tagging each track with its topic (or
+marking it untagged for `session`/`audience` scope). The receiver uses it to
+label the inbound `ontrack` as a **RemoteStream** `{ peerId, topic? }`.
+
+`media.map` is the **only media-specific protocol addition in the mesh phase**.
+It is a peer-to-peer control frame using the standard envelope:
+
+```json
+{
+  "header": {
+    "id": "media_001",
+    "resource": "media",
+    "method": "map",
+    "kind": "event",
+    "session": "show-abc",
+    "from": "client_a7f3"
+  },
+  "payload": {
+    "tracks": [
+      { "mid": "0", "streamId": "stage-cam-stream", "topic": "stage-cam" },
+      { "mid": "1", "streamId": "cam-stream", "topic": null }
+    ]
+  }
+}
+```
+
+- Each entry keys a track by its `mid` (SDP media-line id) and/or `streamId`
+  (the `MediaStream.id`). Receivers SHOULD prefer `mid` when present.
+- `topic: null` (or omitted) marks a track shared with `session` or `audience`
+  scope — it has no topic tag; the receiver renders it as
+  `{ peerId, topic: null }`.
+- `media.map` is sent (or re-sent) whenever the publisher's track set changes,
+  after the corresponding renegotiation (§18.3). It is advisory metadata: a
+  receiver that has not yet received the map for a track MAY hold the track
+  untagged until the map arrives.
+
+### 18.5 Server Media Capability — `welcome.media`
+
+The server advertises media support with an **optional** `media` capability
+block in the `server.welcome` payload (§3.1). It is additive; a server that
+omits it is assumed to support the mesh phase (signaling relay is unchanged) or,
+by policy, no media at all.
+
+```json
+{
+  "payload": {
+    "status": "ok",
+    "version": 1,
+    "clientId": "client_a7f3",
+    "media": {
+      "modes": ["mesh"],
+      "sfu": null
+    }
+  }
+}
+```
+
+- `modes` — the media topologies the server offers, in preference order. `"mesh"`
+  is the floor: it requires only the signaling relay that already exists (§13.1),
+  so any server that relays RTC can advertise `["mesh"]`. A future server adds
+  `"sfu"`, e.g. `["mesh", "sfu"]`.
+- `sfu` — reserved SFU **endpoint descriptor**, `null` in the mesh phase. When an
+  SFU is present it carries the routing information a client needs to open an
+  upstream connection to it (endpoint identity/role and any transport hints). Its
+  exact shape is intentionally left open for the SFU phase (see
+  `0001-realtime-media.md` §14) and MUST be ignored by clients that only speak
+  mesh.
+
+The client selects a mode from what the server offers intersected with session
+policy. **Mesh is always the fallback.** A client that understands only mesh
+ignores unknown modes and the `sfu` descriptor.
+
+### 18.6 SFU Forward-Compatibility Seams
+
+These seams cost little to include now and are expensive to retrofit. **None
+require an SFU to exist**; they exist so that enabling an SFU later requires
+**no application-code change and no envelope change**.
+
+1. **Capability negotiation** (§18.5). The server advertises `modes` and, when
+   present, an `sfu` endpoint descriptor. Adding `"sfu"` is purely additive.
+
+2. **Declarative scope, not imperative connections** (§18.1). Because `share`
+   takes `{ session | to | topic }` — audience *intent* — the identical call
+   means:
+   - *mesh:* the SDK opens peer connections to the audience and enforces
+     membership client-side.
+   - *sfu:* the SDK opens **one** upstream connection to the SFU and passes the
+     audience/topic as routing metadata; the SFU enforces the ACL and fans out.
+
+   **Application code is byte-for-byte identical across topologies.**
+
+3. **Endpoint-neutral signaling.** The `rtc` offer/answer/ICE flow (§14) already
+   works against any endpoint that speaks it — a peer **or** an SFU node. The
+   signaling target (`header.to`) is therefore treated as an **abstract
+   endpoint**: a peer `clientId` *or* a media-node id/role. §25 (Security Rules)
+   carries the carve-out that permits an SFU endpoint as a signaling target.
+
+4. **Topic-first semantics are SFU-native.** An SFU *is* a pub/sub media router:
+   publishers push one upstream, subscribers pull downstream. Because media
+   addressing is already pub/sub-shaped (§18.2), only the SDK's "which endpoint
+   do I open a connection to" resolution changes — not the protocol.
+
+5. **Reserved quality/selection fields.** Two optional fields are **reserved
+   now** and are **no-ops in mesh**, so introducing them later is not an API
+   break:
+   - `share(stream, { simulcast: [ … ] })` — reserved encodings/layers a
+     publisher may offer. Ignored in mesh (a mesh publisher sends a single
+     encoding per peer).
+   - `subscribe(topic, { quality })` — reserved layer/quality preference for a
+     subscriber. Ignored in mesh; meaningful to an SFU for layer selection and
+     pause/resume.
+
+   Implementations MUST accept and ignore these fields in the mesh phase so that
+   app code written against them keeps working when an SFU is enabled.
+
+Switching a session from mesh to SFU is therefore a **server capability plus an
+SDK topology strategy** — with zero change to application code and no envelope
+change.
+
+### 18.7 Scaling Boundary (mesh vs SFU)
+
+The media plane has a hard scaling boundary that applications must understand:
+
+- **Mesh has no server-side media fan-out.** Sharing one stream to *K*
+  subscribers means *K* encoded uploads from the publisher (simulcast mitigates
+  but does not remove this). Unlike **data** topics — which the server fans out
+  cheaply (§8) — **media topics in mesh do not** fan out server-side.
+- Consequently, **subset / small-group media is the well-suited primary case**
+  for the mesh phase. A media topic with many subscribers is a mesh foot-gun and
+  is the signal to enable SFU mode.
+- **An SFU is a real media server** (ingest/egress, simulcast layer selection,
+  bandwidth management, TURN, horizontal scaling). "Keeping the door open" (§18.6)
+  means the protocol and SDK do **not foreclose** an SFU — it does **not** mean
+  an SFU is provided in this revision.
+
+### 18.8 Media Security & Authorization
+
+Media inherits session authorization and extends the RTC rules of §25:
+
+- **Signaling scope.** A client may only signal media to peers — or, when
+  advertised, an SFU endpoint — **within its own session** (§25, extended for the
+  SFU endpoint).
+- **Mesh enforcement is client-side.** In the mesh phase, `audience` membership
+  and media-topic membership are enforced by the **publishing client** — it
+  simply does not add the track to a peer connection for a non-audience,
+  non-subscribed peer. This is only as strong as the publisher: a malicious
+  publisher could add a track anywhere it has a peer connection.
+- **SFU enforcement is server-side.** Under an SFU, the audience/topic ACL is
+  enforced by the **server**, which is strictly stronger than mesh. Applications
+  requiring authoritative media access control MUST use SFU mode when available.
+- **Receiver validation.** As in §17, receivers MUST validate inbound media
+  topic tags (§18.4) against their own subscription set and drop/detach
+  unauthorized media silently.
+
+---
+
+## 19. Acknowledgements
 
 Any frame may request acknowledgement via `header.delivery.requireAck: true`.
 
@@ -1958,12 +2223,12 @@ Negative acknowledgement:
 
 ---
 
-## 19. Error Format
+## 20. Error Format
 
 All responses include a `status` field in `payload`: `"ok"` for success,
 `"error"` for failure.
 
-### 19.1 Structured Error Object
+### 20.1 Structured Error Object
 
 ```typescript
 type StarfishError = {
@@ -2003,7 +2268,7 @@ The `error.resource` field identifies which resource produced the error. The
 Error responses may include an additional `details` field in `payload` with
 operation-specific context (e.g. `currentData` for conflict errors).
 
-### 19.2 Error Codes
+### 20.2 Error Codes
 
 | Code                           | Resource  | Retry | Description                               |
 | ------------------------------ | --------- | ----- | ----------------------------------------- |
@@ -2036,7 +2301,7 @@ operation-specific context (e.g. `currentData` for conflict errors).
 
 ---
 
-## 20. Heartbeats
+## 21. Heartbeats
 
 Starfish uses application-level heartbeats (not WebSocket ping frames) for
 visibility across both transports and to enable latency measurement.
@@ -2081,7 +2346,7 @@ RTC peers MAY send heartbeats over the control channel using the same format.
 
 ---
 
-## 21. Clock Sync
+## 22. Clock Sync
 
 Server time sync is part of the WebSocket control plane.
 
@@ -2131,7 +2396,7 @@ starfish.at(time, callback)    // schedule at server time
 
 ---
 
-## 22. Event Stream
+## 23. Event Stream
 
 All lifecycle and protocol events use normal Starfish frames. The SDK provides
 filtered event streams.
@@ -2144,7 +2409,7 @@ starfish.events$({ topic: "lights" })
 starfish.events$({ from: "client_a7f3" })
 ```
 
-### 22.1 Event Types
+### 23.1 Event Types
 
 | Resource    | Method          | Trigger                              |
 | ----------- | --------------- | ------------------------------------ |
@@ -2167,12 +2432,15 @@ starfish.events$({ from: "client_a7f3" })
 | `pool`      | `assign`        | Matchmaker: assignment confirmed (response). |
 | `rtc`       | `connected`     | RTC peer connection established.     |
 | `rtc`       | `disconnected`  | RTC peer connection lost.            |
+| `media`     | `map`           | Track↔topic mapping received (§18.4).|
+| `media`     | `stream`        | Inbound media stream started.        |
+| `media`     | `streamended`   | Inbound media stream ended.          |
 | `ack`       | `ack`           | Positive acknowledgement.            |
 | `ack`       | `nack`          | Negative acknowledgement.            |
 
 ---
 
-## 23. SDK API Reference
+## 24. SDK API Reference
 
 Recommended JavaScript/TypeScript API surface:
 
@@ -2233,6 +2501,23 @@ starfish.broadcast({ cue: "start" }, { includeSelf: false })
 await starfish.save({ key: "score", data: 12, op: "replace", scope: "session" })
 const score = await starfish.get({ key: "score", scope: "session" })
 
+// Media (mesh now, SFU-ready -- see §18)
+const pub = await starfish.media.share(cameraStream)                 // session (default)
+const pub = await starfish.media.share(camStream, { to: ["client_b912"] })  // subset
+const pub = await starfish.media.share(stageCam, { topic: "stage-cam" })    // topic
+pub.setEnabled(false)                 // mute without renegotiation
+await pub.replaceTrack(screenTrack)   // swap source in place, no re-share
+starfish.media.unshare(pub)           // or pub.stop()
+await starfish.media.subscribe("stage-cam")                          // receive a media topic
+starfish.media.unsubscribe("stage-cam")
+starfish.media.on("stream", ({ peerId, topic, stream }) => { /* mount */ })
+starfish.media.on("streamended", ({ peerId, topic }) => { /* unmount */ })
+starfish.media.remote$                // Observable of RemoteStream { peerId, topic }
+starfish.getPeerConnection("client_b912")   // escape hatch: the raw RTCPeerConnection
+// Reserved, no-op in mesh, meaningful under an SFU (§18.6):
+//   starfish.media.share(stream, { simulcast: [...] })
+//   starfish.media.subscribe("stage-cam", { quality: "high" })
+
 // Presence
 starfish.presence.set({ role: "dancer", color: "red", x: 0.4, y: 0.8 })
 starfish.presence$   // Observable of all presence
@@ -2251,7 +2536,7 @@ starfish.at(serverTime, callback)
 
 ---
 
-## 24. Security Rules
+## 25. Security Rules
 
 Servers MUST enforce the following:
 
@@ -2264,6 +2549,13 @@ Servers MUST enforce the following:
 5. Data operations are server-authoritative. Clients cannot bypass the server
    for data mutations.
 6. WebRTC signaling is only allowed between clients in the same session.
+   **Media-plane carve-out:** a signaling target MAY also be an SFU/media-node
+   endpoint advertised in `welcome.media` (§18.5) for the client's session. The
+   endpoint is treated as an abstract in-session signaling peer (§18.6);
+   signaling to endpoints outside the session remains prohibited. Under an SFU,
+   audience and media-topic membership are enforced server-side (§18.8). In the
+   mesh phase, media membership is enforced client-side by the publisher and is
+   only as strong as that client (§18.8).
 7. Servers MAY require authentication via the handshake `auth` envelope
    ([3.4 Authentication](#34-authentication)), rejecting unauthenticated clients
    with `auth.required` / `auth.failed`. Credentials MUST be validated in
@@ -2277,7 +2569,7 @@ Servers MUST enforce the following:
 
 ---
 
-## 25. Payload Limits
+## 26. Payload Limits
 
 Recommended defaults:
 
@@ -2298,7 +2590,7 @@ hashes, or external asset references instead.
 
 ---
 
-## 26. Binary Payloads
+## 27. Binary Payloads
 
 v0.1 is JSON-first. Binary support is deferred to a future version.
 
@@ -2326,7 +2618,7 @@ of this specification.
 
 ---
 
-## 27. Versioning
+## 28. Versioning
 
 The protocol version is the `v` field in the header. Current version: `1`.
 
@@ -2341,9 +2633,18 @@ lifetime. Frames MAY omit the `v` field.
 If no common version exists, the server responds with a
 `protocol.unsupported_version` error and closes the connection.
 
+**Minor revisions.** Additive changes that introduce no breaking behavior — new
+optional header/payload fields, new resources, or new event methods — ship as
+**minor spec revisions without a `v` bump**. The **media plane** (§18) is such a
+revision: it adds the optional `welcome.media` capability (§18.5), the
+peer-to-peer `media.map` control message (§18.4), and `media/*` events (§23.1),
+but does **not** change the frame envelope (§4) and does **not** increment `v`.
+Clients that do not understand the media plane ignore its optional fields and
+messages.
+
 ---
 
-## 28. Design Principles
+## 29. Design Principles
 
 1. **One envelope, two transports.** Every message uses the same frame format
    regardless of whether it travels over WebSocket or WebRTC.

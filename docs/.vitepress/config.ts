@@ -6,6 +6,12 @@ export default defineConfig({
   description:
     "Transport-neutral realtime protocol for creative coding",
 
+  // Keep internal-only docs (e.g. competing-software positioning) out of the
+  // public build. Anything under docs/internal/ is excluded from the site
+  // output and the local search index. It is intentionally never wired into
+  // the nav/sidebar below.
+  srcExclude: ["internal/**"],
+
   themeConfig: {
     nav: [
       { text: "Guide", link: "/guide/" },

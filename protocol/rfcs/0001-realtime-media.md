@@ -3,7 +3,7 @@
 - **Status:** Draft / proposal (no code changes yet)
 - **Author:** design discussion
 - **Affects:** protocol spec, TypeScript SDK first; other SDKs and an optional SFU later
-- **Relationship to spec:** additive to `protocol/spec/starfish-v0.1.md` §13–17, §24. No breaking change; no envelope change. Targets a minor spec revision, not a protocol version bump.
+- **Relationship to spec:** additive to `protocol/spec/starfish-v0.1.md` §13–17, §25. No breaking change; no envelope change. Targets a minor spec revision, not a protocol version bump.
 
 ---
 
@@ -31,11 +31,11 @@ Starfish today (v0.1) is JSON-first: WebSocket control plane + optional WebRTC *
 - Media in non-browser SDKs (Python/Go/Swift/JVM) beyond leaving room for it. Those SDKs have **no RTC at all** today and need the full data-plane first plus a native WebRTC lib.
 - Recording, transcoding, server-side mixing.
 
-## 4. Design principles (alignment with spec §28)
+## 4. Design principles (alignment with spec §29)
 
-- **One media API, pluggable topology.** Extends §28.1 (“one envelope, two transports”) to “one media API, two topologies (mesh now, SFU later).”
-- **Clients declare intent; the transport realizes it.** Targeting is *declarative scope* (audience/topic), never imperative “open these connections.” This is what lets mesh and SFU share one API (§28.4).
-- **Server provides mechanics, clients provide intelligence** (§28.5). In mesh, the server only relays signaling (as today). An SFU later is a *media-plane mechanic* the server offers; routing *policy* (who’s in the audience, which topic) stays client-declared.
+- **One media API, pluggable topology.** Extends §29.1 (“one envelope, two transports”) to “one media API, two topologies (mesh now, SFU later).”
+- **Clients declare intent; the transport realizes it.** Targeting is *declarative scope* (audience/topic), never imperative “open these connections.” This is what lets mesh and SFU share one API (§29.4).
+- **Server provides mechanics, clients provide intelligence** (§29.5). In mesh, the server only relays signaling (as today). An SFU later is a *media-plane mechanic* the server offers; routing *policy* (who’s in the audience, which topic) stays client-declared.
 
 ## 5. Conceptual model
 
@@ -113,7 +113,7 @@ The point of doing this now: these seams are cheap to include upfront and expens
 2. **Declarative scope, not imperative connections.** Because `share` takes `{ session | to | topic }` (audience *intent*) rather than “connect to peers X,Y,” the same call means:
    - *mesh:* SDK opens pcs to the audience and enforces client-side.
    - *sfu:* SDK opens **one** upstream pc to the SFU and passes the audience/topic as routing metadata; the SFU enforces the ACL and fans out. **App code is identical.**
-3. **Endpoint-neutral signaling.** The `rtc` offer/answer/ICE flow already works against any endpoint that speaks it — a peer *or* an SFU node. Keep the signaling target abstract (a peer id *or* a media-node id/role). Forward-compat note for spec §24: its “RTC signaling only between clients in the same session” rule needs a carve-out allowing an SFU endpoint as a target.
+3. **Endpoint-neutral signaling.** The `rtc` offer/answer/ICE flow already works against any endpoint that speaks it — a peer *or* an SFU node. Keep the signaling target abstract (a peer id *or* a media-node id/role). Forward-compat note for spec §25: its “RTC signaling only between clients in the same session” rule needs a carve-out allowing an SFU endpoint as a target.
 4. **Topic-first semantics = SFU-native.** An SFU is literally a pub/sub media router: publishers push one upstream, subscribers pull downstream. Because media addressing is already pub/sub-shaped (§6), the SFU path is a drop-in — only the SDK’s “who do I open a pc to” resolution changes.
 5. **Quality/selection hooks (optional, reserved now).** Allow `share(stream, { simulcast: [...] })` and `subscribe(topic, { quality })` as optional fields that are no-ops in mesh but meaningful to an SFU (layer selection, pause/resume). Reserving the fields now avoids an API break later.
 
@@ -129,19 +129,19 @@ Net: switching a session from mesh to SFU is a **server capability + an SDK topo
 
 - `server.welcome`: optional `media` capability block (modes, optional SFU endpoint).
 - Control-channel message: `media.map` (track↔topic tag). Small, versioned with the media capability.
-- Optional, reserved: `simulcast` on share, `quality` on subscribe; SFU-target carve-out in §24.
+- Optional, reserved: `simulcast` on share, `quality` on subscribe; SFU-target carve-out in §25.
 - No change to the frame envelope, no protocol `v` bump; ships as a minor spec revision documenting the media plane.
 
 ## 12. Security / authorization
 
-- Media inherits session authorization: you can only signal to peers/SFU within your session (§24, extended for the SFU endpoint).
+- Media inherits session authorization: you can only signal to peers/SFU within your session (§25, extended for the SFU endpoint).
 - `audience` and media-topic membership are **enforced client-side in mesh** (a publisher simply doesn’t add the track for non-audience peers) and **server-side by the SFU** later. Document that mesh audience enforcement is only as strong as the publishing client — an SFU strengthens it.
 
 ## 13. Delivery plan (protocol-first)
 
 Following the project’s protocol-first scoping: land the foundation, then split per-project tasks.
 
-1. **Foundation (protocol):** media addressing model, `welcome` media capability, `media.map` tag, and the SFU seams (declarative scope, endpoint-neutral signaling, reserved quality fields, §24 carve-out). Spec revision only.
+1. **Foundation (protocol):** media addressing model, `welcome` media capability, `media.map` tag, and the SFU seams (declarative scope, endpoint-neutral signaling, reserved quality fields, §25 carve-out). Spec revision only.
 2. **TS SDK (mesh):** `client.media` (share/subscribe/scope), perfect-negotiation renegotiation engine, `topic/peers` reuse, track↔topic tagging, raw `getPeerConnection` accessor. Ships real value in browsers.
 3. *(after foundation lands, split out)* adapter helpers (p5 `remoteVideo(peerId)`, Three, TouchDesigner); per-SDK media (Python/Go) each gated on that SDK first getting RTC; **SFU** server role + SDK `topology: "sfu"` strategy.
 
