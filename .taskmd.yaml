@@ -15,3 +15,9 @@ phases:
   - id: v0.3
     name: "v0.3"
     description: "Ecosystem expansion — TouchDesigner, Swift SDK, JVM SDK/server"
+  - id: v0.4
+    name: "v0.4"
+    description: "Realtime media plane — WebRTC MediaStream sharing (mesh now, SFU-ready). See protocol/rfcs/0001-realtime-media.md"
+  - id: v0.5
+    name: "v0.5"
+    description: "SFU media scaling — optional server-side selective forwarding for large-audience media. See protocol/rfcs/0001-realtime-media.md §9"

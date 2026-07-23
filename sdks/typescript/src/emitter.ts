@@ -1,3 +1,14 @@
+/**
+ * Minimal, dependency-free reactive primitives.
+ *
+ * `Observable<T>` is BehaviorSubject-like (holds a current `.value`); `EventStream<T>`
+ * is Subject-like (fire-and-forget). The `$` naming convention is borrowed from RxJS,
+ * but these are intentionally NOT RxJS — only `subscribe()` (+ `value`/`set` on
+ * `Observable`) exist, and streams never `complete`/`error`.
+ *
+ * For why the SDK stays lightweight instead of depending on RxJS — and a tiny adapter
+ * to bridge these into real RxJS Observables — see docs/adr/0001-lightweight-reactive-primitives.md.
+ */
 export type Unsubscribe = () => void;
 
 export class Observable<T> {
